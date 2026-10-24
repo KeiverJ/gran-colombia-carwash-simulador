@@ -5,7 +5,7 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1rem 1.25rem 1.25rem;
-  background: var(--bg);
+  background: var(--bg-tarjeta);
 }
 
 .panel h2,
@@ -81,7 +81,7 @@
   font-size: 0.9rem;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--bg);
+  background: var(--bg-tarjeta);
   color: var(--text);
 }
 
