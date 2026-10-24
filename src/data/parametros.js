@@ -28,11 +28,35 @@ export const ACABADO_PLAN_MIN = {
   3: 18.5, //    74 min / 4 motos
 }
 
-/** Proporción de motos que contrata cada plan: 0/23, 19/23 y 4/23. */
+/** Motos de cada plan contadas en la visita: 0, 19 y 4, de 23 en total. */
+export const CONTEO_PLANES = {
+  1: 0,
+  2: 19,
+  3: 4,
+}
+
+/** Total de motos observadas en la visita del 17 de octubre de 2026. */
+export const TOTAL_MOTOS_CONTADAS = 23
+
+/**
+ * Proporción de motos que contrata cada plan, redondeada como la imprime el
+ * documento del proyecto: 0/23, 19/23 y 4/23.
+ */
 export const PROPORCION_PLAN = {
   1: 0,
   2: 0.8261,
   3: 0.1739,
+}
+
+/**
+ * La misma proporción sin redondear, dividiendo los conteos por el total.
+ * Es la que conviene darle a la simulación: suma exactamente 1 y no arrastra
+ * el redondeo a cuatro decimales del documento (la diferencia es 1,3·10⁻⁵).
+ */
+export const PROPORCION_PLAN_EXACTA = {
+  1: CONTEO_PLANES[1] / TOTAL_MOTOS_CONTADAS,
+  2: CONTEO_PLANES[2] / TOTAL_MOTOS_CONTADAS,
+  3: CONTEO_PLANES[3] / TOTAL_MOTOS_CONTADAS,
 }
 
 /**

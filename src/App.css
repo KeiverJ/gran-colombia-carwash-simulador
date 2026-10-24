@@ -1,26 +1,29 @@
 .pagina {
-  max-width: 44rem;
+  max-width: 72rem;
   margin: 0 auto;
-  padding: 3rem 1.25rem;
+  padding: 2rem 1.25rem 3rem;
 }
 
 .pagina h1 {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
   line-height: 1.2;
+  font-size: 1.6rem;
 }
 
 .entrada {
-  margin-bottom: 1rem;
-}
-
-.dato {
   margin-bottom: 1.5rem;
+  max-width: 44rem;
 }
 
-.aviso {
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--accent);
-  border-radius: 6px;
-  background: var(--accent-bg);
+.columnas {
+  display: grid;
+  grid-template-columns: minmax(18rem, 22rem) 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .columnas {
+    grid-template-columns: 1fr;
+  }
 }

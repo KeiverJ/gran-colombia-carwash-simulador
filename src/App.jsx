@@ -1,35 +1,27 @@
 import './App.css'
+import './components/paneles.css'
 
-import {
-  LLEGADAS_POR_HORA,
-  PLACAS_LAVADO,
-  PUESTOS_ACABADO,
-} from './data/parametros.js'
-
-const unaCifra = (numero) => numero.toLocaleString('es-CO', { maximumFractionDigits: 4 })
+import PanelDeParametros from './components/PanelDeParametros.jsx'
+import VistaDelLavadero from './components/VistaDelLavadero.jsx'
+import { useCicloDeSimulacion } from './store/useCicloDeSimulacion.js'
 
 function App() {
+  useCicloDeSimulacion()
+
   return (
     <main className="pagina">
       <h1>Simulador del lavadero Gran Colombia Car Wash Express</h1>
 
       <p className="entrada">
-        Simula las filas de un lavadero de motos de Cúcuta, en la esquina de la
-        Av. Gran Colombia con la Av. Guaimaral: las motos pasan primero por el
-        lavado ({PLACAS_LAVADO} placas) y después por el acabado
-        ({PUESTOS_ACABADO} puestos).
+        Las motos llegan por la Av. Gran Colombia y la Av. Guaimaral, hacen una
+        sola fila para el lavado y después otra para el acabado. Mueve los
+        parámetros y mira qué pasa con las filas.
       </p>
 
-      <p className="dato">
-        Con los datos de la visita del 17 de octubre de 2026 llegan{' '}
-        <strong>{unaCifra(LLEGADAS_POR_HORA)} motos por hora</strong>.
-      </p>
-
-      <p className="aviso">
-        Por ahora esta página solo confirma que el proyecto está montado. La
-        simulación, el panel de parámetros, las gráficas y la escena en 3D
-        llegan en los siguientes pasos.
-      </p>
+      <div className="columnas">
+        <PanelDeParametros />
+        <VistaDelLavadero />
+      </div>
     </main>
   )
 }

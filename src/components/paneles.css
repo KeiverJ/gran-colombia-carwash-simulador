@@ -1,0 +1,152 @@
+/* Panel de parámetros y vista provisional del lavadero. */
+
+.panel,
+.lavadero {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem 1.25rem;
+  background: var(--bg);
+}
+
+.panel h2,
+.lavadero h2 {
+  margin-top: 0;
+  font-size: 1.25rem;
+}
+
+.panel h3,
+.lavadero h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1rem;
+  color: var(--text-h);
+}
+
+.botones {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.botones button {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-size: 0.95rem;
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.botones button:hover {
+  border-color: var(--accent);
+}
+
+.control {
+  display: block;
+  margin-bottom: 0.85rem;
+}
+
+.control-nombre {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.control-nombre strong {
+  color: var(--text-h);
+  white-space: nowrap;
+}
+
+.pista {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  opacity: 0.75;
+}
+
+.control input[type='range'] {
+  width: 100%;
+}
+
+.control select,
+.control input[type='number'] {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  font: inherit;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.nota {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.aviso-reinicio {
+  margin-top: 1rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.88rem;
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent-bg);
+}
+
+/* --- La vista del lavadero --- */
+
+.reloj {
+  font-size: 1.05rem;
+  margin: 0 0 0.5rem;
+}
+
+.fila {
+  margin: 0.35rem 0 0.6rem;
+  font-size: 0.95rem;
+}
+
+.servidores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.servidor {
+  flex: 1 1 7.5rem;
+  min-width: 7.5rem;
+  padding: 0.55rem 0.65rem;
+  border: 2px solid;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.servidor-numero {
+  display: block;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text-h);
+}
+
+.servidor.libre {
+  border-color: #2e7d32;
+  background: rgba(46, 125, 50, 0.12);
+}
+
+.servidor.ocupado {
+  border-color: #c62828;
+  background: rgba(198, 40, 40, 0.12);
+}
+
+@media (max-width: 720px) {
+  .servidor {
+    flex-basis: 100%;
+  }
+}

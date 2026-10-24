@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { ACABADO_PLAN_MIN, PROPORCION_PLAN } from './parametros.js'
+import {
+  ACABADO_PLAN_MIN,
+  CONTEO_PLANES,
+  PROPORCION_PLAN,
+  PROPORCION_PLAN_EXACTA,
+  TOTAL_MOTOS_CONTADAS,
+} from './parametros.js'
 import { ESTADO_INICIAL, MOTOS_VISITA } from './visita.js'
 
 describe('parámetros por defecto', () => {
@@ -12,6 +18,35 @@ describe('parámetros por defecto', () => {
   it('cada plan tiene un tiempo de acabado positivo', () => {
     for (const plan of [1, 2, 3]) {
       expect(ACABADO_PLAN_MIN[plan]).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('conteos de planes y proporciones exactas', () => {
+  it('los conteos son los de la visita y suman las 23 motos', () => {
+    expect(CONTEO_PLANES).toEqual({ 1: 0, 2: 19, 3: 4 })
+    const total = CONTEO_PLANES[1] + CONTEO_PLANES[2] + CONTEO_PLANES[3]
+    expect(total).toBe(TOTAL_MOTOS_CONTADAS)
+    expect(TOTAL_MOTOS_CONTADAS).toBe(23)
+  })
+
+  it('las proporciones exactas suman 1 sin necesidad de tolerancia', () => {
+    const suma =
+      PROPORCION_PLAN_EXACTA[1] + PROPORCION_PLAN_EXACTA[2] + PROPORCION_PLAN_EXACTA[3]
+    expect(suma).toBe(1)
+  })
+
+  it('las exactas salen de dividir los conteos por el total', () => {
+    for (const plan of [1, 2, 3]) {
+      expect(PROPORCION_PLAN_EXACTA[plan]).toBe(CONTEO_PLANES[plan] / TOTAL_MOTOS_CONTADAS)
+    }
+  })
+
+  it('coinciden con las redondeadas del documento dentro de 0,0001', () => {
+    for (const plan of [1, 2, 3]) {
+      expect(Math.abs(PROPORCION_PLAN_EXACTA[plan] - PROPORCION_PLAN[plan])).toBeLessThan(
+        0.0001,
+      )
     }
   })
 })
