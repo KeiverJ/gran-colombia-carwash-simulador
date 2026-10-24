@@ -2,11 +2,12 @@ import './estilos/tema.css'
 import './App.css'
 import './components/paneles.css'
 import './components/metricas.css'
+import './scene/escena.css'
 
 import GraficaDeColas from './components/GraficaDeColas.jsx'
 import PanelDeParametros from './components/PanelDeParametros.jsx'
 import TablaDeMetricas from './components/TablaDeMetricas.jsx'
-import VistaDelLavadero from './components/VistaDelLavadero.jsx'
+import EscenaDelLavadero from './scene/EscenaDelLavadero.jsx'
 import { useCicloDeSimulacion } from './store/useCicloDeSimulacion.js'
 
 function App() {
@@ -25,7 +26,7 @@ function App() {
       <div className="columnas">
         <PanelDeParametros />
         <div className="principal">
-          <VistaDelLavadero />
+          <EscenaDelLavadero />
           <GraficaDeColas />
           <TablaDeMetricas />
         </div>

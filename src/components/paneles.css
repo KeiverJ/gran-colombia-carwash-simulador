@@ -1,21 +1,18 @@
-/* Panel de parámetros y vista provisional del lavadero. */
+/* Panel de parámetros. */
 
-.panel,
-.lavadero {
+.panel {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1rem 1.25rem 1.25rem;
   background: var(--bg-tarjeta);
 }
 
-.panel h2,
-.lavadero h2 {
+.panel h2 {
   margin-top: 0;
   font-size: 1.25rem;
 }
 
-.panel h3,
-.lavadero h3 {
+.panel h3 {
   margin: 1.25rem 0 0.5rem;
   font-size: 1rem;
   color: var(--text-h);
@@ -98,57 +95,4 @@
   border-left: 4px solid var(--accent);
   border-radius: 4px;
   background: var(--accent-bg);
-}
-
-/* --- La vista del lavadero --- */
-
-.reloj {
-  font-size: 1.05rem;
-  margin: 0 0 0.5rem;
-}
-
-.fila {
-  margin: 0.35rem 0 0.6rem;
-  font-size: 0.95rem;
-}
-
-.servidores {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.servidor {
-  flex: 1 1 7.5rem;
-  min-width: 7.5rem;
-  padding: 0.55rem 0.65rem;
-  border: 2px solid;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  line-height: 1.3;
-}
-
-.servidor-numero {
-  display: block;
-  font-weight: 700;
-  font-size: 1.05rem;
-  color: var(--text-h);
-}
-
-/* El color va acompañado siempre de la palabra "libre" u "ocupada": los dos
-   tonos son casi iguales para quien no distingue el rojo del verde. */
-.servidor.libre {
-  border-color: var(--estado-libre);
-  background: var(--estado-libre-fondo);
-}
-
-.servidor.ocupado {
-  border-color: var(--estado-ocupada);
-  background: var(--estado-ocupada-fondo);
-}
-
-@media (max-width: 720px) {
-  .servidor {
-    flex-basis: 100%;
-  }
 }

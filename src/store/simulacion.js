@@ -131,8 +131,21 @@ function estadoInicial() {
     puntos: [],
     ultimoPuntoMin: null,
     ultimasMetricasMs: 0,
+    // Lo que la escena necesita mostrar como texto. Se refresca con el mismo
+    // freno que las métricas: si se leyera de la foto, cada cuadro provocaría
+    // un render de React, que es justo lo que la escena no debe hacer.
+    resumen: resumenDe(motor.estado()),
     // Progreso de la corrida larga: null cuando no hay ninguna en marcha.
     corridaLarga: null,
+  }
+}
+
+/** El puñado de números que la escena muestra en texto. */
+function resumenDe(foto) {
+  return {
+    relojMin: foto.relojMin,
+    enFilaLavado: foto.colaLavado.length,
+    enFilaAcabado: foto.colaAcabado.length,
   }
 }
 
@@ -156,6 +169,7 @@ export const useSimulacion = create((set, get) => ({
       puntos: [],
       ultimoPuntoMin: null,
       ultimasMetricasMs: 0,
+      resumen: resumenDe(motor.estado()),
       corridaLarga: null,
     })
   },
@@ -190,6 +204,7 @@ export const useSimulacion = create((set, get) => ({
     const ahora = Date.now()
     if (ahora - ultimasMetricasMs >= INTERVALO_DE_METRICAS_MS) {
       cambios.metricas = motor.metricas()
+      cambios.resumen = resumenDe(foto)
       cambios.ultimasMetricasMs = ahora
     }
 
@@ -246,6 +261,7 @@ export const useSimulacion = create((set, get) => ({
         corridaLarga: null,
         metricas: motor.metricas(),
         foto: motor.estado(),
+        resumen: resumenDe(motor.estado()),
         aviso: `Listo: se simularon ${corridaLarga.horasTotales} horas de corrido.`,
       })
       return false
@@ -274,6 +290,7 @@ export const useSimulacion = create((set, get) => ({
       puntos,
       ultimoPuntoMin: foto.relojMin,
       metricas: motor.metricas(),
+      resumen: resumenDe(foto),
       corridaLarga: {
         ...corridaLarga,
         horasHechas,

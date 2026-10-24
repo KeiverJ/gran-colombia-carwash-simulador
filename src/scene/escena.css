@@ -1,0 +1,150 @@
+/* La escena 3D del lavadero. Solo variables del tema. */
+
+.escena {
+  border: 1px solid var(--border);
+  border-radius: var(--radio-tarjeta);
+  padding: var(--espacio-3) var(--espacio-4) var(--espacio-4);
+  background: var(--bg-tarjeta);
+  box-shadow: var(--sombra-tarjeta);
+  text-align: left;
+}
+
+.escena h2 {
+  margin-top: 0;
+  font-size: var(--letra-destacada);
+  text-align: center;
+}
+
+.escena .reloj {
+  margin: 0 0 var(--espacio-2);
+  font-size: var(--letra-normal);
+  text-align: center;
+}
+
+.lienzo-3d {
+  height: 420px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--agua-suave);
+}
+
+.aviso-sin-3d {
+  margin: var(--espacio-2) 0;
+  padding: var(--espacio-3);
+  font-size: var(--letra-normal);
+  border-left: 4px solid var(--amarillo-borde);
+  border-radius: 4px;
+  background: rgba(242, 183, 5, 0.12);
+}
+
+/* --- Rótulos dentro de la escena (HTML colocado en 3D) --- */
+
+.rotulo {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: var(--letra-pequena);
+  white-space: nowrap;
+  color: var(--text-h);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--border);
+  user-select: none;
+}
+
+.rotulo-avenida {
+  font-weight: 600;
+  color: var(--agua-interfaz);
+  border-color: var(--agua-interfaz);
+}
+
+.rotulo-servidor {
+  font-weight: 700;
+  padding: 1px 7px;
+}
+
+.rotulo-zona {
+  font-weight: 600;
+}
+
+.rotulo-salida {
+  color: var(--agua-interfaz);
+}
+
+.rotulo-sobrantes {
+  font-weight: 600;
+  color: var(--estado-ocupada);
+  border-color: var(--estado-ocupada);
+}
+
+/* --- Leyenda --- */
+
+.leyenda {
+  margin-top: var(--espacio-3);
+}
+
+.leyenda h3 {
+  margin: 0 0 var(--espacio-2);
+  font-size: var(--letra-titulo);
+  color: var(--text-h);
+}
+
+.leyenda-lista {
+  list-style: none;
+  margin: 0 0 var(--espacio-2);
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-1) var(--espacio-3);
+  font-size: var(--letra-pequena);
+}
+
+.leyenda-lista li {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-1);
+}
+
+.muestra {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  background: var(--color-muestra);
+  border: 1px solid rgba(15, 28, 38, 0.25);
+}
+
+/* La forma repite la que lleva la moto en la escena. */
+.forma-esfera {
+  border-radius: 50%;
+}
+
+.forma-cubo {
+  border-radius: 2px;
+}
+
+/* El cono se dibuja con bordes, así que su color va en el borde de abajo. */
+.forma-cono {
+  width: 0;
+  height: 0;
+  background: none;
+  border: none;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 14px solid var(--color-muestra);
+}
+
+.muestra-losa {
+  width: 20px;
+  height: 6px;
+  border-radius: 2px;
+}
+
+.muestra-levantada {
+  height: 13px;
+}
+
+.escena .nota {
+  font-size: var(--letra-pequena);
+  opacity: 0.85;
+  margin: var(--espacio-2) 0 0;
+}
