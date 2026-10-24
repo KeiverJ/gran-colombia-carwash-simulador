@@ -1,5 +1,5 @@
 import {
-  avisoDeSaturacion,
+  avisoCortoDeSaturacion,
   comparacionEsAproximada,
   metricasCalculadas,
 } from '../store/metricas.js'
@@ -33,17 +33,36 @@ function Celda({ valor, decimales, unidad, cuandoFalta }) {
   )
 }
 
+/**
+ * La advertencia de la columna simulada, en una frase.
+ *
+ * Solo aparece cuando **ya hay valores simulados que advertir**: antes de
+ * simular no hay ningún número que se pueda malinterpretar, así que advertir
+ * no aporta nada y resta. El "¿por qué?" es un `<details>` nativo: funciona sin
+ * JavaScript, se maneja con el teclado y no hay que mantenerlo.
+ */
+function AdvertenciaDeLoSimulado() {
+  return (
+    <details className="nota-inestable">
+      <summary>
+        Estos valores simulados <strong>no se estabilizan</strong>: cuanto más
+        tiempo simules, más grandes serán. <span className="porque">¿por qué?</span>
+      </summary>
+      <p>
+        La etapa está saturada: llegan más motos de las que alcanza a atender, así
+        que la fila crece mientras el lavadero esté abierto y nunca se asienta en
+        un valor. Lo que miden estos números no es cómo funciona el lavadero, sino
+        cuánto rato llevas simulando.
+      </p>
+    </details>
+  )
+}
+
 function TablaDeEtapa({ titulo, simulado, calculado, saturada }) {
   return (
     <div className="etapa">
       <h3>{titulo}</h3>
-      {saturada ? (
-        <p className="nota-inestable">
-          Esta etapa está saturada: la fila sigue creciendo, así que los valores
-          simulados <strong>no se estabilizan</strong> — cuanto más tiempo simules,
-          más grandes serán. No son un resultado, son cuánto rato llevas simulando.
-        </p>
-      ) : null}
+      {saturada && simulado ? <AdvertenciaDeLoSimulado /> : null}
       <table>
         <thead>
           <tr>
@@ -83,7 +102,7 @@ export function TablaDeMetricas() {
   const empezarCorridaLarga = useSimulacion((estado) => estado.empezarCorridaLarga)
 
   const calculado = metricasCalculadas(parametros)
-  const avisos = avisoDeSaturacion(parametros)
+  const aviso = avisoCortoDeSaturacion(parametros)
 
   return (
     <section className="metricas">
@@ -96,11 +115,7 @@ export function TablaDeMetricas() {
         </p>
       ) : null}
 
-      {avisos.map((aviso) => (
-        <p className="aviso-saturacion" key={aviso.etapa}>
-          {aviso.texto}
-        </p>
-      ))}
+      {aviso ? <p className="aviso-saturacion">{aviso}</p> : null}
 
       <TablaDeEtapa
         titulo="Etapa 1: lavado"

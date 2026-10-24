@@ -38,12 +38,15 @@ body {
   margin: 0;
 }
 
+/*
+ * Sin tope de ancho: en una pantalla grande el espacio sobrante es para la
+ * escena, no para dos franjas vacías a los lados. (Venía de la plantilla con
+ * 1126 px y un borde a cada lado.)
+ */
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
+  width: 100%;
+  margin: 0;
+  text-align: left;
   min-height: 100svh;
   display: flex;
   flex-direction: column;

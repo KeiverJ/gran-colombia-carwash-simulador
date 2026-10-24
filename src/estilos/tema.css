@@ -63,6 +63,20 @@
   --espacio-2: 0.65rem;
   --espacio-3: 1rem;
   --espacio-4: 1.5rem;
+  --espacio-5: 2.25rem;
+
+  /* Medidas de la disposición, para no escribirlas sueltas en cada hoja. */
+  --ancho-panel: 20rem;
+  --alto-minimo-escena: 17rem;
+  --alto-maximo-escena: 46rem;
+  /* Lo que hay por encima de la escena: el relleno de la página, el
+     encabezado y su margen. Con esto se le pone un tope a la escena entera. */
+  --alto-fuera-de-la-escena: 10.5rem;
+  /* Y esto es lo que ocupan los mandos y la leyenda, para darle al lienzo un
+     alto de partida. No hace falta que sea exacto: si se queda corto porque un
+     texto creció, el tope de arriba hace que el lienzo encoja en vez de
+     empujar la escena fuera de la pantalla. */
+  --alto-sobre-la-escena: 28rem;
 
   /* --- Tarjetas --- */
   --radio-tarjeta: 8px;

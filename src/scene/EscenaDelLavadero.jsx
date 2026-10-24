@@ -1,13 +1,15 @@
-import { OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
-import { useMemo } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 
-import { comoReloj } from '../components/formato.js'
+import BotonDePantallaCompleta from '../components/BotonDePantallaCompleta.jsx'
+import MandosDeLaSimulacion from '../components/MandosDeLaSimulacion.jsx'
+import { CAMPO_DE_VISION, VISTA_INICIAL } from './camara.js'
+import { BotonesDeCamara, ControlDeCamara } from './ControlesDeCamara.jsx'
 import { useSimulacion } from '../store/simulacion.js'
 import LeyendaDePlanes from './LeyendaDePlanes.jsx'
 import { Local, Servidores, Sobrantes } from './Local.jsx'
 import Motos from './Motos.jsx'
-import { sobrantesDe, TOPE_DE_MOTOS_DIBUJADAS } from './posiciones.js'
+import { sobrantesDe } from './posiciones.js'
 
 /**
  * ¿Puede este navegador dibujar en 3D?
@@ -28,32 +30,14 @@ function hayWebGL() {
   }
 }
 
-/**
- * El reloj y los dos conteos, en texto.
- *
- * Lee el resumen del store, que se refresca cuatro veces por segundo. Si
- * leyera la foto, a velocidad alta el reloj cambiaría en cada cuadro y con él
- * se repintaría toda la escena.
- */
-function ResumenDelLavadero() {
-  const resumen = useSimulacion((estado) => estado.resumen)
-  return (
-    <p className="reloj">
-      Tiempo simulado: <strong>{comoReloj(resumen.relojMin)}</strong> · esperando
-      para el lavado: <strong>{resumen.enFilaLavado}</strong> · para el acabado:{' '}
-      <strong>{resumen.enFilaAcabado}</strong>
-    </p>
-  )
-}
-
 /** Los rótulos de "+X motos más", con el mismo freno que el resumen. */
 function RotulosDeSobrantes() {
   const sobranLavado = useSimulacion((estado) => sobrantesDe(estado.resumen.enFilaLavado))
   const sobranAcabado = useSimulacion((estado) => sobrantesDe(estado.resumen.enFilaAcabado))
   return (
     <>
-      <Sobrantes cuantas={sobranLavado} etapa="lavado" tope={TOPE_DE_MOTOS_DIBUJADAS} />
-      <Sobrantes cuantas={sobranAcabado} etapa="acabado" tope={TOPE_DE_MOTOS_DIBUJADAS} />
+      <Sobrantes cuantas={sobranLavado} etapa="lavado" />
+      <Sobrantes cuantas={sobranAcabado} etapa="acabado" />
     </>
   )
 }
@@ -66,10 +50,28 @@ export function EscenaDelLavadero() {
   const placas = useSimulacion((estado) => estado.parametros.placas)
   const puestos = useSimulacion((estado) => estado.parametros.puestos)
 
+  // La vista que se ha pedido con un botón, esperando a que el lienzo la
+  // recoja. Va en una referencia y no en estado: pulsar un botón de cámara no
+  // debe volver a dibujar la escena.
+  // El modo de respaldo de pantalla completa, por si el navegador rechaza la
+  // suya. Es estado de la interfaz y vive aquí, no en el store: agrandar la
+  // escena no tiene nada que ver con la simulación.
+  const [expandida, setExpandida] = useState(false)
+  const contenedor = useRef(null)
+
+  const vistaPedida = useRef(null)
+  const pedirVista = useCallback((sacarLaVista) => {
+    vistaPedida.current = sacarLaVista
+  }, [])
+  const tomarOrden = useCallback(() => {
+    const pedida = vistaPedida.current
+    vistaPedida.current = null
+    return pedida
+  }, [])
+
   if (!soportaWebGL) {
     return (
-      <section className="escena">
-        <h2>El lavadero en 3D</h2>
+      <section className="escena" aria-label="El lavadero en 3D">
         <p className="aviso-sin-3d">
           Este navegador no puede mostrar la vista en 3D porque no tiene WebGL
           disponible. El resto del simulador —el panel, la tabla de métricas y la
@@ -80,21 +82,32 @@ export function EscenaDelLavadero() {
   }
 
   return (
-    <section className="escena">
-      <h2>El lavadero en 3D</h2>
-
-      <ResumenDelLavadero />
+    <section
+      className={`escena${expandida ? ' escena--expandida' : ''}`}
+      ref={contenedor}
+      aria-label="El lavadero en 3D"
+    >
+      <MandosDeLaSimulacion />
 
       <div className="lienzo-3d">
-        <Canvas camera={{ position: [0, 13, 22], fov: 48 }} shadows={false}>
+        <Canvas
+          camera={{ position: VISTA_INICIAL.posicion, fov: CAMPO_DE_VISION }}
+          shadows={false}
+        >
           <ambientLight intensity={0.75} />
           <directionalLight position={[8, 14, 6]} intensity={1.1} />
           <Local />
           <Servidores placas={placas} puestos={puestos} />
           <Motos />
           <RotulosDeSobrantes />
-          <OrbitControls enablePan={false} minDistance={10} maxDistance={55} maxPolarAngle={1.45} />
+          <ControlDeCamara tomarOrden={tomarOrden} />
         </Canvas>
+        <BotonesDeCamara alPedirVista={pedirVista} />
+        <BotonDePantallaCompleta
+          contenedor={contenedor}
+          expandida={expandida}
+          alExpandir={setExpandida}
+        />
       </div>
 
       <LeyendaDePlanes />

@@ -136,3 +136,32 @@
 .grafica .lienzo {
   margin-top: var(--espacio-2);
 }
+
+/*
+ * La advertencia de la columna simulada: una frase, con el "¿por qué?" que
+ * despliega la explicación para quien la quiera y no ocupa sitio para quien no.
+ */
+.nota-inestable summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.nota-inestable summary::-webkit-details-marker {
+  display: none;
+}
+
+.nota-inestable .porque {
+  margin-left: var(--espacio-1);
+  font-weight: 600;
+  color: var(--agua-interfaz);
+  text-decoration: underline;
+}
+
+.nota-inestable summary:focus-visible {
+  outline: 2px solid var(--agua-interfaz);
+  outline-offset: 2px;
+}
+
+.nota-inestable p {
+  margin: var(--espacio-2) 0 0;
+}

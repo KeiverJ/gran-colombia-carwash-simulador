@@ -79,11 +79,44 @@ export function avisoDeSaturacion(parametros) {
       texto:
         `Con ${servidoresDe[etapa]} ${servidores}, ${nombre} no da abasto: llegan más motos de las ` +
         `que alcanza a atender, así que ${fila} crece sin parar mientras el lavadero esté abierto. ` +
-        `Se satura a partir de ${llegadasDeSaturacionPorHora.toFixed(2).replace('.', ',')} motos por hora, ` +
-        `y están llegando ${parametros.llegadasPorHora.toFixed(2).replace('.', ',')}.`,
+        `Se satura a partir de ${conComa(llegadasDeSaturacionPorHora)} motos por hora, ` +
+        `y están llegando ${conComa(parametros.llegadasPorHora)}.`,
     })
   }
   return avisos
+}
+
+/**
+ * El mismo aviso, en **una sola frase** y para las dos etapas juntas.
+ *
+ * Es lo que va encima de la tabla. Antes se pintaba un bloque por etapa, y con
+ * las dos saturadas se repetía dos veces casi lo mismo, que es ruido justo
+ * donde hay que entender algo.
+ *
+ * @param {object} parametros
+ * @returns {string|null} la frase, o nada si ninguna etapa está saturada
+ */
+export function avisoCortoDeSaturacion(parametros) {
+  const avisos = avisoDeSaturacion(parametros)
+  if (avisos.length === 0) {
+    return null
+  }
+
+  const nombres = avisos.map(({ etapa }) => ETAPAS[etapa].nombre)
+  const quienes = nombres.length === 1 ? nombres[0] : `${nombres[0]} y ${nombres[1]}`
+  const seSatura = nombres.length === 1 ? 'se satura' : 'se saturan'
+  // La más estrecha manda: es la que se satura primero.
+  const desde = Math.min(...avisos.map((a) => a.llegadasDeSaturacionPorHora))
+
+  return (
+    `Con estos parámetros ${quienes} no da${nombres.length === 1 ? '' : 'n'} abasto: ` +
+    `${seSatura} a partir de ${conComa(desde)} motos por hora y están llegando ` +
+    `${conComa(parametros.llegadasPorHora)}, así que la fila crece sin parar.`
+  )
+}
+
+function conComa(numero) {
+  return numero.toFixed(2).replace('.', ',')
 }
 
 /** ¿Está saturada esta etapa con los parámetros puestos? */

@@ -54,9 +54,10 @@ export function LeyendaDePlanes() {
       </ul>
 
       <p className="nota">
-        La franja de delante es el lavado y la del fondo, el acabado; las motos
-        salen por abajo. Arrastra para girar la vista y usa la rueda para
-        acercarte.
+        El lavado va delante, en dos filas de placas, y el acabado al fondo; las
+        motos entran por el pasillo de la izquierda y salen por el fondo, a la
+        Av. Gran Colombia. Arrastra para girar la vista, usa la rueda para
+        acercarte y los botones de arriba para volver a una vista conocida.
       </p>
     </div>
   )

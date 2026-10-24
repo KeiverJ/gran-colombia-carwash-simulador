@@ -15,21 +15,25 @@ function App() {
 
   return (
     <main className="pagina">
-      <h1>Simulador del lavadero Gran Colombia Car Wash Express</h1>
+      <header className="encabezado">
+        <h1>Simulador del lavadero Gran Colombia Car Wash Express</h1>
+        <p className="entrada">
+          Las motos llegan por la Av. Gran Colombia y la Av. Guaimaral, hacen una
+          sola fila para el lavado y después otra para el acabado. Mueve los
+          parámetros y mira qué pasa con las filas.
+        </p>
+      </header>
 
-      <p className="entrada">
-        Las motos llegan por la Av. Gran Colombia y la Av. Guaimaral, hacen una
-        sola fila para el lavado y después otra para el acabado. Mueve los
-        parámetros y mira qué pasa con las filas.
-      </p>
-
-      <div className="columnas">
+      {/* La simulación manda: ocupa el espacio principal y los parámetros
+          quedan en una columna angosta que además se puede plegar. */}
+      <div className="disposicion">
+        <EscenaDelLavadero />
         <PanelDeParametros />
-        <div className="principal">
-          <EscenaDelLavadero />
-          <GraficaDeColas />
-          <TablaDeMetricas />
-        </div>
+      </div>
+
+      <div className="datos">
+        <TablaDeMetricas />
+        <GraficaDeColas />
       </div>
     </main>
   )

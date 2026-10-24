@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { ACABADO_POR_HORA } from '../data/parametros.js'
 import { MODO_MMS, MODO_POR_PLAN } from '../engine/simulador.js'
 import {
+  avisoCortoDeSaturacion,
   avisoDeSaturacion,
   comparacionEsAproximada,
   etapaSaturada,
@@ -96,5 +97,54 @@ describe('cuándo la comparación es aproximada', () => {
 
   it('en el modo M/M/s no', () => {
     expect(comparacionEsAproximada({ ...porDefecto(), modoAcabado: MODO_MMS })).toBe(false)
+  })
+})
+
+describe('el aviso corto de saturación', () => {
+  it('con los valores por defecto nombra el acabado y desde cuándo se satura', () => {
+    const aviso = avisoCortoDeSaturacion(porDefecto())
+    expect(aviso).toContain('el acabado')
+    expect(aviso).not.toContain('el lavado')
+    expect(aviso).toContain('11,34')
+    expect(aviso).toContain('14,19')
+  })
+
+  it('es una sola frase, no un bloque por etapa', () => {
+    const aviso = avisoCortoDeSaturacion(porDefecto())
+    expect(aviso.split('.').filter((trozo) => trozo.trim()).length).toBe(1)
+  })
+
+  it('con las dos etapas saturadas las nombra las dos, en la misma frase', () => {
+    // Suficientes motos por hora para que ni el lavado dé abasto.
+    const aviso = avisoCortoDeSaturacion({ ...porDefecto(), llegadasPorHora: 60 })
+    expect(aviso).toContain('el lavado')
+    expect(aviso).toContain('el acabado')
+    expect(aviso.split('.').filter((trozo) => trozo.trim()).length).toBe(1)
+  })
+
+  it('con las dos saturadas avisa desde la que se satura antes', () => {
+    const parametros = { ...porDefecto(), llegadasPorHora: 60 }
+    const antes = Math.min(
+      ...avisoDeSaturacion(parametros).map((a) => a.llegadasDeSaturacionPorHora),
+    )
+    expect(avisoCortoDeSaturacion(parametros)).toContain(
+      antes.toFixed(2).replace('.', ','),
+    )
+  })
+
+  it('con 4 puestos no devuelve nada, porque no hay nada que avisar', () => {
+    expect(avisoCortoDeSaturacion({ ...porDefecto(), puestos: 4 })).toBeNull()
+  })
+
+  it('concuerda siempre con los avisos largos', () => {
+    // Si uno dijera que hay saturación y el otro que no, la tabla se
+    // contradiría consigo misma.
+    for (const puestos of [3, 4, 5]) {
+      for (const llegadasPorHora of [5, 14.1935, 30, 60]) {
+        const parametros = { ...porDefecto(), puestos, llegadasPorHora }
+        const hayLargos = avisoDeSaturacion(parametros).length > 0
+        expect(avisoCortoDeSaturacion(parametros) !== null).toBe(hayLargos)
+      }
+    }
   })
 })

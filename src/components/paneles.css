@@ -1,10 +1,19 @@
 /* Panel de parámetros. */
 
 .panel {
+  width: var(--ancho-panel);
+  max-width: 100%;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1rem 1.25rem 1.25rem;
+  border-radius: var(--radio-tarjeta);
+  padding: var(--espacio-3) var(--espacio-4) var(--espacio-4);
   background: var(--bg-tarjeta);
+}
+
+.panel-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espacio-2);
 }
 
 .panel h2 {
@@ -12,23 +21,53 @@
   font-size: 1.25rem;
 }
 
+.panel-plegar,
+.panel-pestana {
+  font: inherit;
+  font-size: var(--letra-pequena);
+  font-weight: 600;
+  color: var(--agua-interfaz);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radio-tarjeta);
+  padding: var(--espacio-1) var(--espacio-2);
+  cursor: pointer;
+}
+
+.panel-plegar:focus-visible,
+.panel-pestana:focus-visible {
+  outline: 2px solid var(--agua-interfaz);
+  outline-offset: 2px;
+}
+
+/* Plegado, el panel se reduce a la pestaña de volver a abrirlo. */
+.panel--plegado {
+  width: auto;
+  padding: var(--espacio-2);
+}
+
+.panel--plegado .panel-pestana {
+  writing-mode: vertical-rl;
+  padding: var(--espacio-3) var(--espacio-1);
+}
+
 .panel h3 {
-  margin: 1.25rem 0 0.5rem;
-  font-size: 1rem;
+  margin: var(--espacio-4) 0 var(--espacio-2);
+  font-size: var(--letra-titulo);
   color: var(--text-h);
 }
 
 .botones {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: var(--espacio-2);
+  margin-bottom: var(--espacio-3);
 }
 
 .botones button {
   flex: 1;
-  padding: 0.5rem 0.75rem;
+  padding: var(--espacio-2) var(--espacio-3);
   font: inherit;
-  font-size: 0.95rem;
+  font-size: var(--letra-normal);
   border: 1px solid var(--accent-border);
   border-radius: 6px;
   background: var(--accent-bg);
@@ -42,16 +81,16 @@
 
 .control {
   display: block;
-  margin-bottom: 0.85rem;
+  margin-bottom: var(--espacio-3);
 }
 
 .control-nombre {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 1rem;
-  font-size: 0.9rem;
-  margin-bottom: 0.25rem;
+  gap: var(--espacio-3);
+  font-size: var(--letra-normal);
+  margin-bottom: var(--espacio-1);
 }
 
 .control-nombre strong {
@@ -61,8 +100,8 @@
 
 .pista {
   display: block;
-  margin-top: 0.25rem;
-  font-size: 0.78rem;
+  margin-top: var(--espacio-1);
+  font-size: var(--letra-pequena);
   opacity: 0.75;
 }
 
@@ -73,9 +112,9 @@
 .control select,
 .control input[type='number'] {
   width: 100%;
-  padding: 0.35rem 0.5rem;
+  padding: var(--espacio-1) var(--espacio-2);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--letra-normal);
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg-tarjeta);
@@ -83,15 +122,15 @@
 }
 
 .nota {
-  font-size: 0.85rem;
+  font-size: var(--letra-pequena);
   opacity: 0.8;
-  margin: 0.25rem 0 0.75rem;
+  margin: var(--espacio-1) 0 var(--espacio-3);
 }
 
 .aviso-reinicio {
-  margin-top: 1rem;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.88rem;
+  margin-top: var(--espacio-3);
+  padding: var(--espacio-2) var(--espacio-3);
+  font-size: var(--letra-pequena);
   border-left: 4px solid var(--accent);
   border-radius: 4px;
   background: var(--accent-bg);

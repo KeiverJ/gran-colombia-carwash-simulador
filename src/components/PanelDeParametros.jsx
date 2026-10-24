@@ -1,11 +1,7 @@
+import { useState } from 'react'
+
 import { MODO_MMS, MODO_POR_PLAN } from '../engine/simulador.js'
-import {
-  PLACAS_POSIBLES,
-  PUESTOS_POSIBLES,
-  useSimulacion,
-  VELOCIDAD_MAXIMA,
-  VELOCIDAD_MINIMA,
-} from '../store/simulacion.js'
+import { PLACAS_POSIBLES, PUESTOS_POSIBLES, useSimulacion } from '../store/simulacion.js'
 import { comoNumero, comoPorcentaje } from './formato.js'
 
 /** Un deslizador con su etiqueta y el valor que tiene ahora. */
@@ -31,37 +27,46 @@ function Deslizador({ etiqueta, valor, minimo, maximo, paso, decimales, unidad, 
 }
 
 export function PanelDeParametros() {
+  // Plegar es cosa de la interfaz, no de la simulación: por eso vive aquí y
+  // no en el store. Si estuviera en el store, plegar tocaría el mismo estado
+  // que los parámetros y podría reiniciar la corrida.
+  const [plegado, setPlegado] = useState(false)
+
   const parametros = useSimulacion((estado) => estado.parametros)
   const semilla = useSimulacion((estado) => estado.semilla)
-  const velocidad = useSimulacion((estado) => estado.velocidadMinPorSegundo)
-  const corriendo = useSimulacion((estado) => estado.corriendo)
   const aviso = useSimulacion((estado) => estado.aviso)
 
-  const iniciar = useSimulacion((estado) => estado.iniciar)
-  const pausar = useSimulacion((estado) => estado.pausar)
-  const reiniciar = useSimulacion((estado) => estado.reiniciar)
   const cambiarParametro = useSimulacion((estado) => estado.cambiarParametro)
   const cambiarAcabadoDePlan = useSimulacion((estado) => estado.cambiarAcabadoDePlan)
   const cambiarProporcion = useSimulacion((estado) => estado.cambiarProporcion)
   const cambiarSemilla = useSimulacion((estado) => estado.cambiarSemilla)
-  const cambiarVelocidad = useSimulacion((estado) => estado.cambiarVelocidad)
+
+  if (plegado) {
+    return (
+      <section className="panel panel--plegado">
+        <button
+          type="button"
+          className="panel-pestana"
+          onClick={() => setPlegado(false)}
+          aria-expanded="false"
+        >
+          Parámetros
+        </button>
+      </section>
+    )
+  }
 
   return (
     <section className="panel">
-      <h2>Parámetros</h2>
-
-      <div className="botones">
-        {corriendo ? (
-          <button type="button" onClick={pausar}>
-            Pausar
-          </button>
-        ) : (
-          <button type="button" onClick={iniciar}>
-            Iniciar
-          </button>
-        )}
-        <button type="button" onClick={() => reiniciar(null)}>
-          Reiniciar
+      <div className="panel-cabecera">
+        <h2>Parámetros</h2>
+        <button
+          type="button"
+          className="panel-plegar"
+          onClick={() => setPlegado(true)}
+          aria-expanded="true"
+        >
+          Plegar
         </button>
       </div>
 
@@ -173,17 +178,6 @@ export function PanelDeParametros() {
         />
         <small className="pista">Con la misma semilla se repite la misma tarde simulada.</small>
       </label>
-
-      <Deslizador
-        etiqueta="Velocidad"
-        valor={velocidad}
-        minimo={VELOCIDAD_MINIMA}
-        maximo={VELOCIDAD_MAXIMA}
-        paso={0.25}
-        decimales={2}
-        unidad="min simulados por segundo"
-        alCambiar={cambiarVelocidad}
-      />
 
       {aviso ? <p className="aviso-reinicio">{aviso}</p> : null}
     </section>
