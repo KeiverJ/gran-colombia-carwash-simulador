@@ -22,6 +22,13 @@
   align-items: start;
 }
 
+/* La columna de la derecha apila la vista, la gráfica y las métricas. */
+.principal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
 @media (max-width: 900px) {
   .columnas {
     grid-template-columns: 1fr;

@@ -135,14 +135,16 @@
   color: var(--text-h);
 }
 
+/* El color va acompañado siempre de la palabra "libre" u "ocupada": los dos
+   tonos son casi iguales para quien no distingue el rojo del verde. */
 .servidor.libre {
-  border-color: #2e7d32;
-  background: rgba(46, 125, 50, 0.12);
+  border-color: var(--estado-libre);
+  background: var(--estado-libre-fondo);
 }
 
 .servidor.ocupado {
-  border-color: #c62828;
-  background: rgba(198, 40, 40, 0.12);
+  border-color: var(--estado-ocupada);
+  background: var(--estado-ocupada-fondo);
 }
 
 @media (max-width: 720px) {

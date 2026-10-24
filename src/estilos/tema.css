@@ -1,0 +1,70 @@
+/**
+ * Tema de la aplicación: "lavadero de agua", claro.
+ *
+ * Este archivo y `colores.js` son gemelos: los colores compartidos (planes,
+ * estado y series de las gráficas) están en los dos, porque Three.js y
+ * Recharts no leen variables CSS. `colores.test.js` abre este archivo como
+ * texto y falla si alguno se separa del otro.
+ *
+ * LA PALETA ESTÁ COMPROBADA, NO ELEGIDA A OJO
+ * Con el validador de paletas de la guía de visualización, sobre fondo claro:
+ *   · Planes (azul, naranja, violeta): todas las comprobaciones pasan.
+ *     Peor par 18,2 en visión normal y 8,1 en deuteranopía.
+ *   · Series de la gráfica (turquesa, teja): todas las comprobaciones pasan.
+ *   · Verde y rojo de estado: se separan solo 2,0 en deuteranopía, es decir,
+ *     quien no distingue el rojo del verde los ve casi iguales. No se arregla
+ *     cambiando el tono: por eso "libre" y "ocupada" van SIEMPRE escritos con
+ *     palabras, nunca solo con color.
+ *   · El rojo de estado y el naranja del plan 2 se separan 13,1 en visión
+ *     normal, por debajo del umbral de 15. Es aceptable porque el plan lleva
+ *     siempre su nombre, pero conviene recordarlo antes de juntarlos.
+ */
+
+:root {
+  /* --- Turquesa: dos pasos, porque son dos trabajos distintos ---
+     El de interfaz lleva texto blanco encima (4,95:1). El de gráfica necesita
+     croma suficiente para que una línea fina no se lea gris; el de interfaz
+     se queda en 0,089, por debajo del mínimo de 0,1. */
+  --agua-interfaz: #0b7c86;
+  --agua-interfaz-oscuro: #095f67;
+  --agua-grafica: #0e9aa7;
+  --agua-suave: #e3f2f5;
+
+  /* --- Botón principal: amarillo con texto oscuro ---
+     El texto oscuro encima da 9,51:1, pero el relleno contra una tarjeta
+     blanca solo 1,82:1, así que el botón necesita su propio borde para que se
+     vea dónde empieza. */
+  --amarillo: #f2b705;
+  --amarillo-borde: #b88a04;
+
+  /* --- Estado de una placa o un puesto (reservados: no se usan para otra cosa) --- */
+  --estado-libre: #4a8c5a;
+  --estado-libre-fondo: rgba(74, 140, 90, 0.12);
+  --estado-ocupada: #b65050;
+  --estado-ocupada-fondo: rgba(182, 80, 80, 0.12);
+
+  /* --- Identidad: el plan que contrató cada moto --- */
+  --plan-1: #1f6feb;
+  --plan-2: #d9730d;
+  --plan-3: #9340b8;
+
+  /* --- Series de las gráficas --- */
+  --serie-cola-1: #0e9aa7;
+  --serie-cola-2: #b5531f;
+
+  /* --- Tamaños de letra --- */
+  --letra-pequena: 0.82rem;
+  --letra-normal: 0.95rem;
+  --letra-titulo: 1.05rem;
+  --letra-destacada: 1.35rem;
+
+  /* --- Espaciados --- */
+  --espacio-1: 0.35rem;
+  --espacio-2: 0.65rem;
+  --espacio-3: 1rem;
+  --espacio-4: 1.5rem;
+
+  /* --- Tarjetas --- */
+  --radio-tarjeta: 8px;
+  --sombra-tarjeta: rgba(15, 28, 38, 0.06) 0 2px 8px;
+}

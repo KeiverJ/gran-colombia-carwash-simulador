@@ -1,0 +1,138 @@
+/* Tabla de métricas y gráfica de las dos filas. Solo variables del tema. */
+
+.metricas,
+.grafica {
+  border: 1px solid var(--border);
+  border-radius: var(--radio-tarjeta);
+  padding: var(--espacio-3) var(--espacio-4) var(--espacio-4);
+  background: var(--bg-tarjeta);
+  box-shadow: var(--sombra-tarjeta);
+  /* La plantilla centra todo el contenido de la página; un párrafo de cuatro
+     líneas centrado se lee mal, así que lo nuevo va alineado a la izquierda. */
+  text-align: left;
+}
+
+.metricas h2,
+.grafica h2,
+.metricas h3 {
+  text-align: center;
+}
+
+.metricas h2,
+.grafica h2 {
+  margin-top: 0;
+  font-size: var(--letra-destacada);
+}
+
+.metricas h3 {
+  margin: var(--espacio-4) 0 var(--espacio-2);
+  font-size: var(--letra-titulo);
+  color: var(--text-h);
+}
+
+.metricas table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--letra-normal);
+}
+
+.metricas th,
+.metricas td {
+  padding: var(--espacio-1) var(--espacio-2);
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+
+.metricas thead th {
+  font-weight: 600;
+  color: var(--text-h);
+  border-bottom: 2px solid var(--agua-interfaz);
+  white-space: nowrap;
+}
+
+.metricas tbody th,
+.metricas thead th:first-child {
+  text-align: left;
+  font-weight: 400;
+}
+
+.metricas .numero {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-h);
+}
+
+.metricas .unidad {
+  font-size: var(--letra-pequena);
+  opacity: 0.7;
+}
+
+.metricas .sin-dato {
+  color: var(--estado-ocupada);
+  font-style: italic;
+}
+
+.aviso-saturacion {
+  margin: var(--espacio-2) 0;
+  padding: var(--espacio-2) var(--espacio-3);
+  font-size: var(--letra-normal);
+  border-left: 4px solid var(--estado-ocupada);
+  border-radius: 4px;
+  background: var(--estado-ocupada-fondo);
+}
+
+.nota-inestable {
+  margin: 0 0 var(--espacio-2);
+  padding: var(--espacio-2) var(--espacio-3);
+  font-size: var(--letra-pequena);
+  border-left: 3px solid var(--amarillo-borde);
+  border-radius: 4px;
+  background: rgba(242, 183, 5, 0.12);
+}
+
+.metricas .nota,
+.grafica .nota {
+  font-size: var(--letra-pequena);
+  opacity: 0.85;
+  margin: var(--espacio-2) 0;
+}
+
+.metricas .total {
+  margin-top: var(--espacio-3);
+  font-size: var(--letra-normal);
+}
+
+.corrida-larga {
+  margin-top: var(--espacio-4);
+  padding-top: var(--espacio-3);
+  border-top: 1px solid var(--border);
+}
+
+.boton-principal {
+  width: 100%;
+  padding: var(--espacio-2) var(--espacio-3);
+  font: inherit;
+  font-size: var(--letra-normal);
+  font-weight: 600;
+  color: var(--text-h);
+  background: var(--amarillo);
+  /* El amarillo contra la tarjeta blanca casi no contrasta, así que el borde
+     es lo que hace ver dónde empieza el botón. */
+  border: 2px solid var(--amarillo-borde);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.boton-principal:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.progreso {
+  margin: var(--espacio-2) 0 0;
+  font-size: var(--letra-normal);
+  color: var(--text-h);
+}
+
+.grafica .lienzo {
+  margin-top: var(--espacio-2);
+}

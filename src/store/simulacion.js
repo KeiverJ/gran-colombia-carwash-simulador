@@ -17,7 +17,9 @@ import {
   PUESTOS_ACABADO,
 } from '../data/parametros.js'
 import { crearSimulador, MODO_POR_PLAN } from '../engine/simulador.js'
+import { progreso, siguienteTrozoHoras } from './corridaLarga.js'
 import { pasoSimuladoMin } from './paso.js'
+import { agregarPunto, tocaAnotar } from './puntos.js'
 
 /** Lo que el panel deja elegir. */
 export const PLACAS_POSIBLES = [5, 6, 7]
@@ -25,6 +27,12 @@ export const PUESTOS_POSIBLES = [3, 4, 5]
 export const VELOCIDAD_MINIMA = 0.25
 export const VELOCIDAD_MAXIMA = 60
 export const VELOCIDAD_POR_DEFECTO = 1
+
+/** Cada cuánto tiempo real se refrescan la tabla y la gráfica. */
+export const INTERVALO_DE_METRICAS_MS = 250
+
+/** Horas que simula de corrido el botón de la corrida larga. */
+export const HORAS_DE_LA_CORRIDA_LARGA = 1000
 
 /** Nombre de cada parámetro en palabras, para el aviso del panel. */
 const NOMBRE_DEL_PARAMETRO = {
@@ -116,6 +124,15 @@ function estadoInicial() {
     motor,
     foto: motor.estado(),
     aviso: null,
+    // Lo que alimenta la tabla y la gráfica. Se refrescan cuatro veces por
+    // segundo, no en cada cuadro: una tabla de diez números no gana nada
+    // redibujándose sesenta veces por segundo.
+    metricas: null,
+    puntos: [],
+    ultimoPuntoMin: null,
+    ultimasMetricasMs: 0,
+    // Progreso de la corrida larga: null cuando no hay ninguna en marcha.
+    corridaLarga: null,
   }
 }
 
@@ -129,7 +146,18 @@ export const useSimulacion = create((set, get) => ({
   reiniciar: (aviso = null) => {
     const { parametros, semilla } = get()
     const motor = motorCon(parametros, semilla)
-    set({ motor, foto: motor.estado(), aviso })
+    set({
+      motor,
+      foto: motor.estado(),
+      aviso,
+      // Las métricas y los puntos son de la corrida que se acaba de descartar:
+      // mezclarlos con los de la nueva daría una gráfica que no ocurrió.
+      metricas: null,
+      puntos: [],
+      ultimoPuntoMin: null,
+      ultimasMetricasMs: 0,
+      corridaLarga: null,
+    })
   },
 
   /**
@@ -143,7 +171,118 @@ export const useSimulacion = create((set, get) => ({
       return
     }
     motor.avanzar(paso)
-    set({ foto: motor.estado() })
+    const foto = motor.estado()
+    set({ foto })
+    get().anotarMetricas(foto)
+  },
+
+  /**
+   * Refresca la tabla y añade un punto a la gráfica, con dos frenos: las
+   * métricas como mucho cada cuarto de segundo real, y un punto cada vez que
+   * el reloj simulado avanza el intervalo de muestreo.
+   */
+  anotarMetricas: (foto) => {
+    const { motor, ultimasMetricasMs, ultimoPuntoMin, puntos } = get()
+    const cambios = {}
+
+    // Freno 1: la tabla, por tiempo real. Diez números no ganan nada
+    // redibujándose sesenta veces por segundo.
+    const ahora = Date.now()
+    if (ahora - ultimasMetricasMs >= INTERVALO_DE_METRICAS_MS) {
+      cambios.metricas = motor.metricas()
+      cambios.ultimasMetricasMs = ahora
+    }
+
+    // Freno 2: la gráfica, por tiempo simulado, e independiente del anterior.
+    // Si dependiera del reloj real, a velocidad alta la gráfica se quedaría
+    // con cuatro puntos por segundo y perdería la forma de las colas.
+    if (tocaAnotar(foto.relojMin, ultimoPuntoMin)) {
+      cambios.puntos = agregarPunto(puntos, {
+        minuto: foto.relojMin,
+        colaLavado: foto.colaLavado.length,
+        colaAcabado: foto.colaAcabado.length,
+      })
+      cambios.ultimoPuntoMin = foto.relojMin
+    }
+
+    if (Object.keys(cambios).length > 0) {
+      set(cambios)
+    }
+  },
+
+  /**
+   * Arranca la corrida larga: descarta lo simulado y vuelve a empezar, porque
+   * mezclar mil horas con lo que ya había daría métricas de dos sistemas.
+   */
+  empezarCorridaLarga: (horas = HORAS_DE_LA_CORRIDA_LARGA) => {
+    get().reiniciar(
+      `Simulando ${horas} horas de corrido. La simulación anterior se descartó para empezar de cero.`,
+    )
+    set({
+      corriendo: false,
+      corridaLarga: {
+        horasTotales: horas,
+        horasHechas: 0,
+        horasDelTrozoAnterior: 0,
+        msDelTrozoAnterior: 0,
+        porcentaje: 0,
+      },
+    })
+  },
+
+  /**
+   * Avanza un trozo de la corrida larga; la llama el ciclo de animación una
+   * vez por cuadro, así que la pantalla sigue respondiendo mientras tanto.
+   * Devuelve true mientras quede trabajo.
+   */
+  avanzarCorridaLarga: () => {
+    const { corridaLarga, motor } = get()
+    if (!corridaLarga) {
+      return false
+    }
+    const horasQueFaltan = corridaLarga.horasTotales - corridaLarga.horasHechas
+    if (horasQueFaltan <= 0) {
+      set({
+        corridaLarga: null,
+        metricas: motor.metricas(),
+        foto: motor.estado(),
+        aviso: `Listo: se simularon ${corridaLarga.horasTotales} horas de corrido.`,
+      })
+      return false
+    }
+
+    const trozo = siguienteTrozoHoras({
+      horasQueFaltan,
+      horasDelTrozoAnterior: corridaLarga.horasDelTrozoAnterior,
+      msDelTrozoAnterior: corridaLarga.msDelTrozoAnterior,
+    })
+    const empezo = Date.now()
+    motor.correrHoras(trozo)
+    const tardo = Date.now() - empezo
+
+    const horasHechas = corridaLarga.horasHechas + trozo
+    const foto = motor.estado()
+    // Un punto por trozo: si no, tras mil horas la gráfica quedaría vacía
+    // justo cuando más hay que enseñar, que es cómo crece la fila del acabado.
+    const puntos = agregarPunto(get().puntos, {
+      minuto: foto.relojMin,
+      colaLavado: foto.colaLavado.length,
+      colaAcabado: foto.colaAcabado.length,
+    })
+    set({
+      foto,
+      puntos,
+      ultimoPuntoMin: foto.relojMin,
+      metricas: motor.metricas(),
+      corridaLarga: {
+        ...corridaLarga,
+        horasHechas,
+        horasDelTrozoAnterior: trozo,
+        msDelTrozoAnterior: tardo,
+        porcentaje: progreso(horasHechas, corridaLarga.horasTotales),
+      },
+    })
+    return true
   },
 
   /**

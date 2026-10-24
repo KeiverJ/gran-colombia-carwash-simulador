@@ -19,10 +19,18 @@ export function useCicloDeSimulacion() {
     let instanteAnterior = null
 
     const enCadaCuadro = (instante) => {
-      if (instanteAnterior !== null) {
-        useSimulacion.getState().avanzarCuadro(instante - instanteAnterior)
+      const estado = useSimulacion.getState()
+      if (estado.corridaLarga) {
+        // Mientras dura la corrida larga, el cuadro se gasta en ella: avanza un
+        // trozo y devuelve el control al navegador, así la página responde.
+        estado.avanzarCorridaLarga()
+        instanteAnterior = null
+      } else {
+        if (instanteAnterior !== null) {
+          estado.avanzarCuadro(instante - instanteAnterior)
+        }
+        instanteAnterior = instante
       }
-      instanteAnterior = instante
       cuadroPedido = requestAnimationFrame(enCadaCuadro)
     }
 

@@ -1,7 +1,11 @@
+import './estilos/tema.css'
 import './App.css'
 import './components/paneles.css'
+import './components/metricas.css'
 
+import GraficaDeColas from './components/GraficaDeColas.jsx'
 import PanelDeParametros from './components/PanelDeParametros.jsx'
+import TablaDeMetricas from './components/TablaDeMetricas.jsx'
 import VistaDelLavadero from './components/VistaDelLavadero.jsx'
 import { useCicloDeSimulacion } from './store/useCicloDeSimulacion.js'
 
@@ -20,7 +24,11 @@ function App() {
 
       <div className="columnas">
         <PanelDeParametros />
-        <VistaDelLavadero />
+        <div className="principal">
+          <VistaDelLavadero />
+          <GraficaDeColas />
+          <TablaDeMetricas />
+        </div>
       </div>
     </main>
   )

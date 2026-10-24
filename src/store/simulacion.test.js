@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { ACABADO_PROMEDIO_MIN, PROPORCION_PLAN_EXACTA } from '../data/parametros.js'
 import { crearSimulador } from '../engine/simulador.js'
+import { metricasCalculadas } from './metricas.js'
+import { MAXIMO_DE_PUNTOS } from './puntos.js'
 import {
   acabadoPromedioDe,
   PLACAS_POSIBLES,
@@ -235,5 +237,95 @@ describe('las proporciones al mover un deslizador', () => {
     expect(estado().parametros.proporcionPlan[2]).toBe(1)
     estado().cambiarProporcion(2, -0.5)
     expect(estado().parametros.proporcionPlan[2]).toBe(0)
+  })
+})
+
+describe('las métricas y los puntos de la gráfica', () => {
+  const animarUnRato = (cuadros = 200) => {
+    estado().iniciar()
+    estado().cambiarVelocidad(60)
+    for (let i = 0; i < cuadros; i += 1) {
+      estado().avanzarCuadro(100)
+    }
+  }
+
+  it('al arrancar no hay métricas ni puntos', () => {
+    expect(estado().metricas).toBeNull()
+    expect(estado().puntos).toEqual([])
+  })
+
+  it('animando aparecen métricas y puntos', () => {
+    animarUnRato()
+    expect(estado().metricas).not.toBeNull()
+    expect(estado().puntos.length).toBeGreaterThan(10)
+    expect(estado().puntos[0]).toHaveProperty('minuto')
+    expect(estado().puntos[0]).toHaveProperty('colaLavado')
+    expect(estado().puntos[0]).toHaveProperty('colaAcabado')
+  })
+
+  it('los puntos no pasan del tope', () => {
+    animarUnRato(1000)
+    expect(estado().puntos.length).toBeLessThanOrEqual(MAXIMO_DE_PUNTOS)
+  })
+
+  it('la gráfica se vacía al reiniciar y al cambiar un parámetro', () => {
+    animarUnRato()
+    expect(estado().puntos.length).toBeGreaterThan(0)
+
+    estado().cambiarParametro('placas', 7)
+    expect(estado().puntos).toEqual([])
+    expect(estado().metricas).toBeNull()
+
+    animarUnRato()
+    estado().reiniciar()
+    expect(estado().puntos).toEqual([])
+  })
+
+  it('los puntos van en orden de tiempo simulado', () => {
+    animarUnRato()
+    const minutos = estado().puntos.map((p) => p.minuto)
+    expect(minutos).toEqual([...minutos].sort((a, b) => a - b))
+  })
+})
+
+describe('la corrida larga', () => {
+  it('reinicia antes de empezar y lo avisa', () => {
+    estado().iniciar()
+    for (let i = 0; i < 20; i += 1) estado().avanzarCuadro(100)
+
+    estado().empezarCorridaLarga(100)
+    expect(estado().foto.relojMin).toBe(0)
+    expect(estado().aviso).toMatch(/descartó|descarto/)
+    expect(estado().corridaLarga.horasTotales).toBe(100)
+    expect(estado().corridaLarga.porcentaje).toBe(0)
+  })
+
+  it('avanza por trozos hasta terminar y deja las métricas', () => {
+    estado().empezarCorridaLarga(100)
+    let cuadros = 0
+    while (estado().avanzarCorridaLarga()) {
+      cuadros += 1
+      expect(cuadros).toBeLessThan(500) // no se queda dando vueltas
+    }
+    expect(cuadros).toBeGreaterThan(0)
+    expect(estado().corridaLarga).toBeNull()
+    expect(estado().foto.relojMin).toBeCloseTo(100 * 60, 0)
+    expect(estado().metricas).not.toBeNull()
+    expect(estado().aviso).toMatch(/100 horas/)
+  })
+
+  it('deja las métricas simuladas cerca de las calculadas en una etapa estable', () => {
+    estado().cambiarParametro('puestos', 5)
+    estado().empezarCorridaLarga(1000)
+    while (estado().avanzarCorridaLarga()) {
+      /* avanzando */
+    }
+    const simulado = estado().metricas.lavado
+    const calculado = metricasCalculadas(estado().parametros).lavado
+    expect(Math.abs(simulado.rho - calculado.rho) / calculado.rho).toBeLessThan(0.05)
+  })
+
+  it('sin corrida en marcha no hace nada', () => {
+    expect(estado().avanzarCorridaLarga()).toBe(false)
   })
 })
