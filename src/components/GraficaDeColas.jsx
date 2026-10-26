@@ -23,16 +23,23 @@ const NOMBRE_DE_SERIE = {
 /** Las horas del eje, a partir de los minutos simulados. */
 const comoHoras = (minutos) => comoNumero(minutos / 60, 1)
 
-export function GraficaDeColas() {
+/**
+ * La gráfica de las dos filas a lo largo del tiempo simulado. Se usa en la
+ * franja de debajo de la escena (más baja, sin título) y en la pestaña Gráficas.
+ *
+ * @param {object} props
+ * @param {number|string} [props.alto] alto del dibujo: píxeles, o '100%' para llenar su contenedor
+ * @param {boolean} [props.conTitulo]
+ */
+export function GraficaDeColas({ alto = 260, conTitulo = true }) {
   const puntos = useSimulacion((estado) => estado.puntos)
 
   if (puntos.length < 2) {
     return (
       <section className="grafica">
-        <h2>Las dos filas en el tiempo</h2>
+        {conTitulo ? <h2>Las dos filas en el tiempo</h2> : null}
         <p className="nota">
-          Cuando la simulación avance aparecerá aquí cuántas motos esperan en cada
-          fila.
+          Los datos aparecerán cuando la simulación avance.
         </p>
       </section>
     )
@@ -40,14 +47,14 @@ export function GraficaDeColas() {
 
   return (
     <section className="grafica">
-      <h2>Las dos filas en el tiempo</h2>
+      {conTitulo ? <h2>Las dos filas en el tiempo</h2> : null}
       <p className="nota">
         Motos esperando en cada fila, según avanza el tiempo simulado.
       </p>
       <div className="lienzo">
-        <ResponsiveContainer width="100%" height={260}>
+        <ResponsiveContainer width="100%" height={alto}>
           <LineChart data={puntos} margin={{ top: 8, right: 16, bottom: 24, left: 0 }}>
-            <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+            <CartesianGrid stroke="var(--borde)" strokeDasharray="3 3" vertical={false} />
             {/* El eje tiene que ser numérico: por defecto Recharts reparte los
                 puntos a distancias iguales como si fueran categorías, y
                 entonces 25 h y 875 h quedarían a un paso, igual que 1.000,2 y
@@ -57,12 +64,12 @@ export function GraficaDeColas() {
               type="number"
               domain={['dataMin', 'dataMax']}
               tickFormatter={comoHoras}
-              stroke="var(--text)"
+              stroke="var(--texto-secundario)"
               tick={{ fontSize: 12 }}
               label={{ value: 'horas simuladas', position: 'insideBottom', offset: -12 }}
             />
             <YAxis
-              stroke="var(--text)"
+              stroke="var(--texto-secundario)"
               tick={{ fontSize: 12 }}
               allowDecimals={false}
               label={{ value: 'motos', angle: -90, position: 'insideLeft' }}
@@ -88,7 +95,7 @@ export function GraficaDeColas() {
               dataKey="colaAcabado"
               name={NOMBRE_DE_SERIE.colaAcabado}
               stroke={COLOR_DE_SERIE.colaAcabado}
-              strokeWidth={2}
+              strokeWidth={3}
               strokeDasharray="6 3"
               dot={false}
               isAnimationActive={false}

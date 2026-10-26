@@ -7,7 +7,7 @@
 
 import { metricasMMs } from '../engine/formulas.js'
 import { MODO_MMS } from '../engine/simulador.js'
-import { acabadoPromedioDe } from './simulacion.js'
+import { acabadoPromedioDe, parametrosDelEscenario } from './simulacion.js'
 
 /**
  * Las métricas teóricas de cada etapa, con los parámetros del panel.
@@ -40,6 +40,18 @@ export function metricasCalculadas(parametros) {
     servicioLavadoPorHora,
     servicioAcabadoPorHora,
   }
+}
+
+/**
+ * El ρ₂ del acabado de un escenario, calculado con las fórmulas M/M/s y los
+ * parámetros por defecto con las placas y los puestos de ese escenario. Es lo
+ * que muestra cada tarjeta de escenario: 1 o más quiere decir que se satura.
+ *
+ * @param {{ placas: number, puestos: number }} escenario
+ * @returns {number}
+ */
+export function rho2DelEscenario(escenario) {
+  return metricasCalculadas(parametrosDelEscenario(escenario)).acabado.rho
 }
 
 /** Cómo se llama cada etapa y su fila, en palabras. */

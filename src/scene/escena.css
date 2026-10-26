@@ -1,199 +1,294 @@
-/* La escena 3D del lavadero. Solo variables del tema. */
+/*
+ * La escena 3D del lavadero y todo lo que flota sobre ella.
+ *
+ * La escena ocupa TODO el espacio de su zona (`.zona-lienzo`, en
+ * interfaz.css): no tiene alto máximo ni márgenes. Lo que se ve encima —botones
+ * de cámara, leyenda, indicadores— está colocado con `position: absolute` en
+ * las esquinas y el borde de abajo, con un velo semitransparente, y deja libre
+ * el centro. Las capas de Ajustes y Resultados se abren encima y corren esos
+ * elementos con las variables `--capa-izquierda` y `--capa-derecha`.
+ * Solo variables del tema.
+ */
 
 .escena {
   /*
    * Sin esto la escena no encoge al estrechar la ventana: React Three Fiber
    * le pone al lienzo un ancho en píxeles, ese ancho pasa a ser el mínimo de
    * la columna, la columna no encoge y el lienzo nunca recibe la medida nueva.
-   * Se queda ancho y la página se desplaza a lo ancho.
    */
   min-width: 0;
-  /*
-   * La escena cabe en la ventana y el lienzo se queda con lo que sobre después
-   * de los mandos y la leyenda. Así, si un texto crece o se parte en más
-   * líneas, el lienzo encoge en vez de empujar la escena fuera de la pantalla,
-   * que es lo que pasaba cuando el alto se calculaba restando una constante.
-   */
-  display: flex;
-  flex-direction: column;
-  max-height: calc(100svh - var(--alto-fuera-de-la-escena));
-  border: 1px solid var(--border);
-  border-radius: var(--radio-tarjeta);
-  padding: var(--espacio-3) var(--espacio-4) var(--espacio-4);
-  background: var(--bg-tarjeta);
-  box-shadow: var(--sombra-tarjeta);
-  text-align: left;
-}
-
-/*
- * Los mandos de uso frecuente, pegados a la escena: a la izquierda los
- * botones, en medio la velocidad y a la derecha el reloj.
- */
-.mandos {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--espacio-2) var(--espacio-4);
-  margin-bottom: var(--espacio-3);
-}
-
-.mandos-botones {
-  display: flex;
-  gap: var(--espacio-2);
-}
-
-.mandos-botones button {
-  padding: var(--espacio-2) var(--espacio-3);
-  font: inherit;
-  font-weight: 600;
-  border: 1px solid var(--border);
-  border-radius: var(--radio-tarjeta);
-  background: var(--bg-tarjeta);
-  color: var(--agua-interfaz);
-  cursor: pointer;
-}
-
-.mandos-botones .boton-principal {
-  background: var(--amarillo);
-  border-color: var(--amarillo-borde);
-  color: var(--text-h);
-}
-
-.mandos-botones button:focus-visible,
-.boton-pantalla-completa:focus-visible {
-  outline: 2px solid var(--agua-interfaz);
-  outline-offset: 2px;
-}
-
-.mandos-velocidad {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-1);
-  font-size: var(--letra-pequena);
-  min-width: 14rem;
-}
-
-.mandos-velocidad input {
-  width: 100%;
-}
-
-.escena .reloj {
-  margin: 0;
-  margin-left: auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--espacio-1) var(--espacio-3);
-  font-size: var(--letra-pequena);
-  text-align: left;
-}
-
-/*
- * El lienzo se queda con el espacio que sobra, con un mínimo para que nunca
- * quede aplastado y un máximo para que en una pantalla muy alta no se estire
- * sin sentido.
- */
-.lienzo-3d {
-  position: relative;
-  min-width: 0;
-  flex: 1 1 auto;
-  height: clamp(
-    var(--alto-minimo-escena),
-    calc(100svh - var(--alto-sobre-la-escena)),
-    var(--alto-maximo-escena)
-  );
-  min-height: var(--alto-minimo-escena);
-  max-height: var(--alto-maximo-escena);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  overflow: hidden;
-  background: var(--agua-suave);
-}
-
-/* El botón de pantalla completa, en la esquina contraria a las vistas. */
-.boton-pantalla-completa {
   position: absolute;
-  bottom: var(--espacio-2);
-  right: var(--espacio-2);
-  padding: var(--espacio-1) var(--espacio-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radio-tarjeta);
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--agua-interfaz);
-  font-size: var(--letra-pequena);
-  font-weight: 600;
-  cursor: pointer;
+  inset: 0;
+  background: var(--fondo-escena);
 }
 
-.boton-pantalla-completa:hover {
-  background: #ffffff;
-  border-color: var(--agua-interfaz);
+.lienzo-3d {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--fondo-escena);
 }
 
 /*
  * A pantalla completa, y en el modo de respaldo por si el navegador la
- * rechaza, la escena ocupa todo y el lienzo se come el espacio que sobra.
+ * rechaza, la escena ocupa todo y se ven los mandos mínimos.
  */
-.escena:fullscreen,
-.escena--expandida {
-  max-height: none;
-  border-radius: 0;
-  background: var(--bg-tarjeta);
-}
-
 .escena--expandida {
   position: fixed;
   inset: 0;
   z-index: 50;
-  overflow: auto;
 }
 
-.escena:fullscreen .lienzo-3d,
-.escena--expandida .lienzo-3d {
-  max-height: none;
+.mandos-minimos {
+  display: none;
+  position: absolute;
+  left: var(--espacio-2);
+  bottom: var(--espacio-2);
+  z-index: 3;
+  align-items: center;
+  gap: var(--espacio-2);
+  padding: var(--espacio-1) var(--espacio-2);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--velo-escena);
 }
+
+.escena:fullscreen .mandos-minimos,
+.escena--expandida .mandos-minimos {
+  display: flex;
+}
+
+.mandos-minimos-hora {
+  color: var(--texto);
+}
+
+/* --- Arriba: los botones de cámara a la izquierda y la leyenda a la derecha --- */
 
 /*
- * Los botones de vista van encima del lienzo, en una esquina, para que estén
- * donde se está mirando y no haya que buscarlos en el panel.
+ * Una sola franja para los dos, entre las capas. Así nunca se pisan: si no
+ * caben en una línea, la leyenda se parte en dos en vez de taparle los botones
+ * a la cámara.
  */
-.mandos-de-camara {
+.flotante-superior {
   position: absolute;
   top: var(--espacio-2);
-  right: var(--espacio-2);
+  left: calc(var(--capa-izquierda, 0px) + var(--espacio-2));
+  right: calc(var(--capa-derecha, 0px) + var(--espacio-2));
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-1) var(--espacio-2);
+  pointer-events: none;
+}
+
+.flotante-superior > * {
+  pointer-events: auto;
+}
+
+.mandos-de-camara {
+  flex: 0 1 auto;
+  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--espacio-1);
 }
 
-.mandos-de-camara button {
-  padding: var(--espacio-1) var(--espacio-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radio-tarjeta);
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--agua-interfaz);
-  font-size: var(--letra-pequena);
-  font-weight: 600;
+.mandos-de-camara button,
+.boton-pantalla-completa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  min-height: var(--alto-control);
+  padding: 0 var(--espacio-2);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-control);
+  background: var(--velo-escena);
+  color: var(--etapa-1-texto);
+  font: inherit;
+  font-size: var(--letra-secundaria);
+  font-weight: 500;
   cursor: pointer;
+  transition:
+    background-color var(--duracion-corta) var(--curva-entrada),
+    border-color var(--duracion-corta) var(--curva-entrada);
 }
 
-.mandos-de-camara button:hover {
-  background: #ffffff;
-  border-color: var(--agua-interfaz);
+.mandos-de-camara button:hover,
+.boton-pantalla-completa:hover {
+  background: var(--fondo-tarjeta);
+  border-color: var(--etapa-1);
 }
 
-.mandos-de-camara button:focus-visible {
-  outline: 2px solid var(--agua-interfaz);
+.mandos-de-camara button:focus-visible,
+.boton-pantalla-completa:focus-visible {
+  outline: 2px solid var(--etapa-1-texto);
   outline-offset: 2px;
 }
 
+/* --- Leyenda y pantalla completa --- */
+
+.flotante-derecha {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--espacio-1);
+}
+
+.leyenda {
+  box-sizing: border-box;
+  list-style: none;
+  margin: 0;
+  padding: var(--espacio-1) var(--espacio-2);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--espacio-1) var(--espacio-3);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-control);
+  background: var(--velo-escena);
+  color: var(--texto);
+  font-size: var(--letra-pequena);
+}
+
+.leyenda li {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  white-space: nowrap;
+}
+
+/* --- Indicadores: abajo y al centro, entre las capas --- */
+
+/*
+ * Un solo panel semitransparente, con borde fino y esquinas suaves, centrado
+ * abajo. Tres grupos separados por líneas verticales finas. Sin franjas de
+ * color: cada grupo se reconoce por su nombre, que lleva el color de su etapa.
+ */
+.indicadores {
+  position: absolute;
+  left: calc(var(--capa-izquierda, 0px) + var(--espacio-2));
+  right: calc(var(--capa-derecha, 0px) + var(--espacio-2));
+  bottom: var(--espacio-2);
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.indicadores-panel {
+  display: flex;
+  align-items: stretch;
+  max-width: 100%;
+  padding: var(--espacio-2) var(--espacio-4);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--velo-escena);
+  pointer-events: auto;
+}
+
+.indicadores-grupo {
+  min-width: 0;
+}
+
+.indicadores-grupo + .indicadores-grupo {
+  margin-left: var(--espacio-4);
+  padding-left: var(--espacio-4);
+  border-left: 1px solid var(--borde);
+}
+
+.grupo-nombre {
+  margin: 0 0 var(--espacio-1);
+  font-size: var(--letra-seccion);
+  font-weight: 600;
+  letter-spacing: var(--espaciado-de-seccion);
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+.indicadores-grupo--lavado .grupo-nombre {
+  color: var(--etapa-1-texto);
+}
+
+.indicadores-grupo--acabado .grupo-nombre {
+  color: var(--etapa-2);
+}
+
+.medidas {
+  display: flex;
+  gap: var(--espacio-4);
+}
+
+.medida {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.medida-etiqueta {
+  font-size: var(--letra-pequena);
+  line-height: 1.3;
+  color: var(--texto-tenue);
+  white-space: nowrap;
+}
+
+.medida-valor {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  font-size: var(--letra-cifra);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--texto);
+  white-space: nowrap;
+}
+
+/* Etapa saturada: la cifra pasa al color de advertencia y lleva un ícono. */
+.medida-valor--advertencia {
+  color: var(--advertencia-texto);
+}
+
+.medida-aviso {
+  display: inline-flex;
+}
+
+.medida-aviso svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* La barra fina de ocupación de placas o puestos (x de s). */
+.ocupacion {
+  height: 4px;
+  margin-top: var(--espacio-1);
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--borde);
+}
+
+.ocupacion-relleno {
+  width: 100%;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--etapa-1);
+  transform: scaleX(var(--ocupacion, 0));
+  transform-origin: left;
+  transition: transform var(--duracion-corta) var(--curva-entrada);
+}
+
+.indicadores-grupo--acabado .ocupacion-relleno {
+  background: var(--etapa-2);
+}
+
 .aviso-sin-3d {
-  margin: var(--espacio-2) 0;
-  padding: var(--espacio-3);
-  font-size: var(--letra-normal);
-  border-left: 4px solid var(--amarillo-borde);
-  border-radius: 4px;
-  background: rgba(242, 183, 5, 0.12);
+  margin: var(--espacio-3);
+  background: var(--fondo-tarjeta);
 }
 
 /* --- Rótulos dentro de la escena (HTML colocado en 3D) --- */
@@ -204,16 +299,16 @@
   border-radius: 4px;
   font-size: var(--letra-pequena);
   white-space: nowrap;
-  color: var(--text-h);
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid var(--border);
+  color: var(--texto);
+  background: var(--velo-escena);
+  border: 1px solid var(--borde);
   user-select: none;
 }
 
 .rotulo-avenida {
   font-weight: 600;
-  color: var(--agua-interfaz);
-  border-color: var(--agua-interfaz);
+  color: var(--etapa-1-texto);
+  border-color: var(--etapa-1-texto);
 }
 
 .rotulo-servidor {
@@ -226,7 +321,7 @@
 }
 
 .rotulo-salida {
-  color: var(--agua-interfaz);
+  color: var(--etapa-1-texto);
 }
 
 .rotulo-sobrantes {
@@ -235,40 +330,14 @@
   border-color: var(--estado-ocupada);
 }
 
-/* --- Leyenda --- */
-
-.leyenda {
-  margin-top: var(--espacio-3);
-}
-
-.leyenda h3 {
-  margin: 0 0 var(--espacio-2);
-  font-size: var(--letra-titulo);
-  color: var(--text-h);
-}
-
-.leyenda-lista {
-  list-style: none;
-  margin: 0 0 var(--espacio-2);
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--espacio-1) var(--espacio-3);
-  font-size: var(--letra-pequena);
-}
-
-.leyenda-lista li {
-  display: flex;
-  align-items: center;
-  gap: var(--espacio-1);
-}
+/* --- Muestras de la leyenda --- */
 
 .muestra {
   width: 14px;
   height: 14px;
   flex: none;
   background: var(--color-muestra);
-  border: 1px solid rgba(15, 28, 38, 0.25);
+  border: 1px solid var(--texto-tenue);
 }
 
 /* La forma repite la que lleva la moto en la escena. */
@@ -280,15 +349,11 @@
   border-radius: 2px;
 }
 
-/* El cono se dibuja con bordes, así que su color va en el borde de abajo. */
+/* El cono es un triángulo recortado del cuadrado de la muestra. */
 .forma-cono {
-  width: 0;
-  height: 0;
-  background: none;
   border: none;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-bottom: 14px solid var(--color-muestra);
+  background: var(--color-muestra);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 
 .muestra-losa {
@@ -301,8 +366,68 @@
   height: 13px;
 }
 
-.escena .nota {
-  font-size: var(--letra-pequena);
-  opacity: 0.85;
-  margin: var(--espacio-2) 0 0;
+/*
+ * En un celular los tres grupos de arriba se acomodan en dos filas: la cámara
+ * y la pantalla completa (como ícono) en la primera, y la leyenda en la
+ * segunda. Con "display: contents" los hijos de la columna de la derecha se
+ * ordenan como hijos de la franja.
+ */
+@media (max-width: 767px) {
+  .flotante-derecha {
+    display: contents;
+  }
+
+  .mandos-de-camara {
+    order: 1;
+    flex: 1 1 0;
+  }
+
+  .mandos-de-camara button {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 0 var(--espacio-1);
+    font-size: var(--letra-pequena);
+  }
+
+  .boton-pantalla-completa {
+    order: 2;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .leyenda {
+    order: 3;
+    flex: 1 0 100%;
+    justify-content: flex-start;
+    gap: 2px var(--espacio-2);
+    padding: var(--espacio-1);
+    font-size: var(--letra-minima);
+  }
+
+  /* En el celular el panel lleva solo Lavado y Acabado. */
+  .indicadores-grupo--salieron {
+    display: none;
+  }
+
+  .indicadores-panel {
+    padding: var(--espacio-1) var(--espacio-2);
+  }
+
+  .indicadores-grupo + .indicadores-grupo {
+    margin-left: var(--espacio-2);
+    padding-left: var(--espacio-2);
+  }
+
+  .medidas {
+    gap: var(--espacio-2);
+  }
+
+  .medida-etiqueta {
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+
+  .medida-valor {
+    font-size: var(--letra-destacada);
+  }
 }

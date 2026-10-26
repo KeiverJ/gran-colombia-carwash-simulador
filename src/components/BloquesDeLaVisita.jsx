@@ -55,13 +55,17 @@ const FILAS_DE_LO_OBSERVADO = [
   },
 ]
 
-function Valor({ valor, decimales, unidad }) {
+function Valor({ etiqueta, valor, decimales, unidad }) {
   // Sin datos todavía no se muestra un cero: sería decir que no pasó nada.
   if (valor === null || valor === undefined) {
-    return <td className="sin-dato">—</td>
+    return (
+      <td className="sin-dato" data-etiqueta={etiqueta}>
+        —
+      </td>
+    )
   }
   return (
-    <td className="numero">
+    <td className="numero" data-etiqueta={etiqueta}>
       {comoNumero(valor, decimales)}
       {unidad ? <span className="unidad"> {unidad}</span> : null}
     </td>
@@ -82,7 +86,7 @@ export function BloquesDeLaVisita({ metricas }) {
       <div className="etapa bloque-visita">
         <h3>Según la reproducción de la tabla</h3>
         {metricas === null ? (
-          <p className="nota">Todavía no hay nada reproducido. Dale a iniciar para ver los valores.</p>
+          <p className="nota">Aún no hay datos reproducidos. Pulsa Iniciar para ver los valores.</p>
         ) : (
           <p className="nota">
             Hasta la hora que marca el reloj. Cada promedio por moto cuenta las motos que ya
@@ -100,7 +104,12 @@ export function BloquesDeLaVisita({ metricas }) {
             {FILAS_DE_LA_REPRODUCCION.map(({ nombre, valor, decimales, unidad }) => (
               <tr key={nombre}>
                 <th scope="row">{nombre}</th>
-                <Valor valor={metricas ? valor(metricas) : null} decimales={decimales} unidad={unidad} />
+                <Valor
+                  etiqueta="Reproducción"
+                  valor={metricas ? valor(metricas) : null}
+                  decimales={decimales}
+                  unidad={unidad}
+                />
               </tr>
             ))}
           </tbody>
@@ -124,7 +133,7 @@ export function BloquesDeLaVisita({ metricas }) {
             {FILAS_DE_LO_OBSERVADO.map(({ nombre, valor, decimales, unidad }) => (
               <tr key={nombre}>
                 <th scope="row">{nombre}</th>
-                <Valor valor={valor} decimales={decimales} unidad={unidad} />
+                <Valor etiqueta="Observado" valor={valor} decimales={decimales} unidad={unidad} />
               </tr>
             ))}
           </tbody>

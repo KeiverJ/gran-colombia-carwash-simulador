@@ -1,33 +1,39 @@
-/* Tabla de métricas y gráfica de las dos filas. Solo variables del tema. */
+/*
+ * Las tablas de métricas, la gráfica de las filas y el botón de la corrida
+ * larga. Viven dentro de las capas y de la hoja inferior, así que no llevan
+ * marco de tarjeta. Solo variables del tema.
+ *
+ * Con menos de 768 px (un celular) cada tabla pasa a tarjetas: cada fila es una
+ * tarjeta y cada celda lleva su etiqueta (`data-etiqueta`), sin duplicar el
+ * marcado.
+ */
 
 .metricas,
 .grafica {
-  border: 1px solid var(--border);
-  border-radius: var(--radio-tarjeta);
-  padding: var(--espacio-3) var(--espacio-4) var(--espacio-4);
-  background: var(--bg-tarjeta);
-  box-shadow: var(--sombra-tarjeta);
-  /* La plantilla centra todo el contenido de la página; un párrafo de cuatro
-     líneas centrado se lee mal, así que lo nuevo va alineado a la izquierda. */
   text-align: left;
 }
 
-.metricas h2,
-.grafica h2,
-.metricas h3 {
-  text-align: center;
-}
-
-.metricas h2,
-.grafica h2 {
-  margin-top: 0;
-  font-size: var(--letra-destacada);
-}
-
+/* Encabezado de bloque: 12 px, mayúsculas, espaciado y gris tenue. */
 .metricas h3 {
   margin: var(--espacio-4) 0 var(--espacio-2);
-  font-size: var(--letra-titulo);
-  color: var(--text-h);
+  font-size: var(--letra-seccion);
+  font-weight: 600;
+  letter-spacing: var(--espaciado-de-seccion);
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+.metricas h3:first-child {
+  margin-top: 0;
+}
+
+.grafica h2 {
+  margin: 0 0 var(--espacio-2);
+  font-size: var(--letra-seccion);
+  font-weight: 600;
+  letter-spacing: var(--espaciado-de-seccion);
+  text-transform: uppercase;
+  color: var(--texto-tenue);
 }
 
 .metricas table {
@@ -39,14 +45,15 @@
 .metricas th,
 .metricas td {
   padding: var(--espacio-1) var(--espacio-2);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--borde);
   text-align: right;
 }
 
 .metricas thead th {
+  font-size: var(--letra-secundaria);
   font-weight: 600;
-  color: var(--text-h);
-  border-bottom: 2px solid var(--agua-interfaz);
+  color: var(--texto-secundario);
+  border-bottom: 1px solid var(--borde-campo);
   white-space: nowrap;
 }
 
@@ -58,42 +65,24 @@
 
 .metricas .numero {
   font-variant-numeric: tabular-nums;
-  color: var(--text-h);
+  color: var(--texto);
 }
 
 .metricas .unidad {
   font-size: var(--letra-pequena);
-  opacity: 0.7;
+  color: var(--texto-tenue);
 }
 
 .metricas .sin-dato {
-  color: var(--estado-ocupada);
+  color: var(--texto-tenue);
   font-style: italic;
-}
-
-.aviso-saturacion {
-  margin: var(--espacio-2) 0;
-  padding: var(--espacio-2) var(--espacio-3);
-  font-size: var(--letra-normal);
-  border-left: 4px solid var(--estado-ocupada);
-  border-radius: 4px;
-  background: var(--estado-ocupada-fondo);
-}
-
-.nota-inestable {
-  margin: 0 0 var(--espacio-2);
-  padding: var(--espacio-2) var(--espacio-3);
-  font-size: var(--letra-pequena);
-  border-left: 3px solid var(--amarillo-borde);
-  border-radius: 4px;
-  background: rgba(242, 183, 5, 0.12);
 }
 
 .metricas .nota,
 .grafica .nota {
-  font-size: var(--letra-pequena);
-  opacity: 0.85;
   margin: var(--espacio-2) 0;
+  font-size: var(--letra-pequena);
+  color: var(--texto-secundario);
 }
 
 .metricas .total {
@@ -103,22 +92,23 @@
 
 .corrida-larga {
   margin-top: var(--espacio-4);
-  padding-top: var(--espacio-3);
-  border-top: 1px solid var(--border);
+  padding-top: var(--espacio-4);
+  border-top: 1px solid var(--borde);
 }
 
 .boton-principal {
   width: 100%;
-  padding: var(--espacio-2) var(--espacio-3);
+  min-height: var(--alto-control-principal);
+  padding: 0 var(--espacio-3);
   font: inherit;
   font-size: var(--letra-normal);
   font-weight: 600;
-  color: var(--text-h);
-  background: var(--amarillo);
-  /* El amarillo contra la tarjeta blanca casi no contrasta, así que el borde
-     es lo que hace ver dónde empieza el botón. */
-  border: 2px solid var(--amarillo-borde);
-  border-radius: 6px;
+  color: var(--boton-principal-texto);
+  background: var(--boton-principal);
+  /* El amarillo contra una superficie blanca casi no contrasta, así que el
+     borde es lo que hace ver dónde empieza el botón. */
+  border: 1px solid var(--boton-principal-borde);
+  border-radius: var(--radio-control);
   cursor: pointer;
 }
 
@@ -129,8 +119,8 @@
 
 .progreso {
   margin: var(--espacio-2) 0 0;
-  font-size: var(--letra-normal);
-  color: var(--text-h);
+  font-size: var(--letra-secundaria);
+  color: var(--texto);
 }
 
 .grafica .lienzo {
@@ -140,6 +130,7 @@
 /*
  * La advertencia de la columna simulada: una frase, con el "¿por qué?" que
  * despliega la explicación para quien la quiera y no ocupa sitio para quien no.
+ * Va dentro de un Aviso, que pone el fondo, el borde y el ícono.
  */
 .nota-inestable summary {
   cursor: pointer;
@@ -153,15 +144,60 @@
 .nota-inestable .porque {
   margin-left: var(--espacio-1);
   font-weight: 600;
-  color: var(--agua-interfaz);
+  color: var(--advertencia-texto);
   text-decoration: underline;
-}
-
-.nota-inestable summary:focus-visible {
-  outline: 2px solid var(--agua-interfaz);
-  outline-offset: 2px;
 }
 
 .nota-inestable p {
   margin: var(--espacio-2) 0 0;
+}
+
+/* --------------------------------------------- las tablas, en un celular -- */
+
+@media (max-width: 767px) {
+  .metricas table,
+  .metricas tbody,
+  .metricas tr,
+  .metricas th,
+  .metricas td {
+    display: block;
+  }
+
+  /* Los encabezados de columna se leen en cada celda, no arriba. */
+  .metricas thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .metricas tbody tr {
+    margin-bottom: var(--espacio-2);
+    padding: var(--espacio-2) var(--espacio-3);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-tarjeta);
+    background: var(--fondo-tarjeta);
+  }
+
+  .metricas tbody th {
+    padding: 0 0 var(--espacio-1);
+    border-bottom: 0;
+    font-weight: 600;
+    color: var(--texto);
+  }
+
+  .metricas td {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--espacio-2);
+    padding: 2px 0;
+    border-bottom: 0;
+  }
+
+  .metricas td::before {
+    content: attr(data-etiqueta);
+    color: var(--texto-secundario);
+    text-align: left;
+  }
 }

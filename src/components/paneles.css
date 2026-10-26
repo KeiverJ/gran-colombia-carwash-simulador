@@ -1,83 +1,8 @@
-/* Panel de parámetros. */
-
-.panel {
-  width: var(--ancho-panel);
-  max-width: 100%;
-  border: 1px solid var(--border);
-  border-radius: var(--radio-tarjeta);
-  padding: var(--espacio-3) var(--espacio-4) var(--espacio-4);
-  background: var(--bg-tarjeta);
-}
-
-.panel-cabecera {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--espacio-2);
-}
-
-.panel h2 {
-  margin-top: 0;
-  font-size: 1.25rem;
-}
-
-.panel-plegar,
-.panel-pestana {
-  font: inherit;
-  font-size: var(--letra-pequena);
-  font-weight: 600;
-  color: var(--agua-interfaz);
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radio-tarjeta);
-  padding: var(--espacio-1) var(--espacio-2);
-  cursor: pointer;
-}
-
-.panel-plegar:focus-visible,
-.panel-pestana:focus-visible {
-  outline: 2px solid var(--agua-interfaz);
-  outline-offset: 2px;
-}
-
-/* Plegado, el panel se reduce a la pestaña de volver a abrirlo. */
-.panel--plegado {
-  width: auto;
-  padding: var(--espacio-2);
-}
-
-.panel--plegado .panel-pestana {
-  writing-mode: vertical-rl;
-  padding: var(--espacio-3) var(--espacio-1);
-}
-
-.panel h3 {
-  margin: var(--espacio-4) 0 var(--espacio-2);
-  font-size: var(--letra-titulo);
-  color: var(--text-h);
-}
-
-.botones {
-  display: flex;
-  gap: var(--espacio-2);
-  margin-bottom: var(--espacio-3);
-}
-
-.botones button {
-  flex: 1;
-  padding: var(--espacio-2) var(--espacio-3);
-  font: inherit;
-  font-size: var(--letra-normal);
-  border: 1px solid var(--accent-border);
-  border-radius: 6px;
-  background: var(--accent-bg);
-  color: var(--text-h);
-  cursor: pointer;
-}
-
-.botones button:hover {
-  border-color: var(--accent);
-}
+/*
+ * Controles de los ajustes: etiquetas, deslizadores y campos. Solo variables
+ * del tema. Etiquetas de 13 px, campos y texto de 14 px, notas de 12 px; entre
+ * un campo y el siguiente, 12 px.
+ */
 
 .control {
   display: block;
@@ -89,12 +14,14 @@
   justify-content: space-between;
   align-items: baseline;
   gap: var(--espacio-3);
-  font-size: var(--letra-normal);
   margin-bottom: var(--espacio-1);
+  font-size: var(--letra-secundaria);
+  color: var(--texto-secundario);
 }
 
 .control-nombre strong {
-  color: var(--text-h);
+  color: var(--texto);
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -102,46 +29,88 @@
   display: block;
   margin-top: var(--espacio-1);
   font-size: var(--letra-pequena);
-  opacity: 0.75;
+  color: var(--texto-tenue);
 }
 
 .control input[type='range'] {
   width: 100%;
+  margin: 0;
 }
 
-.control select,
-.control input[type='number'] {
-  width: 100%;
-  padding: var(--espacio-1) var(--espacio-2);
+/*
+ * El campo donde se escribe un número: una caja de 32 px de alto (44 px en
+ * celular o con puntero táctil) con el valor y, a la derecha, su unidad en gris
+ * tenue. Cambia de color al pasar el mouse, al enfocar y al marcarse inválido,
+ * en 120 ms. El deslizador va debajo.
+ */
+.campo {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  box-sizing: border-box;
+  min-height: var(--alto-control);
+  padding: 0 var(--espacio-2);
+  border: 1px solid var(--borde-campo);
+  border-radius: var(--radio-control);
+  background: var(--fondo-tarjeta);
+  transition:
+    background-color var(--duracion-corta) var(--curva-entrada),
+    border-color var(--duracion-corta) var(--curva-entrada);
+}
+
+.campo:hover {
+  border-color: var(--etapa-1);
+}
+
+.campo:focus-within {
+  border-color: var(--etapa-1);
+  outline: 2px solid var(--etapa-1-texto);
+  outline-offset: 1px;
+}
+
+/* Inválido: rojo y, debajo, el mensaje que dice por qué. No depende solo del color. */
+.campo--invalido,
+.campo--invalido:hover,
+.campo--invalido:focus-within {
+  border-color: var(--peligro);
+  background: var(--peligro-fondo);
+}
+
+.campo input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
   font: inherit;
   font-size: var(--letra-normal);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg-tarjeta);
-  color: var(--text);
+  color: var(--texto);
+}
+
+.campo input:focus-visible {
+  outline: none;
+}
+
+.campo-unidad {
+  flex: none;
+  font-size: var(--letra-secundaria);
+  color: var(--texto-tenue);
+}
+
+.campo-error {
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--letra-pequena);
+  line-height: 1.4;
+  color: var(--peligro);
+}
+
+.campo-deslizador {
+  display: block;
+  margin-top: var(--espacio-2);
 }
 
 .nota {
+  margin: 0 0 var(--espacio-3);
   font-size: var(--letra-pequena);
-  opacity: 0.8;
-  margin: var(--espacio-1) 0 var(--espacio-3);
-}
-
-/* La línea que dice qué escenario se cargó, pegada al selector. */
-.aviso-escenario {
-  margin: calc(-1 * var(--espacio-1)) 0 var(--espacio-3);
-  padding: var(--espacio-1) var(--espacio-2);
-  font-size: var(--letra-pequena);
-  border-left: 4px solid var(--accent);
-  border-radius: 4px;
-  background: var(--accent-bg);
-}
-
-.aviso-reinicio {
-  margin-top: var(--espacio-3);
-  padding: var(--espacio-2) var(--espacio-3);
-  font-size: var(--letra-pequena);
-  border-left: 4px solid var(--accent);
-  border-radius: 4px;
-  background: var(--accent-bg);
+  color: var(--texto-secundario);
 }

@@ -1,0 +1,1295 @@
+/*
+ * La estructura de la interfaz: la rejilla de pantalla completa, las dos
+ * barras, las capas que se abren encima de la escena, la franja de gráficas y
+ * la línea de tiempo de la visita. Solo variables del tema.
+ *
+ * Los anchos de las consultas de pantalla (768 y 1200 px) son los mismos de
+ * `store/interfaz.js`; una prueba comprueba que no se separen:
+ *   · menos de 768 px es un celular,
+ *   · de 768 a 1199 px es el tamaño medio (las capas se abren de una en una),
+ *   · de 1200 px en adelante es escritorio (caben las dos capas).
+ *
+ * Reglas de esta hoja (las vigilan `sinAdornos.test.js` y
+ * `sinValoresSueltos.test.js`):
+ *   · sin franjas de color en el borde, sin degradados y sin sombras de color;
+ *   · la única sombra es `--sombra-capa`, en lo que flota;
+ *   · solo se animan `transform` y `opacity` (y los colores al pasar el mouse),
+ *     con las duraciones y curvas del tema.
+ */
+
+/* ------------------------------------------------------------- la rejilla -- */
+
+.app {
+  display: grid;
+  grid-template-columns: var(--ancho-barra-lateral) minmax(0, 1fr);
+  grid-template-rows: var(--alto-barra) minmax(0, 1fr);
+  height: 100svh;
+  /* Con una ventana más baja que esto la página se desplaza en vez de dejar la
+     escena en cero. */
+  min-height: 32rem;
+  background: var(--fondo-pagina);
+  font-size: var(--letra-normal);
+}
+
+.zona-escena {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* La escena se queda con todo lo que sobra; la franja y la línea de tiempo
+   toman solo su alto. */
+.zona-lienzo {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.zona-lienzo[data-ajustes='abierta'] {
+  --capa-izquierda: var(--ancho-capa-ajustes);
+}
+
+.zona-lienzo[data-resultados='abierta'] {
+  --capa-derecha: var(--ancho-capa-resultados);
+}
+
+:focus-visible {
+  outline: 2px solid var(--etapa-1-texto);
+  outline-offset: 2px;
+}
+
+.solo-celular {
+  display: none;
+}
+
+/* Un solo sitio para el cambio de color al pasar el mouse, enfocar o elegir. */
+.modo,
+.boton-barra,
+.boton-secundario,
+.boton-lateral,
+.tarjeta,
+.opcion,
+.pestana,
+.franja-boton {
+  transition:
+    background-color var(--duracion-corta) var(--curva-entrada),
+    border-color var(--duracion-corta) var(--curva-entrada),
+    color var(--duracion-corta) var(--curva-entrada);
+}
+
+/* ------------------------------------------------------ la barra superior -- */
+
+.barra-superior {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  min-width: 0;
+  padding: 0 var(--espacio-4);
+  background: var(--fondo-tarjeta);
+  border-bottom: 1px solid var(--borde);
+}
+
+.marca {
+  flex: 1 1 6rem;
+  min-width: 0;
+}
+
+.marca h1 {
+  margin: 0;
+  font-size: var(--letra-titulo);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subtitulo {
+  display: none;
+  font-size: var(--letra-pequena);
+  line-height: 1.3;
+  color: var(--texto-tenue);
+  white-space: nowrap;
+}
+
+.barra-derecha {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  margin-left: auto;
+  min-width: 0;
+}
+
+.reloj-de-la-barra {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+  font-size: var(--letra-normal);
+  white-space: nowrap;
+}
+
+.reloj-etiqueta {
+  font-size: var(--letra-minima);
+  color: var(--texto-tenue);
+}
+
+.reloj-de-la-barra strong {
+  color: var(--texto);
+}
+
+.velocidad {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 9.5rem;
+  font-size: var(--letra-minima);
+  color: var(--texto-tenue);
+  white-space: nowrap;
+}
+
+.velocidad strong {
+  color: var(--texto);
+}
+
+.velocidad input {
+  width: 100%;
+  margin: 0;
+}
+
+.selector-de-modo {
+  display: inline-flex;
+  border: 1px solid var(--borde-campo);
+  border-radius: var(--radio-control);
+  overflow: hidden;
+}
+
+.modo {
+  min-height: var(--alto-control);
+  padding: 0 var(--espacio-3);
+  border: 0;
+  background: var(--fondo-tarjeta);
+  color: var(--texto-secundario);
+  font: inherit;
+  font-size: var(--letra-secundaria);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.modo:hover {
+  background: var(--fondo-pagina);
+}
+
+.modo + .modo {
+  border-left: 1px solid var(--borde-campo);
+}
+
+/* El modo elegido: relleno suave y letra más gruesa; no solo color. */
+.modo--elegido,
+.modo--elegido:hover {
+  background: var(--seleccion);
+  color: var(--etapa-1-texto);
+  font-weight: 600;
+}
+
+/* Los botones de la barra: reiniciar, ayuda y cerrar. */
+.boton-barra {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-1);
+  min-height: var(--alto-control);
+  padding: 0 var(--espacio-2);
+  border: 1px solid var(--borde-campo);
+  border-radius: var(--radio-control);
+  background: var(--fondo-tarjeta);
+  color: var(--texto-secundario);
+  font: inherit;
+  font-size: var(--letra-secundaria);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.boton-barra:hover {
+  border-color: var(--etapa-1);
+  color: var(--texto);
+}
+
+.barra-derecha .boton-principal,
+.mandos-minimos .boton-principal {
+  width: auto;
+  min-width: 5.5rem;
+}
+
+.boton-secundario {
+  min-height: var(--alto-control);
+  padding: 0 var(--espacio-3);
+  border: 1px solid var(--borde-campo);
+  border-radius: var(--radio-control);
+  background: var(--fondo-tarjeta);
+  color: var(--etapa-1-texto);
+  font: inherit;
+  font-size: var(--letra-normal);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.boton-secundario:hover:not(:disabled) {
+  border-color: var(--etapa-1);
+}
+
+.boton-secundario:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.boton-ancho {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--espacio-3);
+}
+
+/* ------------------------------------------------------- la barra lateral -- */
+
+.barra-lateral {
+  grid-column: 1;
+  grid-row: 2;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  padding: var(--espacio-2) 0;
+  background: var(--fondo-tarjeta);
+  border-right: 1px solid var(--borde);
+}
+
+.boton-lateral {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--espacio-2) 0;
+  border: 0;
+  border-radius: var(--radio-control);
+  background: none;
+  color: var(--texto-secundario);
+  font: inherit;
+  font-size: var(--letra-minima);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  cursor: pointer;
+}
+
+.boton-lateral:hover {
+  background: var(--fondo-pagina);
+}
+
+/* La capa abierta: relleno suave, borde fino y letra más gruesa. */
+.boton-lateral--activo,
+.boton-lateral--activo:hover {
+  outline: 1px solid var(--etapa-1-borde);
+  outline-offset: -1px;
+  background: var(--seleccion);
+  color: var(--etapa-1-texto);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ capas -- */
+
+/*
+ * Una capa entra y sale deslizándose desde su lado, con `transform` y
+ * `opacity`. La zona de la escena recorta lo que queda fuera. Al entrar usa la
+ * curva de entrada; al salir, la de salida. `entrando` es el estado de partida
+ * (una capa montada que todavía no se soltó) y `saliendo` el de llegada de la
+ * salida: son el mismo aspecto con otra curva.
+ */
+.capa {
+  box-sizing: border-box;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  background: var(--fondo-tarjeta);
+  box-shadow: var(--sombra-capa);
+  transition:
+    transform var(--duracion-media) var(--curva-entrada),
+    opacity var(--duracion-media) var(--curva-entrada);
+}
+
+.capa--izquierda {
+  left: 0;
+  width: var(--ancho-capa-ajustes);
+  border-right: 1px solid var(--borde);
+}
+
+.capa--derecha {
+  right: 0;
+  width: var(--ancho-capa-resultados);
+  border-left: 1px solid var(--borde);
+}
+
+.capa--entrando,
+.capa--saliendo {
+  opacity: 0;
+}
+
+.capa--izquierda.capa--entrando,
+.capa--izquierda.capa--saliendo {
+  transform: translateX(-100%);
+}
+
+.capa--derecha.capa--entrando,
+.capa--derecha.capa--saliendo {
+  transform: translateX(100%);
+}
+
+.capa--saliendo {
+  transition-timing-function: var(--curva-salida);
+}
+
+.capa-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+  padding: var(--espacio-3) var(--espacio-4);
+  border-bottom: 1px solid var(--borde);
+}
+
+.capa-cabecera h2 {
+  margin: 0;
+  font-size: var(--letra-titulo);
+  font-weight: 600;
+}
+
+.capa-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--espacio-4);
+}
+
+/* -------------------------------------------- el contenido de los ajustes -- */
+
+.ajustes .parametros {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ajustes .parametros:disabled {
+  opacity: 0.55;
+}
+
+.ajustes .parametros:disabled input,
+.ajustes .parametros:disabled select,
+.ajustes .parametros:disabled button {
+  cursor: not-allowed;
+}
+
+.seccion {
+  margin: 0 0 var(--espacio-4);
+  padding: 0 0 var(--espacio-4);
+  border-bottom: 1px solid var(--borde);
+}
+
+.seccion:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.seccion-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+  margin-bottom: var(--espacio-3);
+}
+
+/* Encabezado de sección: 12 px, mayúsculas, espaciado y en gris tenue. */
+.seccion h3 {
+  margin: 0;
+  font-size: var(--letra-seccion);
+  font-weight: 600;
+  letter-spacing: var(--espaciado-de-seccion);
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+.seccion--etapa-1 h3 {
+  color: var(--etapa-1-texto);
+}
+
+.seccion--etapa-2 h3 {
+  color: var(--etapa-2);
+}
+
+/* La λ en mayúsculas sería Λ: el símbolo se queda como es. */
+.sin-mayusculas {
+  text-transform: none;
+}
+
+.cifra-rho,
+.cifra-suma,
+.etiqueta-personalizado {
+  font-size: var(--letra-pequena);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cifra-rho--etapa-1 {
+  color: var(--etapa-1-texto);
+}
+
+.cifra-rho--etapa-2 {
+  color: var(--etapa-2);
+}
+
+/* Saturada: en rojo y con la palabra "se satura" escrita al lado. */
+.cifra-rho--satura,
+.tarjeta-rho--satura {
+  color: var(--peligro);
+}
+
+.cifra-suma {
+  color: var(--texto-secundario);
+}
+
+.etiqueta-personalizado {
+  color: var(--advertencia-texto);
+}
+
+.subtitulo-de-seccion {
+  margin: 0 0 var(--espacio-2);
+  font-size: var(--letra-secundaria);
+  font-weight: 600;
+  color: var(--texto-secundario);
+}
+
+.calculado {
+  margin: 0 0 var(--espacio-3);
+  font-size: var(--letra-secundaria);
+  color: var(--texto-secundario);
+}
+
+.tres-columnas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--espacio-2);
+  margin-bottom: var(--espacio-3);
+}
+
+.control--compacto .control-nombre {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  font-size: var(--letra-pequena);
+}
+
+/* Los cinco escenarios: filas compactas de una línea. */
+.tarjetas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--espacio-1);
+}
+
+.tarjeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  min-height: 2.5rem;
+  padding: var(--espacio-1) var(--espacio-3);
+  border: 1px solid transparent;
+  border-radius: var(--radio-control);
+  background: none;
+  text-align: left;
+  font: inherit;
+  font-size: var(--letra-normal);
+  cursor: pointer;
+}
+
+.tarjeta:hover {
+  background: var(--fondo-pagina);
+}
+
+/* La fila elegida: borde fino, relleno suave y una marca; no solo color. */
+.tarjeta--elegida,
+.tarjeta--elegida:hover {
+  border-color: var(--etapa-1-borde);
+  background: var(--seleccion);
+}
+
+/* Los nombres largos pasan a una segunda línea: no se esconde nada. */
+.tarjeta-nombre {
+  min-width: 0;
+  line-height: 1.3;
+  font-weight: 500;
+  color: var(--texto);
+}
+
+.tarjeta--elegida .tarjeta-nombre {
+  font-weight: 600;
+}
+
+.tarjeta-marca {
+  color: var(--etapa-1-texto);
+}
+
+.tarjeta-rho {
+  flex: none;
+  font-size: var(--letra-pequena);
+  color: var(--texto-secundario);
+  white-space: nowrap;
+}
+
+/* Saturada: en rojo, en negrita y con la palabra "se satura" al lado. */
+.tarjeta .tarjeta-rho--satura {
+  color: var(--peligro);
+  font-weight: 600;
+}
+
+/* Botones de una sola elección: placas, puestos y modo de acabado. */
+.grupo-de-botones {
+  display: flex;
+  gap: var(--espacio-1);
+}
+
+.opcion {
+  flex: 1;
+  min-height: var(--alto-control);
+  padding: 0 var(--espacio-2);
+  border: 1px solid var(--borde-campo);
+  border-radius: var(--radio-control);
+  background: var(--fondo-tarjeta);
+  color: var(--texto-secundario);
+  font: inherit;
+  font-size: var(--letra-secundaria);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.opcion:hover {
+  border-color: var(--etapa-1);
+}
+
+.opcion--elegida,
+.opcion--elegida:hover {
+  border-color: var(--etapa-1);
+  background: var(--seleccion);
+  color: var(--etapa-1-texto);
+  font-weight: 600;
+}
+
+.opcion--elegida::before {
+  content: '✓ ';
+}
+
+/* La barra de proporciones de los planes. */
+.barra-de-planes {
+  display: flex;
+  gap: 2px;
+  height: 0.5rem;
+  margin: 0 0 var(--espacio-3);
+  border-radius: 0.25rem;
+  overflow: hidden;
+  background: var(--borde);
+}
+
+.barra-de-planes-tramo {
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.barra-de-planes-tramo--plan-1,
+.muestra-de-plan--1 {
+  background: var(--plan-1);
+}
+
+.barra-de-planes-tramo--plan-2,
+.muestra-de-plan--2 {
+  background: var(--plan-2);
+}
+
+.barra-de-planes-tramo--plan-3,
+.muestra-de-plan--3 {
+  background: var(--plan-3);
+}
+
+.nombre-de-plan {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+}
+
+.muestra-de-plan {
+  width: 0.625rem;
+  height: 0.625rem;
+  flex: none;
+  border-radius: 2px;
+}
+
+.seccion--avanzado summary {
+  min-height: var(--alto-control);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+}
+
+.seccion--avanzado summary::-webkit-details-marker {
+  display: none;
+}
+
+.seccion--avanzado summary h3 {
+  display: inline;
+}
+
+.seccion--avanzado summary h3::after {
+  content: ' ▾';
+}
+
+.seccion--avanzado[open] summary h3::after {
+  content: ' ▴';
+}
+
+.seccion--avanzado .control {
+  margin-top: var(--espacio-2);
+}
+
+/* ---------------------------------------------------------------- avisos -- */
+
+/*
+ * Un aviso: ícono, fondo suave del color que corresponde, borde fino y
+ * uniforme del mismo color atenuado y texto en la variante oscura. Sin franjas
+ * a un lado.
+ */
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-2);
+  padding: var(--espacio-2) var(--espacio-3);
+  border: 1px solid transparent;
+  border-radius: var(--radio-control);
+  font-size: var(--letra-secundaria);
+  line-height: 1.4;
+}
+
+.aviso-icono {
+  display: inline-flex;
+  flex: none;
+  padding-top: 1px;
+}
+
+.aviso-icono svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.aviso-texto {
+  min-width: 0;
+  flex: 1;
+}
+
+.aviso--info {
+  border-color: var(--etapa-1-borde);
+  background: var(--etapa-1-fondo);
+  color: var(--etapa-1-texto);
+}
+
+.aviso--advertencia {
+  border-color: var(--advertencia-borde);
+  background: var(--advertencia-fondo);
+  color: var(--advertencia-texto);
+}
+
+.aviso--peligro {
+  border-color: var(--peligro-borde);
+  background: var(--peligro-fondo);
+  color: var(--peligro);
+}
+
+.aviso--en-linea {
+  margin-top: var(--espacio-2);
+}
+
+.aviso--separado {
+  margin: var(--espacio-3) 0;
+}
+
+.aviso p {
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------- pestañas -- */
+
+.pestanas-lista {
+  display: flex;
+  gap: 2px;
+  margin-bottom: var(--espacio-3);
+  border-bottom: 1px solid var(--borde);
+}
+
+.pestana {
+  flex: 1;
+  min-height: var(--alto-control-principal);
+  padding: 0 var(--espacio-2);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--texto-secundario);
+  font: inherit;
+  font-size: var(--letra-normal);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pestana:hover {
+  color: var(--texto);
+}
+
+.pestana--activa,
+.pestana--activa:hover {
+  border-bottom-color: var(--etapa-1);
+  color: var(--etapa-1-texto);
+  font-weight: 600;
+}
+
+/* El contenido nuevo de una pestaña aparece con un fundido: solo cambia
+   `opacity`, el panel conserva su sitio y su alto. */
+.pestanas-contenido {
+  animation: aparecer var(--duracion-pestana) var(--curva-entrada);
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Las métricas y las gráficas dentro de una capa no llevan marco de tarjeta. */
+.metricas.metricas--capa,
+.metricas--capa .grafica,
+.franja .grafica {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: none;
+}
+
+/* Las tablas de métricas caben en la capa: columnas fijas y letra pequeña. */
+.metricas.metricas--capa table {
+  table-layout: fixed;
+  font-size: var(--letra-secundaria);
+}
+
+.metricas.metricas--capa th,
+.metricas.metricas--capa td {
+  padding: var(--espacio-1);
+}
+
+.metricas.metricas--capa thead th {
+  white-space: normal;
+  vertical-align: bottom;
+}
+
+.metricas.metricas--capa tbody th {
+  width: 40%;
+}
+
+.metricas.metricas--capa .total {
+  font-size: var(--letra-secundaria);
+}
+
+/* ---------------------------------------------------- la franja de gráficas -- */
+
+.franja {
+  flex: none;
+  background: var(--fondo-tarjeta);
+  border-top: 1px solid var(--borde);
+}
+
+.franja-boton {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  width: 100%;
+  min-height: var(--alto-control);
+  padding: 0 var(--espacio-4);
+  border: 0;
+  background: none;
+  color: var(--etapa-1-texto);
+  font: inherit;
+  font-size: var(--letra-secundaria);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.franja-boton:hover {
+  background: var(--fondo-pagina);
+}
+
+/*
+ * El cuerpo reserva su alto de una vez (el lienzo cambia de tamaño una sola
+ * vez al abrir y otra al terminar de cerrar); lo que se anima es el contenido,
+ * con `transform` y `opacity`, recortado por el `overflow`.
+ */
+.franja-cuerpo {
+  box-sizing: border-box;
+  /* La franja entera (botón y cuerpo) no pasa de --alto-franja. */
+  height: calc(var(--alto-franja) - var(--alto-control) - 1px);
+  padding: 0 var(--espacio-4) var(--espacio-2);
+  overflow: hidden;
+}
+
+/* Sin datos todavía: una sola línea con el aviso. */
+.franja-cuerpo--vacia {
+  height: auto;
+}
+
+.franja-contenido {
+  height: 100%;
+  transition:
+    transform var(--duracion-media) var(--curva-entrada),
+    opacity var(--duracion-media) var(--curva-entrada);
+}
+
+.franja-contenido--entrando,
+.franja-contenido--saliendo {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.franja-contenido--saliendo {
+  transition-timing-function: var(--curva-salida);
+}
+
+.franja .grafica {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.franja .grafica .lienzo {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+}
+
+/* En la franja el dibujo lleva su leyenda: la nota de arriba sobra, salvo el
+   aviso de que todavía no hay nada. */
+.franja .grafica .lienzo ~ .nota,
+.franja .grafica > .nota:not(:only-child) {
+  display: none;
+}
+
+.franja .grafica > .nota:only-child {
+  margin: var(--espacio-1) 0;
+  font-size: var(--letra-secundaria);
+}
+
+/* --------------------------------------------------- la línea de tiempo -- */
+
+.linea-de-tiempo {
+  flex: none;
+  padding: var(--espacio-2) var(--espacio-4);
+  background: var(--fondo-tarjeta);
+  border-top: 1px solid var(--borde);
+}
+
+.linea-pista {
+  position: relative;
+  height: 0.375rem;
+  border-radius: 0.1875rem;
+  background: var(--borde);
+}
+
+.linea-relleno {
+  height: 100%;
+  border-radius: 0.1875rem;
+  background: var(--etapa-1);
+}
+
+.linea-marca {
+  position: absolute;
+  top: -0.25rem;
+  width: 0.25rem;
+  height: 0.875rem;
+  border-radius: 0.125rem;
+  background: var(--texto);
+  transform: translateX(-50%);
+}
+
+.linea-horas {
+  position: relative;
+  height: 1.25rem;
+  margin: var(--espacio-1) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--letra-minima);
+  color: var(--texto-tenue);
+}
+
+.linea-horas li {
+  position: absolute;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+/* La primera y la última hora no se salen de los bordes de la línea. */
+.linea-horas li:first-child {
+  transform: none;
+}
+
+.linea-horas li:last-child {
+  transform: translateX(-100%);
+}
+
+.linea-nota {
+  margin: 0;
+  font-size: var(--letra-pequena);
+  color: var(--texto-secundario);
+}
+
+.aviso--visita-terminada {
+  align-items: center;
+  margin-top: var(--espacio-2);
+}
+
+.aviso--visita-terminada .aviso-texto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+}
+
+/* ------------------------------------------------------------ la ayuda -- */
+
+/* El velo se desvanece y el recuadro aparece con un fundido y un acercamiento
+   leve (de 0,98 a 1). */
+.ayuda-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--espacio-4);
+  background: var(--velo-de-fondo);
+  transition: opacity var(--duracion-ayuda) var(--curva-entrada);
+}
+
+.ayuda-fondo--entrando,
+.ayuda-fondo--saliendo {
+  opacity: 0;
+}
+
+.ayuda-fondo--saliendo {
+  transition-timing-function: var(--curva-salida);
+}
+
+.ayuda {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 42rem;
+  max-height: calc(100svh - 2 * var(--espacio-4));
+  border-radius: var(--radio-tarjeta);
+  background: var(--fondo-tarjeta);
+  box-shadow: var(--sombra-capa);
+  transition: transform var(--duracion-ayuda) var(--curva-entrada);
+}
+
+.ayuda-fondo--entrando .ayuda,
+.ayuda-fondo--saliendo .ayuda {
+  transform: scale(0.98);
+}
+
+.ayuda-fondo--saliendo .ayuda {
+  transition-timing-function: var(--curva-salida);
+}
+
+.ayuda-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--espacio-3) var(--espacio-4);
+  border-bottom: 1px solid var(--borde);
+}
+
+.ayuda-cabecera h2 {
+  margin: 0;
+  font-size: var(--letra-titulo);
+}
+
+.ayuda-cuerpo {
+  overflow-y: auto;
+  padding: var(--espacio-2) var(--espacio-4) var(--espacio-4);
+  font-size: var(--letra-normal);
+}
+
+.ayuda-cuerpo h3 {
+  margin: var(--espacio-4) 0 var(--espacio-2);
+  font-size: var(--letra-seccion);
+  font-weight: 600;
+  letter-spacing: var(--espaciado-de-seccion);
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+.ayuda-cuerpo ol,
+.ayuda-cuerpo ul {
+  margin: 0;
+  padding-left: var(--espacio-4);
+}
+
+.ayuda-cuerpo li + li {
+  margin-top: var(--espacio-1);
+}
+
+/* --------------------------------------------- la hoja inferior (celular) -- */
+
+/* En escritorio y en tamaño medio no existe: las capas hacen su trabajo. */
+.hoja {
+  display: none;
+}
+
+.hoja-asa {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: none;
+  width: 100%;
+  min-height: 1.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: grab;
+  touch-action: none;
+}
+
+.hoja-asa-barra {
+  width: 2.75rem;
+  height: 0.3125rem;
+  border-radius: 0.25rem;
+  background: var(--borde-campo);
+}
+
+/* ------------------------------------------------- consultas de pantalla -- */
+
+/* Con puntero táctil (o con menos de 768 px) los controles miden 44 px. */
+@media (max-width: 767px), (pointer: coarse) {
+  :root {
+    --alto-control: var(--alto-control-tactil);
+    --alto-control-principal: var(--alto-control-tactil);
+  }
+}
+
+@media (min-width: 768px) {
+  .solo-escritorio-medio {
+    display: inline;
+  }
+}
+
+@media (min-width: 1200px) {
+  .subtitulo {
+    display: block;
+  }
+}
+
+/* De 768 a 1199 px la barra se compacta para que todo quepa. */
+@media (max-width: 1199px) {
+  .barra-superior {
+    gap: var(--espacio-2);
+    padding: 0 var(--espacio-3);
+  }
+
+  .barra-derecha {
+    gap: var(--espacio-2);
+  }
+
+  .velocidad {
+    width: 4.5rem;
+  }
+
+  .reloj-etiqueta {
+    display: none;
+  }
+
+  .modo {
+    padding: 0 var(--espacio-2);
+  }
+
+  /* Reiniciar y Ayuda quedan como botones de ícono (con su nombre accesible). */
+  .boton-barra .boton-texto {
+    display: none;
+  }
+}
+
+/*
+ * Menos de 768 px: un celular. La barra se compacta; la escena queda arriba con
+ * más de la mitad de la pantalla; y debajo va la hoja deslizable en lugar de las
+ * capas. Los controles miden 44 px de alto (ver la variable de arriba).
+ */
+@media (max-width: 767px) {
+  .app {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .barra-lateral,
+  .capa,
+  .franja,
+  .marca,
+  .velocidad,
+  .boton-texto,
+  .reloj-etiqueta,
+  .solo-escritorio-medio {
+    display: none;
+  }
+
+  .solo-celular {
+    display: inline;
+  }
+
+  /* Una sola fila: modo, hora, reiniciar, iniciar o pausar y ayuda. */
+  .barra-superior {
+    flex: none;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--espacio-1);
+    min-height: var(--alto-barra);
+    padding: var(--espacio-1);
+  }
+
+  .barra-derecha {
+    margin-left: 0;
+    gap: var(--espacio-1);
+  }
+
+  .barra-derecha .boton-principal {
+    min-width: 0;
+    padding: 0 var(--espacio-2);
+  }
+
+  .reloj-de-la-barra {
+    font-size: var(--letra-secundaria);
+  }
+
+  .modo {
+    padding: 0 var(--espacio-2);
+    font-size: var(--letra-secundaria);
+  }
+
+  .app .boton-barra {
+    padding: 0;
+  }
+
+  /* La escena se queda con todo lo que sobra, pero nunca con menos de un tercio
+     de la pantalla: la hoja es la que se encoge. */
+  .zona-escena {
+    flex: 1 1 0;
+    min-height: auto;
+  }
+
+  .zona-lienzo {
+    min-height: calc(100svh / 3);
+  }
+
+  /* Botones y controles tocables: al menos 44 px de alto. */
+  .app button,
+  .app [role='tab'],
+  .app [role='radio'],
+  .app summary {
+    min-height: var(--alto-control-tactil);
+  }
+
+  .app .boton-barra {
+    min-width: var(--alto-control-tactil);
+  }
+
+  /* La hoja sube y baja con `transform` (ver HojaInferior.jsx). */
+  .hoja {
+    display: flex;
+    flex: 0 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    border-top: 1px solid var(--borde);
+    border-radius: var(--radio-tarjeta) var(--radio-tarjeta) 0 0;
+    background: var(--fondo-tarjeta);
+    box-shadow: var(--sombra-capa);
+    transition: transform var(--duracion-media) var(--curva-entrada);
+  }
+
+  /* La altura base de cada escalón; si no cabe, la hoja se encoge. */
+  .hoja[data-altura='media'] {
+    flex-basis: 38svh;
+  }
+
+  .hoja[data-altura='alta'] {
+    flex-basis: 100svh;
+  }
+
+  .hoja .pestanas {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .hoja .pestanas-lista {
+    flex: none;
+    margin-bottom: 0;
+  }
+
+  .hoja .pestanas-panel {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--espacio-4);
+  }
+
+  .hoja[data-altura='recogida'] .pestanas-panel {
+    display: none;
+  }
+
+  .linea-de-tiempo {
+    padding: var(--espacio-1) var(--espacio-3);
+  }
+
+  /* Con tan poco ancho solo se rotulan tres horas. */
+  .linea-horas li:nth-child(2),
+  .linea-horas li:nth-child(4),
+  .linea-horas li:nth-child(5) {
+    display: none;
+  }
+
+  .ayuda-fondo {
+    padding: var(--espacio-1);
+    align-items: stretch;
+  }
+
+  .ayuda {
+    max-height: none;
+  }
+}

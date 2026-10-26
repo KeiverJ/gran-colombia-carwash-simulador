@@ -1,42 +1,41 @@
 import './estilos/tema.css'
-import './App.css'
+import './components/interfaz.css'
 import './components/paneles.css'
 import './components/metricas.css'
 import './components/visita.css'
 import './scene/escena.css'
 
-import GraficaDeColas from './components/GraficaDeColas.jsx'
-import PanelDeParametros from './components/PanelDeParametros.jsx'
-import TablaDeMetricas from './components/TablaDeMetricas.jsx'
-import EscenaDelLavadero from './scene/EscenaDelLavadero.jsx'
+import BarraLateral from './components/BarraLateral.jsx'
+import BarraSuperior from './components/BarraSuperior.jsx'
+import FranjaDeGraficas from './components/FranjaDeGraficas.jsx'
+import HojaInferior from './components/HojaInferior.jsx'
+import LineaDeTiempoDeLaVisita from './components/LineaDeTiempoDeLaVisita.jsx'
+import RecuadroDeAyuda from './components/RecuadroDeAyuda.jsx'
+import ZonaDeEscena from './components/ZonaDeEscena.jsx'
+import { useEnlacesDeLaInterfaz } from './store/useEnlacesDeLaInterfaz.js'
 import { useCicloDeSimulacion } from './store/useCicloDeSimulacion.js'
 
+/**
+ * La aplicación: una rejilla de pantalla completa con la barra superior, la
+ * barra lateral y la zona de la escena. La escena ocupa todo lo que dejan las
+ * dos barras; las capas de Ajustes y Resultados se abren encima de ella.
+ */
 function App() {
   useCicloDeSimulacion()
+  useEnlacesDeLaInterfaz()
 
   return (
-    <main className="pagina">
-      <header className="encabezado">
-        <h1>Simulador del lavadero Gran Colombia Car Wash Express</h1>
-        <p className="entrada">
-          Las motos llegan por la Av. Gran Colombia y la Av. Guaimaral, hacen una
-          sola fila para el lavado y después otra para el acabado. Mueve los
-          parámetros y mira qué pasa con las filas.
-        </p>
-      </header>
-
-      {/* La simulación manda: ocupa el espacio principal y los parámetros
-          quedan en una columna angosta que además se puede plegar. */}
-      <div className="disposicion">
-        <EscenaDelLavadero />
-        <PanelDeParametros />
-      </div>
-
-      <div className="datos">
-        <TablaDeMetricas />
-        <GraficaDeColas />
-      </div>
-    </main>
+    <div className="app">
+      <BarraSuperior />
+      <BarraLateral />
+      <main className="zona-escena">
+        <ZonaDeEscena />
+        <LineaDeTiempoDeLaVisita />
+        <FranjaDeGraficas />
+      </main>
+      <HojaInferior />
+      <RecuadroDeAyuda />
+    </div>
   )
 }
 

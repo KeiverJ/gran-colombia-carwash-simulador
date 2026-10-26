@@ -1,4 +1,4 @@
-import { COLOR_DE_ESTADO, COLOR_DE_PLAN, NOMBRE_DE_PLAN } from '../estilos/colores.js'
+import { COLOR_DE_ESTADO, COLOR_DE_PLAN } from '../estilos/colores.js'
 
 /** La forma que lleva encima cada moto según su plan. */
 const FORMA_DE_PLAN = {
@@ -8,58 +8,45 @@ const FORMA_DE_PLAN = {
 }
 
 /**
- * Qué es cada cosa en la escena.
+ * La leyenda de la escena, compacta y en una sola línea.
  *
- * Nombra el plan y describe su forma, no solo su color: el verde y el rojo de
- * las placas son casi el mismo color para quien no distingue esos dos, y los
- * planes tienen que poder leerse igual.
+ * Nombra el plan y dice su forma, no solo su color: el verde y el rojo de las
+ * placas son casi el mismo color para quien no distingue esos dos, y los
+ * planes tienen que poder leerse igual. Los nombres completos de los planes
+ * están en Ajustes y en la Ayuda.
  */
 export function LeyendaDePlanes() {
   return (
-    <div className="leyenda">
-      <h3>Qué es cada cosa</h3>
-
-      <ul className="leyenda-lista">
-        {[1, 2, 3].map((plan) => (
-          <li key={plan}>
-            <span
-              className={`muestra ${FORMA_DE_PLAN[plan].clase}`}
-              style={{ '--color-muestra': COLOR_DE_PLAN[plan] }}
-              aria-hidden="true"
-            />
-            <span>
-              {NOMBRE_DE_PLAN[plan]} <small>({FORMA_DE_PLAN[plan].nombre} encima)</small>
-            </span>
-          </li>
-        ))}
-      </ul>
-
-      <ul className="leyenda-lista">
-        <li>
+    <ul className="leyenda" aria-label="Leyenda de la escena">
+      {[1, 2, 3].map((plan) => (
+        <li key={plan}>
           <span
-            className="muestra muestra-losa"
-            style={{ '--color-muestra': COLOR_DE_ESTADO.libre }}
+            className={`muestra ${FORMA_DE_PLAN[plan].clase}`}
+            style={{ '--color-muestra': COLOR_DE_PLAN[plan] }}
             aria-hidden="true"
           />
-          <span>Placa o puesto libre: losa plana</span>
+          <span>
+            Plan {plan} · {FORMA_DE_PLAN[plan].nombre}
+          </span>
         </li>
-        <li>
-          <span
-            className="muestra muestra-losa muestra-levantada"
-            style={{ '--color-muestra': COLOR_DE_ESTADO.ocupada }}
-            aria-hidden="true"
-          />
-          <span>Ocupado: la losa se levanta</span>
-        </li>
-      </ul>
-
-      <p className="nota">
-        El lavado va delante, en dos filas de placas, y el acabado al fondo; las
-        motos entran por el pasillo de la izquierda y salen por el fondo, a la
-        Av. Gran Colombia. Arrastra para girar la vista, usa la rueda para
-        acercarte y los botones de arriba para volver a una vista conocida.
-      </p>
-    </div>
+      ))}
+      <li>
+        <span
+          className="muestra muestra-losa"
+          style={{ '--color-muestra': COLOR_DE_ESTADO.libre }}
+          aria-hidden="true"
+        />
+        <span>Libre · losa plana</span>
+      </li>
+      <li>
+        <span
+          className="muestra muestra-losa muestra-levantada"
+          style={{ '--color-muestra': COLOR_DE_ESTADO.ocupada }}
+          aria-hidden="true"
+        />
+        <span>Ocupado · losa elevada</span>
+      </li>
+    </ul>
   )
 }
 

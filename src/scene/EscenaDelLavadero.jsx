@@ -1,8 +1,10 @@
 import { Canvas } from '@react-three/fiber'
 import { useCallback, useMemo, useRef, useState } from 'react'
 
+import Aviso from '../components/Aviso.jsx'
 import BotonDePantallaCompleta from '../components/BotonDePantallaCompleta.jsx'
-import MandosDeLaSimulacion from '../components/MandosDeLaSimulacion.jsx'
+import IndicadoresDeLaEscena from '../components/IndicadoresDeLaEscena.jsx'
+import MandosMinimos from '../components/MandosMinimos.jsx'
 import { CAMPO_DE_VISION, VISTA_INICIAL } from './camara.js'
 import { BotonesDeCamara, ControlDeCamara } from './ControlesDeCamara.jsx'
 import { useSimulacion } from '../store/simulacion.js'
@@ -72,11 +74,11 @@ export function EscenaDelLavadero() {
   if (!soportaWebGL) {
     return (
       <section className="escena" aria-label="El lavadero en 3D">
-        <p className="aviso-sin-3d">
+        <Aviso tipo="advertencia" className="aviso-sin-3d">
           Este navegador no puede mostrar la vista en 3D porque no tiene WebGL
-          disponible. El resto del simulador —el panel, la tabla de métricas y la
-          gráfica— sigue funcionando con normalidad.
-        </p>
+          disponible. El resto del simulador —los ajustes, los resultados y las
+          gráficas— sigue funcionando con normalidad.
+        </Aviso>
       </section>
     )
   }
@@ -87,8 +89,6 @@ export function EscenaDelLavadero() {
       ref={contenedor}
       aria-label="El lavadero en 3D"
     >
-      <MandosDeLaSimulacion />
-
       <div className="lienzo-3d">
         <Canvas
           camera={{ position: VISTA_INICIAL.posicion, fov: CAMPO_DE_VISION }}
@@ -102,15 +102,23 @@ export function EscenaDelLavadero() {
           <RotulosDeSobrantes />
           <ControlDeCamara tomarOrden={tomarOrden} />
         </Canvas>
-        <BotonesDeCamara alPedirVista={pedirVista} />
-        <BotonDePantallaCompleta
-          contenedor={contenedor}
-          expandida={expandida}
-          alExpandir={setExpandida}
-        />
-      </div>
 
-      <LeyendaDePlanes />
+        {/* Todo lo que flota sobre la escena va en las esquinas y el borde de
+            abajo, con fondo semitransparente, y deja libre el centro. */}
+        <div className="flotante-superior">
+          <BotonesDeCamara alPedirVista={pedirVista} />
+          <div className="flotante-derecha">
+            <LeyendaDePlanes />
+            <BotonDePantallaCompleta
+              contenedor={contenedor}
+              expandida={expandida}
+              alExpandir={setExpandida}
+            />
+          </div>
+        </div>
+        <IndicadoresDeLaEscena />
+        <MandosMinimos />
+      </div>
     </section>
   )
 }

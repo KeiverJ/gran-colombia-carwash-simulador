@@ -12,9 +12,9 @@
 
 /** Color de cada plan, para pintar las motos y su leyenda. */
 export const COLOR_DE_PLAN = {
-  1: '#1f6feb',
-  2: '#d9730d',
-  3: '#9340b8',
+  1: '#2f6fdb',
+  2: '#e8792b',
+  3: '#d35bb3',
 }
 
 /**
@@ -28,10 +28,14 @@ export const COLOR_DE_ESTADO = {
   ocupada: '#b65050',
 }
 
-/** Series de las gráficas: una fila por color. */
+/**
+ * Series de las gráficas: cada fila lleva el color de su etapa, la fila 1 el de
+ * la etapa 1 (lavado) y la fila 2 el de la etapa 2 (acabado). El ámbar queda
+ * reservado a las advertencias.
+ */
 export const COLOR_DE_SERIE = {
-  colaLavado: '#0e9aa7',
-  colaAcabado: '#b5531f',
+  colaLavado: '#0b84ae',
+  colaAcabado: '#6d4fc2',
 }
 
 /**
@@ -48,9 +52,12 @@ export const COLORES_COMPARTIDOS = {
   'serie-cola-2': COLOR_DE_SERIE.colaAcabado,
 }
 
-/** Nombre de cada plan, para que la leyenda no sea solo un cuadrito de color. */
+/**
+ * Nombre completo de cada plan. Lo usan Ajustes y la Ayuda, para que no se
+ * contradigan; la leyenda sobre la escena usa solo "Plan N · forma".
+ */
 export const NOMBRE_DE_PLAN = {
-  1: 'Plan 1: lavado y encerado',
-  2: 'Plan 2: + partes negras',
-  3: 'Plan 3: + pulido de faros',
+  1: 'Plan 1 · lavado y encerado',
+  2: 'Plan 2 · + partes negras',
+  3: 'Plan 3 · + pulido de faros',
 }

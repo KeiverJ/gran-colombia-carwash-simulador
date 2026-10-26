@@ -3,8 +3,8 @@ import {
   comparacionEsAproximada,
   metricasCalculadas,
 } from '../store/metricas.js'
-import { HORAS_DE_LA_CORRIDA_LARGA, MODO_VISITA, useSimulacion } from '../store/simulacion.js'
-import BloquesDeLaVisita from './BloquesDeLaVisita.jsx'
+import { HORAS_DE_LA_CORRIDA_LARGA, useSimulacion } from '../store/simulacion.js'
+import Aviso from './Aviso.jsx'
 import { comoNumero } from './formato.js'
 
 /** Las cinco métricas de una etapa, con cuántos decimales se muestra cada una. */
@@ -22,12 +22,16 @@ const FILAS = [
  * se ha simulado nada ("—"). Confundirlas haría leer "inestable" en la columna
  * simulada de un lavadero que va perfectamente.
  */
-function Celda({ valor, decimales, unidad, cuandoFalta }) {
+function Celda({ etiqueta, valor, decimales, unidad, cuandoFalta }) {
   if (valor === undefined || valor === null) {
-    return <td className="sin-dato">{cuandoFalta}</td>
+    return (
+      <td className="sin-dato" data-etiqueta={etiqueta}>
+        {cuandoFalta}
+      </td>
+    )
   }
   return (
-    <td className="numero">
+    <td className="numero" data-etiqueta={etiqueta}>
       {comoNumero(valor, decimales)}
       {unidad ? <span className="unidad"> {unidad}</span> : null}
     </td>
@@ -44,18 +48,20 @@ function Celda({ valor, decimales, unidad, cuandoFalta }) {
  */
 function AdvertenciaDeLoSimulado() {
   return (
-    <details className="nota-inestable">
-      <summary>
-        Estos valores simulados <strong>no se estabilizan</strong>: cuanto más
-        tiempo simules, más grandes serán. <span className="porque">¿por qué?</span>
-      </summary>
-      <p>
-        La etapa está saturada: llegan más motos de las que alcanza a atender, así
-        que la fila crece mientras el lavadero esté abierto y nunca se asienta en
-        un valor. Lo que miden estos números no es cómo funciona el lavadero, sino
-        cuánto rato llevas simulando.
-      </p>
-    </details>
+    <Aviso tipo="advertencia" className="aviso--separado">
+      <details className="nota-inestable">
+        <summary>
+          Estos valores simulados <strong>no se estabilizan</strong>: crecen mientras
+          más tiempo se simule. <span className="porque">¿Por qué?</span>
+        </summary>
+        <p>
+          La etapa está saturada: llegan más motos de las que alcanza a atender, así
+          que la fila crece mientras el lavadero esté abierto y nunca se asienta en
+          un valor. Lo que miden estos números no es cómo funciona el lavadero, sino
+          cuánto tiempo se lleva simulando.
+        </p>
+      </details>
+    </Aviso>
   )
 }
 
@@ -77,12 +83,14 @@ function TablaDeEtapa({ titulo, simulado, calculado, saturada }) {
             <tr key={clave}>
               <th scope="row">{nombre}</th>
               <Celda
+                etiqueta="Simulado"
                 valor={simulado?.[clave]}
                 decimales={decimales}
                 unidad={unidad}
                 cuandoFalta="—"
               />
               <Celda
+                etiqueta="Calculado con fórmulas"
                 valor={calculado.estable ? calculado[clave] : null}
                 decimales={decimales}
                 unidad={unidad}
@@ -96,48 +104,43 @@ function TablaDeEtapa({ titulo, simulado, calculado, saturada }) {
   )
 }
 
-export function TablaDeMetricas() {
+/**
+ * El contenido de la pestaña Métricas (y de la hoja del celular): la tabla de
+ * simulado contra calculado de cada etapa, el tiempo total, el aviso de
+ * saturación y la corrida larga. En el modo visita esta pestaña no existe.
+ */
+export function ContenidoDeMetricas() {
   const parametros = useSimulacion((estado) => estado.parametros)
   const metricas = useSimulacion((estado) => estado.metricas)
   const corridaLarga = useSimulacion((estado) => estado.corridaLarga)
   const empezarCorridaLarga = useSimulacion((estado) => estado.empezarCorridaLarga)
-  const enLaVisita = useSimulacion((estado) => estado.modo === MODO_VISITA)
-
-  // En la visita no hay columna "Calculado con fórmulas", ni aviso de saturación, ni
-  // corrida larga: es una tarde fija, no una simulación. Solo sus dos bloques.
-  if (enLaVisita) {
-    return (
-      <section className="metricas">
-        <h2>Métricas de la visita</h2>
-        <BloquesDeLaVisita metricas={metricas} />
-      </section>
-    )
-  }
 
   const calculado = metricasCalculadas(parametros)
   const aviso = avisoCortoDeSaturacion(parametros)
 
   return (
-    <section className="metricas">
-      <h2>Métricas</h2>
-
+    <div className="metricas metricas--capa">
       {metricas === null ? (
         <p className="nota">
-          Todavía no hay nada simulado. Dale a iniciar, o simula{' '}
-          {HORAS_DE_LA_CORRIDA_LARGA} horas de golpe para ver valores estables.
+          Aún no hay datos simulados. Pulsa Iniciar o usa la corrida larga para obtener
+          valores estables.
         </p>
       ) : null}
 
-      {aviso ? <p className="aviso-saturacion">{aviso}</p> : null}
+      {aviso ? (
+        <Aviso tipo="peligro" className="aviso--separado" role="status">
+          {aviso}
+        </Aviso>
+      ) : null}
 
       <TablaDeEtapa
-        titulo="Etapa 1: lavado"
+        titulo="Etapa 1 · Lavado"
         simulado={metricas?.lavado}
         calculado={calculado.lavado}
         saturada={!calculado.lavado.estable}
       />
       <TablaDeEtapa
-        titulo="Etapa 2: acabado"
+        titulo="Etapa 2 · Acabado"
         simulado={metricas?.acabado}
         calculado={calculado.acabado}
         saturada={!calculado.acabado.estable}
@@ -146,16 +149,15 @@ export function TablaDeMetricas() {
       <p className="total">
         Tiempo total en el lavadero, de la llegada a la salida:{' '}
         <strong>
-          {metricas ? `${comoNumero(metricas.total.wMin, 2)} min` : 'sin datos todavía'}
+          {metricas ? `${comoNumero(metricas.total.wMin, 2)} min` : 'sin datos'}
         </strong>
       </p>
 
       {comparacionEsAproximada(parametros) ? (
         <p className="nota">
-          Estás en el modo donde cada moto usa el tiempo de su propio plan. Las
-          fórmulas suponen un único tiempo medio para todas, así que la comparación
-          del acabado es aproximada. Para compararla de verdad, cambia el modo de
-          acabado a "un solo promedio".
+          Con el modo «Según su plan», cada moto usa el tiempo de su propio plan; las
+          fórmulas suponen un único tiempo medio, así que la comparación del acabado
+          es aproximada. Para compararla con exactitud, elige «Un solo promedio (M/M/s)».
         </p>
       ) : null}
 
@@ -166,19 +168,19 @@ export function TablaDeMetricas() {
           onClick={() => empezarCorridaLarga()}
           disabled={corridaLarga !== null}
         >
-          Simular {HORAS_DE_LA_CORRIDA_LARGA} horas rápido
+          Corrida larga (estado estable)
         </button>
         {corridaLarga ? (
           <p className="progreso">Simulando… {corridaLarga.porcentaje} %</p>
         ) : (
           <p className="nota">
-            Empieza de cero y simula {HORAS_DE_LA_CORRIDA_LARGA} horas de corrido,
-            para que los valores simulados se acerquen a los calculados.
+            Simula {HORAS_DE_LA_CORRIDA_LARGA} horas seguidas, desde cero, para que los
+            valores simulados se acerquen a los calculados.
           </p>
         )}
       </div>
-    </section>
+    </div>
   )
 }
 
-export default TablaDeMetricas
+export default ContenidoDeMetricas

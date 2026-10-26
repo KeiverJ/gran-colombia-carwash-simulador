@@ -1,37 +1,25 @@
+/*
+ * Base de la página: fuente, tamaño y color de la letra.
+ *
+ * Los colores y los tamaños de letra salen de `estilos/tema.css`. El tamaño
+ * base es el de 16 px del navegador en todos los anchos de pantalla: los
+ * tamaños del tema están en `rem` y se calcularon para esa base.
+ */
 :root {
-  --text: #1f2d3a;
-  --text-h: #0f1c26;
-  /* Fondo de la página: blanco azulado suave. Las tarjetas van blancas
-     encima, para que se despeguen del fondo. */
-  --bg: #f4f9fb;
-  --bg-tarjeta: #fff;
-  --border: #d9e6ec;
-  --code-bg: #f4f3ec;
-  --accent: #0b7c86;
-  --accent-bg: rgba(11, 124, 134, 0.1);
-  --accent-border: rgba(11, 124, 134, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  font-family: var(--fuente);
+  font-size: 100%;
+  line-height: 1.5;
+  /* Números de ancho fijo en toda la aplicación: el reloj y los indicadores no
+     se mueven al cambiar de cifra. */
+  font-variant-numeric: tabular-nums;
   /* La aplicación es de tema claro: no sigue el modo oscuro del sistema. */
   color-scheme: light;
-  color: var(--text);
-  background: var(--bg);
+  color: var(--texto-secundario);
+  background: var(--fondo-pagina);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
 body {
@@ -40,8 +28,7 @@ body {
 
 /*
  * Sin tope de ancho: en una pantalla grande el espacio sobrante es para la
- * escena, no para dos franjas vacías a los lados. (Venía de la plantilla con
- * 1126 px y un borde a cada lado.)
+ * escena, no para dos franjas vacías a los lados.
  */
 #root {
   width: 100%;
@@ -55,44 +42,22 @@ body {
 
 h1,
 h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--texto);
+  line-height: 1.2;
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+  font-size: var(--letra-titulo);
+  margin: 0 0 var(--espacio-2);
 }
+
 h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
+  font-size: var(--letra-titulo);
+  margin: 0 0 var(--espacio-2);
 }
+
 p {
   margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
 }

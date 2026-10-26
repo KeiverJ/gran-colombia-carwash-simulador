@@ -37,7 +37,7 @@ export const VELOCIDAD_POR_DEFECTO = 1
 /** Cada cuánto tiempo real se refrescan la tabla y la gráfica. */
 export const INTERVALO_DE_METRICAS_MS = 250
 
-/** Horas que simula de corrido el botón de la corrida larga. */
+/** Horas que simula seguidas el botón de la corrida larga. */
 export const HORAS_DE_LA_CORRIDA_LARGA = 1000
 
 /** Nombre de cada parámetro en palabras, para el aviso del panel. */
@@ -61,7 +61,7 @@ const parametrosPorDefecto = () => ({
 })
 
 /** Los parámetros por defecto con las placas y los puestos de un escenario. */
-const parametrosDelEscenario = (escenario) => ({
+export const parametrosDelEscenario = (escenario) => ({
   ...parametrosPorDefecto(),
   placas: escenario.placas,
   puestos: escenario.puestos,
@@ -184,12 +184,20 @@ function estadoInicial() {
   }
 }
 
-/** El puñado de números que la escena muestra en texto. */
+/**
+ * El puñado de números que la interfaz muestra: los de la escena, el reloj y
+ * la tira de indicadores. Salen todos de la foto que el motor ya entrega.
+ */
 function resumenDe(foto) {
   return {
     relojMin: foto.relojMin,
     enFilaLavado: foto.colaLavado.length,
     enFilaAcabado: foto.colaAcabado.length,
+    placasOcupadas: foto.placas.filter((placa) => !placa.libre).length,
+    puestosOcupados: foto.puestos.filter((puesto) => !puesto.libre).length,
+    motosSalidas: foto.motosSalidas,
+    placasTotales: foto.placas.length,
+    puestosTotales: foto.puestos.length,
   }
 }
 
@@ -355,7 +363,7 @@ export const useSimulacion = create((set, get) => ({
       return
     }
     get().reiniciar(
-      `Simulando ${horas} horas de corrido. La simulación anterior se descartó para empezar de cero.`,
+      `Simulando ${horas} horas seguidas. La simulación anterior se descartó para empezar desde cero.`,
     )
     set({
       corriendo: false,
@@ -386,7 +394,7 @@ export const useSimulacion = create((set, get) => ({
         metricas: motor.metricas(),
         foto: motor.estado(),
         resumen: resumenDe(motor.estado()),
-        aviso: `Listo: se simularon ${corridaLarga.horasTotales} horas de corrido.`,
+        aviso: `Listo: se simularon ${corridaLarga.horasTotales} horas seguidas.`,
       })
       return false
     }
@@ -474,6 +482,19 @@ export const useSimulacion = create((set, get) => ({
     set({
       avisoDeEscenario: `Se cargaron los parámetros por defecto con ${escenario.placas} placas y ${escenario.puestos} puestos.`,
     })
+  },
+
+  /**
+   * Pone todos los parámetros en sus valores por defecto, con 6 placas y 3
+   * puestos, y vuelve a empezar con la misma semilla. Es lo mismo que elegir
+   * "Situación actual", con su propio aviso. En la visita no hace nada.
+   */
+  restablecerValores: () => {
+    if (get().modo === MODO_VISITA) {
+      return
+    }
+    set({ parametros: parametrosPorDefecto() })
+    get().reiniciar('Se restablecieron los valores por defecto.')
   },
 
   /** Mueve la proporción de un plan; las otras dos se reajustan. */

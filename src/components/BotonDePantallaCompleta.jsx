@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { IconoDePantallaCompleta } from './iconos.jsx'
+
 /**
  * Pone la escena a pantalla completa y la devuelve.
  *
@@ -48,8 +50,16 @@ export function BotonDePantallaCompleta({ contenedor, expandida, alExpandir }) {
   }
 
   return (
-    <button type="button" className="boton-pantalla-completa" onClick={alternar}>
-      {estaGrande ? 'Salir de pantalla completa' : 'Pantalla completa'}
+    <button
+      type="button"
+      className="boton-pantalla-completa"
+      aria-label={estaGrande ? 'Salir de pantalla completa' : 'Pantalla completa'}
+      onClick={alternar}
+    >
+      <IconoDePantallaCompleta />
+      <span className="boton-texto">
+        {estaGrande ? 'Salir de pantalla completa' : 'Pantalla completa'}
+      </span>
     </button>
   )
 }

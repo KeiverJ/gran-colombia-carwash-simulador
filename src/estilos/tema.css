@@ -1,5 +1,5 @@
 /**
- * Tema de la aplicación: "lavadero de agua", claro.
+ * Tema de la aplicación, claro.
  *
  * Este archivo y `colores.js` son gemelos: los colores compartidos (planes,
  * estado y series de las gráficas) están en los dos, porque Three.js y
@@ -7,35 +7,103 @@
  * texto y falla si alguno se separa del otro.
  *
  * LA PALETA ESTÁ COMPROBADA, NO ELEGIDA A OJO
- * Con el validador de paletas de la guía de visualización, sobre fondo claro:
- *   · Planes (azul, naranja, violeta): todas las comprobaciones pasan.
- *     Peor par 18,2 en visión normal y 8,1 en deuteranopía.
- *   · Series de la gráfica (turquesa, teja): todas las comprobaciones pasan.
- *   · Verde y rojo de estado: se separan solo 2,0 en deuteranopía, es decir,
- *     quien no distingue el rojo del verde los ve casi iguales. No se arregla
- *     cambiando el tono: por eso "libre" y "ocupada" van SIEMPRE escritos con
- *     palabras, nunca solo con color.
- *   · El rojo de estado y el naranja del plan 2 se separan 13,1 en visión
- *     normal, por debajo del umbral de 15. Es aceptable porque el plan lleva
- *     siempre su nombre, pero conviene recordarlo antes de juntarlos.
+ * Con el validador de paletas de la guía de visualización (separación en
+ * OKLab ×100, también simulando daltonismo) y con la fórmula de contraste de
+ * WCAG:
+ *
+ *   Planes (#2F6FDB azul, #E8792B naranja, #D35BB3 rosa), sobre blanco y sobre
+ *   el fondo de la escena:
+ *     · Banda de luminosidad, croma y visión normal: pasan. Peor par, naranja
+ *       y rosa, a 20,6 (el piso es 15).
+ *     · Daltonismo: el peor par es azul y rosa, a 7,7 con protanopía y 6,9 con
+ *       tritanopía. Está en la banda de 6 a 8, que solo vale con codificación
+ *       secundaria: los planes la tienen siempre (el nombre y la forma de
+ *       encima: esfera, cubo y cono).
+ *     · Contraste: el naranja da 2,92 sobre blanco y 2,51 sobre el fondo de la
+ *       escena, por debajo de 3. Por eso un plan nunca se identifica solo por
+ *       su color: lleva su nombre escrito.
+ *
+ *   Series (fila 1 #0B84AE de la etapa 1, fila 2 #6D4FC2 de la etapa 2): todas
+ *   las comprobaciones pasan, sobre blanco y sobre el fondo de la escena. Peor
+ *   par a 16,3 con visión normal, 9,7 con deuteranopía y 11,5 con tritanopía,
+ *   y contraste de 4,26 y 5,92 sobre blanco. La fila 2 conserva además el
+ *   trazo discontinuo y cada fila lleva su nombre en la leyenda.
+ *
+ *   Un cruce a vigilar: la etapa 2 (#6D4FC2) y el plan 1 (#2F6FDB) se separan
+ *   solo 10,2 con visión normal y 4,6 con deuteranopía. No se dibujan nunca
+ *   como dos series de una misma gráfica, pero sí pueden verse en la misma
+ *   pantalla: llevan siempre su nombre ("Etapa 2", "Plan 1") y no deben
+ *   pegarse sin él.
+ *
+ *   Verde y rojo de estado: se separan 21,3 con visión normal pero solo 2,0
+ *   con deuteranopía, es decir, quien no distingue el rojo del verde los ve
+ *   casi iguales. No se arregla cambiando el tono: por eso "libre" y
+ *   "ocupada" van SIEMPRE escritos con palabras, nunca solo con color. El rojo
+ *   de estado y el naranja del plan 2 se separan 15,1 con visión normal.
+ *
+ *   Texto (contraste mínimo 4,5 a 1; sobre blanco / fondo de página /
+ *   selección / fondo de escena):
+ *     · Principal 16,41 · 14,58 · 14,10 · 14,15; secundario 9,01 · 8,01 ·
+ *       7,75 · 7,77; tenue 5,51 · 4,90 · 4,74 · 4,75.
+ *     · Etapa 2 (#6D4FC2) 5,92 · 5,26 · 5,09 · 5,10 y rojo (#C8322F) 5,31 ·
+ *       4,72 · 4,57 · 4,58: sirven como texto tal cual.
+ *     · Etapa 1 (#0B84AE) da 4,26 sobre blanco y el ámbar (#D98A00) 2,77: NO
+ *       sirven como texto. Para texto hay dos variantes oscuras, solo para
+ *       encabezados de sección, cifras de ρ y avisos:
+ *       --etapa-1-texto #0A6C8C → 5,94 · 5,27 · 5,10 · 5,12
+ *       --advertencia-texto #8A5600 → 6,16 · 5,47 · 5,29 · 5,31
+ *     · Texto #1A1A1A sobre el botón principal (#F2B600): 9,50. El botón
+ *       contra una tarjeta blanca da solo 1,83: por eso lleva su borde.
+ *     · El borde de los campos (#C9D3DA) da 1,52 sobre blanco, por debajo de
+ *       3; se compensa con el relleno blanco, la etiqueta visible y un anillo
+ *       de foco de 2 px de contraste alto.
+ *
  */
 
 :root {
-  /* --- Turquesa: dos pasos, porque son dos trabajos distintos ---
-     El de interfaz lleva texto blanco encima (4,95:1). El de gráfica necesita
-     croma suficiente para que una línea fina no se lea gris; el de interfaz
-     se queda en 0,089, por debajo del mínimo de 0,1. */
-  --agua-interfaz: #0b7c86;
-  --agua-interfaz-oscuro: #095f67;
-  --agua-grafica: #0e9aa7;
-  --agua-suave: #e3f2f5;
+  /* --- Fondos y bordes --- */
+  --fondo-pagina: #eef2f5;
+  --fondo-tarjeta: #ffffff;
+  --fondo-escena: #e9eff3;
+  --seleccion: #e3f0f5;
+  --borde: #dce3e8;
+  --borde-campo: #c9d3da;
 
-  /* --- Botón principal: amarillo con texto oscuro ---
-     El texto oscuro encima da 9,51:1, pero el relleno contra una tarjeta
-     blanca solo 1,82:1, así que el botón necesita su propio borde para que se
-     vea dónde empieza. */
-  --amarillo: #f2b705;
-  --amarillo-borde: #b88a04;
+  /* --- Texto --- */
+  --texto: #12212c;
+  --texto-secundario: #3b4b57;
+  --texto-tenue: #5a6b78;
+
+  /* --- Etapas del lavadero ---
+     La etapa 1 (lavado) y la etapa 2 (acabado) llevan su color en barras,
+     bordes, rellenos y líneas de gráfica. Para texto, la etapa 1 usa su
+     variante oscura. */
+  --etapa-1: #0b84ae;
+  --etapa-1-texto: #0a6c8c;
+  --etapa-2: #6d4fc2;
+
+  /* --- Advertencias, saturación y errores ---
+     El ámbar es solo para advertencias; para texto usa su variante oscura.
+     El rojo sirve como texto sin variante. */
+  --advertencia: #d98a00;
+  --advertencia-texto: #8a5600;
+  --peligro: #c8322f;
+  /* Los avisos llevan un fondo suave del color que corresponde y un borde fino
+     uniforme del mismo color atenuado; el texto va en la variante oscura. */
+  --peligro-fondo: rgba(200, 50, 47, 0.08);
+  --peligro-borde: rgba(200, 50, 47, 0.35);
+  --advertencia-fondo: rgba(217, 138, 0, 0.12);
+  --advertencia-borde: rgba(217, 138, 0, 0.4);
+  --etapa-1-fondo: rgba(11, 132, 174, 0.08);
+  --etapa-1-borde: rgba(11, 132, 174, 0.35);
+
+  /* --- Botón principal: amarillo con texto oscuro --- */
+  --boton-principal: #f2b600;
+  --boton-principal-texto: #1a1a1a;
+  --boton-principal-borde: #b88a04;
+
+  /* --- Velo de los elementos que flotan sobre la escena --- */
+  --velo-escena: rgba(255, 255, 255, 0.88);
 
   /* --- Estado de una placa o un puesto (reservados: no se usan para otra cosa) --- */
   --estado-libre: #4a8c5a;
@@ -44,41 +112,78 @@
   --estado-ocupada-fondo: rgba(182, 80, 80, 0.12);
 
   /* --- Identidad: el plan que contrató cada moto --- */
-  --plan-1: #1f6feb;
-  --plan-2: #d9730d;
-  --plan-3: #9340b8;
+  --plan-1: #2f6fdb;
+  --plan-2: #e8792b;
+  --plan-3: #d35bb3;
 
-  /* --- Series de las gráficas --- */
-  --serie-cola-1: #0e9aa7;
-  --serie-cola-2: #b5531f;
+  /* --- Series de las gráficas: cada fila lleva el color de su etapa --- */
+  --serie-cola-1: #0b84ae;
+  --serie-cola-2: #6d4fc2;
 
-  /* --- Tamaños de letra --- */
-  --letra-pequena: 0.82rem;
-  --letra-normal: 0.95rem;
-  --letra-titulo: 1.05rem;
-  --letra-destacada: 1.35rem;
+  /* --- Letra ---
+     Escala compacta de herramienta de escritorio, en rem sobre la base de
+     16 px: texto normal 14 px, secundario 13 px, etiquetas y notas 12 px,
+     títulos de capa y nombre de la aplicación 16 px, cifras de los
+     indicadores 22 px. Los encabezados de sección van en 12 px, en mayúsculas
+     y con espaciado. */
+  --fuente: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --letra-minima: 0.75rem;
+  --letra-pequena: 0.75rem;
+  --letra-secundaria: 0.8125rem;
+  --letra-normal: 0.875rem;
+  --letra-seccion: 0.75rem;
+  --letra-titulo: 1rem;
+  --letra-destacada: 1rem;
+  --letra-cifra: 1.375rem;
+  --espaciado-de-seccion: 0.06em;
 
-  /* --- Espaciados --- */
-  --espacio-1: 0.35rem;
-  --espacio-2: 0.65rem;
-  --espacio-3: 1rem;
-  --espacio-4: 1.5rem;
-  --espacio-5: 2.25rem;
+  /* --- Espaciados: una sola escala de 4, 8, 12, 16 y 24 px --- */
+  --espacio-1: 0.25rem;
+  --espacio-2: 0.5rem;
+  --espacio-3: 0.75rem;
+  --espacio-4: 1rem;
+  --espacio-5: 1.5rem;
 
-  /* Medidas de la disposición, para no escribirlas sueltas en cada hoja. */
-  --ancho-panel: 20rem;
-  --alto-minimo-escena: 17rem;
-  --alto-maximo-escena: 46rem;
-  /* Lo que hay por encima de la escena: el relleno de la página, el
-     encabezado y su margen. Con esto se le pone un tope a la escena entera. */
-  --alto-fuera-de-la-escena: 10.5rem;
-  /* Y esto es lo que ocupan los mandos y la leyenda, para darle al lienzo un
-     alto de partida. No hace falta que sea exacto: si se queda corto porque un
-     texto creció, el tope de arriba hace que el lienzo encoja en vez de
-     empujar la escena fuera de la pantalla. */
-  --alto-sobre-la-escena: 28rem;
+  /* --- Controles ---
+     De 32 a 36 px en escritorio; 44 px con menos de 768 px o con puntero
+     táctil (ver interfaz.css). */
+  --alto-control: 2rem;
+  --alto-control-principal: 2.25rem;
+  --alto-control-tactil: 2.75rem;
 
-  /* --- Tarjetas --- */
+  /* --- Medidas de la disposición, para no escribirlas sueltas en cada hoja --- */
+  --alto-barra: 56px;
+  --ancho-barra-lateral: 64px;
+  --ancho-capa-ajustes: 360px;
+  --ancho-capa-resultados: 360px;
+  --alto-franja: min(220px, 25svh);
+
+  /* --- Tarjetas y sombras ---
+     La única sombra es la de las capas flotantes (las dos capas, la hoja del
+     celular y la ayuda): neutra y suave. Nada más lleva sombra. */
   --radio-tarjeta: 8px;
-  --sombra-tarjeta: rgba(15, 28, 38, 0.06) 0 2px 8px;
+  --radio-control: 6px;
+  --sombra-capa: rgba(15, 28, 38, 0.14) 0 4px 16px;
+  --velo-de-fondo: rgba(18, 33, 44, 0.4);
+
+  /* --- Transiciones ---
+     Duraciones y curvas en un solo sitio. Con la preferencia de reducir el
+     movimiento, las duraciones valen 0 (más abajo). Solo se anima `transform`
+     y `opacity` (y el color de fondo y de borde al pasar el mouse). */
+  --duracion-corta: 120ms;
+  --duracion-pestana: 150ms;
+  --duracion-ayuda: 180ms;
+  --duracion-media: 200ms;
+  --curva-entrada: cubic-bezier(0, 0, 0.2, 1);
+  --curva-salida: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Si la persona pide menos movimiento, todo aparece sin animación. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duracion-corta: 0ms;
+    --duracion-pestana: 0ms;
+    --duracion-ayuda: 0ms;
+    --duracion-media: 0ms;
+  }
 }
