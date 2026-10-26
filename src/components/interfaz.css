@@ -49,14 +49,6 @@
   overflow: hidden;
 }
 
-.zona-lienzo[data-ajustes='abierta'] {
-  --capa-izquierda: var(--ancho-capa-ajustes);
-}
-
-.zona-lienzo[data-resultados='abierta'] {
-  --capa-derecha: var(--ancho-capa-resultados);
-}
-
 :focus-visible {
   outline: 2px solid var(--etapa-1-texto);
   outline-offset: 2px;
@@ -259,32 +251,47 @@
 
 /* ------------------------------------------------------- la barra lateral -- */
 
+/*
+ * Solo íconos: botones de 40 × 40 px centrados en una barra de 56 px, a 8 px
+ * entre sí y a 12 px del borde de arriba. El nombre sale en un tooltip al pasar
+ * el mouse o enfocar con el teclado. Activo: fondo suave e ícono de color, sin
+ * bordes ni franjas. "Ayuda" va al pie, separada por una línea fina.
+ */
 .barra-lateral {
   grid-column: 1;
   grid-row: 2;
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-1);
-  padding: var(--espacio-2) 0;
+  align-items: center;
+  gap: var(--espacio-2);
+  padding: var(--espacio-3) 0;
   background: var(--fondo-tarjeta);
   border-right: 1px solid var(--borde);
 }
 
-.boton-lateral {
+.barra-lateral-pie {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: var(--espacio-2) 0;
+  width: 100%;
+  margin-top: auto;
+  padding-top: var(--espacio-3);
+  border-top: 1px solid var(--borde);
+}
+
+.boton-lateral {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tamano-boton-lateral);
+  height: var(--tamano-boton-lateral);
+  padding: 0;
   border: 0;
-  border-radius: var(--radio-control);
+  border-radius: var(--radio-tarjeta);
   background: none;
   color: var(--texto-secundario);
-  font: inherit;
-  font-size: var(--letra-minima);
-  font-weight: 500;
-  letter-spacing: -0.03em;
   cursor: pointer;
 }
 
@@ -292,14 +299,36 @@
   background: var(--fondo-pagina);
 }
 
-/* La capa abierta: relleno suave, borde fino y letra más gruesa. */
+/* La capa abierta: fondo suave redondeado e ícono de color. */
 .boton-lateral--activo,
 .boton-lateral--activo:hover {
-  outline: 1px solid var(--etapa-1-borde);
-  outline-offset: -1px;
   background: var(--seleccion);
   color: var(--etapa-1-texto);
-  font-weight: 600;
+}
+
+/* El tooltip con el nombre: a la derecha del botón, sobre la escena. */
+.boton-lateral::after {
+  content: attr(data-nombre);
+  position: absolute;
+  top: 50%;
+  left: calc(100% + var(--espacio-2));
+  z-index: 20;
+  padding: var(--espacio-1) var(--espacio-2);
+  border-radius: var(--radio-control);
+  background: var(--texto);
+  color: var(--fondo-tarjeta);
+  font-size: var(--letra-pequena);
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity var(--duracion-corta) var(--curva-entrada);
+}
+
+.boton-lateral:hover::after,
+.boton-lateral:focus-visible::after {
+  opacity: 1;
 }
 
 /* ------------------------------------------------------------------ capas -- */
@@ -1169,6 +1198,10 @@
 
   .solo-celular {
     display: inline;
+  }
+
+  .boton-barra.solo-celular {
+    display: inline-flex;
   }
 
   /* Una sola fila: modo, hora, reiniciar, iniciar o pausar y ayuda. */

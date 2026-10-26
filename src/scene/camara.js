@@ -7,7 +7,7 @@
  * de adelante, y eso se calcula aquí.
  */
 
-import { LOCAL, MOTO, RETRANQUEO_EN_LA_LOSA, SERVIDOR } from './posiciones.js'
+import { COLUMNAS_DEL_TECHO, LOCAL, MOTO, RETRANQUEO_EN_LA_LOSA, SERVIDOR } from './posiciones.js'
 
 /** Hasta dónde llega una moto posada en una losa ocupada. */
 const ALTO_DE_MOTO_POSADA = SERVIDOR.altoOcupado + MOTO.alto
@@ -121,3 +121,149 @@ export const LIMITES_DE_CAMARA = {
 
 /** La diagonal del local, para saber si una distancia lo deja ver entero. */
 export const DIAGONAL_DEL_LOCAL = Math.hypot(LOCAL.ancho, LOCAL.fondo)
+
+/* ------------------------------------------------------------------------- *
+ * Encuadre con las capas abiertas
+ *
+ * Las capas laterales flotan encima del lienzo y no lo achican. Para que el
+ * local se vea completo y centrado en lo que queda libre, la cámara dibuja
+ * en un "cuadro virtual" más chico que el lienzo y lo coloca en el centro del
+ * área libre (`camera.setViewOffset`). No cambia la posición ni la
+ * orientación de la cámara: solo qué parte del cuadro cae en el lienzo.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * El alto del techo del local (el de las columnas de `Local.jsx`). Es el
+ * único número de aquí que no sale de `posiciones.js`.
+ */
+export const ALTO_DEL_TECHO = 4.2
+
+/**
+ * Las ocho esquinas de lo que se llama "el local": la caja que forman las
+ * columnas del techo, del suelo al techo.
+ */
+export const ESQUINAS_DEL_LOCAL = (() => {
+  const xs = COLUMNAS_DEL_TECHO.map(([x]) => x)
+  const zs = COLUMNAS_DEL_TECHO.map(([, , z]) => z)
+  const esquinas = []
+  for (const x of [Math.min(...xs), Math.max(...xs)]) {
+    for (const z of [Math.min(...zs), Math.max(...zs)]) {
+      for (const y of [0, ALTO_DEL_TECHO]) {
+        esquinas.push([x, y, z])
+      }
+    }
+  }
+  return esquinas
+})()
+
+/** Qué parte del área libre se deja vacía, a lo ancho (total, repartida a los dos lados). */
+const MARGEN_A_LO_ANCHO = 0.1
+
+/** Y a lo alto: arriba van los botones y la leyenda, y abajo los indicadores. */
+const MARGEN_A_LO_ALTO = 0.22
+
+/**
+ * Dónde cae un punto del mundo en la imagen de una cámara, en coordenadas
+ * normalizadas: de -1 a 1 en los dos ejes, con (0, 0) en el centro y la x
+ * hacia la derecha y la y hacia arriba. Devuelve `null` si el punto queda
+ * detrás de la cámara.
+ *
+ * @param {number[]} punto
+ * @param {{ posicion: number[], objetivo: number[] }} vista
+ * @param {number} aspecto ancho / alto de la imagen
+ */
+export function proyectarPunto(punto, { posicion, objetivo }, aspecto) {
+  const resta = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+  const producto = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+  const cruz = (a, b) => [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ]
+  const unitario = (a) => {
+    const largo = Math.hypot(...a)
+    return a.map((componente) => componente / largo)
+  }
+
+  const adelante = unitario(resta(objetivo, posicion))
+  const derecha = unitario(cruz(adelante, [0, 1, 0]))
+  const arriba = cruz(derecha, adelante)
+  const v = resta(punto, posicion)
+  const profundidad = producto(v, adelante)
+  if (profundidad <= 1e-6) {
+    return null
+  }
+  const medioAlto = Math.tan((CAMPO_DE_VISION / 2) * (Math.PI / 180))
+  return [
+    producto(v, derecha) / (profundidad * medioAlto * aspecto),
+    producto(v, arriba) / (profundidad * medioAlto),
+  ]
+}
+
+/**
+ * El rectángulo que ocupa el local en la imagen de una vista, en coordenadas
+ * normalizadas (ver `proyectarPunto`).
+ */
+export function cajaDelLocalEnPantalla(vista, aspecto) {
+  const puntos = ESQUINAS_DEL_LOCAL.map((esquina) => proyectarPunto(esquina, vista, aspecto)).filter(Boolean)
+  const xs = puntos.map(([x]) => x)
+  const ys = puntos.map(([, y]) => y)
+  return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) }
+}
+
+/**
+ * Cómo colocar el cuadro virtual de la cámara para que el local entero quepa,
+ * centrado, en el área que dejan libre las capas.
+ *
+ * La escala sale de las dos vistas que tienen botón (la de la foto y la de
+ * plano) y no de dónde esté la cámara ahora: así, si la persona se acerca a
+ * mano, no se le contrarresta. Nunca pasa de 1 (no agranda). El resultado se
+ * entrega en los términos de `PerspectiveCamera.setViewOffset`.
+ *
+ * @param {object} medidas
+ * @param {number} medidas.ancho ancho del lienzo en píxeles
+ * @param {number} medidas.alto alto del lienzo en píxeles
+ * @param {number} medidas.izquierda píxeles del lienzo que tapa la capa de la izquierda
+ * @param {number} medidas.derecha píxeles que tapa la de la derecha
+ * @returns {{ escala: number, fullWidth: number, fullHeight: number, offsetX: number,
+ *   offsetY: number, width: number, height: number } | null} `null` si el lienzo no tiene tamaño
+ */
+export function encuadreParaLasCapas({ ancho, alto, izquierda, derecha }) {
+  if (!(ancho > 0) || !(alto > 0)) {
+    return null
+  }
+  const tapa = (valor) => (Number.isFinite(valor) ? Math.min(Math.max(valor, 0), ancho) : 0)
+  const izq = tapa(izquierda)
+  const der = tapa(derecha)
+  // Con las dos capas tapando casi todo se deja al menos un píxel: sin NaN.
+  const libre = Math.max(ancho - izq - der, 1)
+  const aspecto = ancho / alto
+
+  const cajas = Object.values(VISTAS).map((vista) => cajaDelLocalEnPantalla(vista, aspecto))
+  const fraccionAncha = Math.max(...cajas.map((c) => (c.maxX - c.minX) / 2))
+  const fraccionAlta = Math.max(...cajas.map((c) => (c.maxY - c.minY) / 2))
+  const escala = Math.min(
+    1,
+    (libre * (1 - MARGEN_A_LO_ANCHO)) / (ancho * fraccionAncha),
+    ((1 - MARGEN_A_LO_ALTO) * alto) / (alto * fraccionAlta),
+  )
+
+  // El local de la vista inicial es el que se centra: queda a `centroDelLocal`
+  // (en normalizadas) del centro del cuadro virtual.
+  const caja = cajaDelLocalEnPantalla(VISTA_INICIAL, aspecto)
+  const centroDelLocal = (caja.minX + caja.maxX) / 2
+  const fullWidth = ancho * escala
+  const fullHeight = alto * escala
+  const centroLibre = izq + libre / 2
+  const centroDelCuadro = centroLibre - centroDelLocal * (fullWidth / 2)
+
+  return {
+    escala,
+    fullWidth,
+    fullHeight,
+    offsetX: fullWidth / 2 - centroDelCuadro,
+    offsetY: (fullHeight - alto) / 2,
+    width: ancho,
+    height: alto,
+  }
+}

@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  ALTO_DEL_TECHO,
   alturaParaVerLaFilaDeAtras,
+  cajaDelLocalEnPantalla,
   DIAGONAL_DEL_LOCAL,
   distanciaDe,
+  encuadreParaLasCapas,
+  ESQUINAS_DEL_LOCAL,
   LIMITES_DE_CAMARA,
   medioAltoVisible,
+  proyectarPunto,
   VISTA_INICIAL,
   vistaRecentrada,
   VISTAS,
@@ -130,5 +135,124 @@ describe('recentrar', () => {
   it('con la cámara justo en el objetivo no se rompe: vuelve a la vista inicial', () => {
     const { posicion } = vistaRecentrada([...VISTA_INICIAL.objetivo])
     expect(posicion).toEqual(VISTA_INICIAL.posicion)
+  })
+})
+
+describe('proyectar un punto', () => {
+  it('el objetivo de la vista cae en el centro de la imagen', () => {
+    for (const vista of Object.values(VISTAS)) {
+      const [x, y] = proyectarPunto(vista.objetivo, vista, 16 / 9)
+      expect(x).toBeCloseTo(0, 9)
+      expect(y).toBeCloseTo(0, 9)
+    }
+  })
+
+  it('lo que está a la derecha cae a la derecha y lo que está arriba, arriba', () => {
+    const vista = VISTA_INICIAL
+    const [aLaDerecha] = proyectarPunto([5, 0.8, -2], vista, 16 / 9)
+    const [, arriba] = proyectarPunto([0, 4, -2], vista, 16 / 9)
+    expect(aLaDerecha).toBeGreaterThan(0)
+    expect(arriba).toBeGreaterThan(0)
+  })
+
+  it('lo que queda detrás de la cámara no se proyecta', () => {
+    expect(proyectarPunto([0, 5, 40], VISTA_INICIAL, 16 / 9)).toBeNull()
+  })
+
+  it('un aspecto más ancho reparte lo mismo en más píxeles: la x se achica', () => {
+    const [angosto] = proyectarPunto([5, 0.8, -2], VISTA_INICIAL, 1)
+    const [ancho] = proyectarPunto([5, 0.8, -2], VISTA_INICIAL, 2)
+    expect(ancho).toBeCloseTo(angosto / 2, 9)
+  })
+})
+
+describe('el encuadre con las capas abiertas', () => {
+  const LIENZO = { ancho: 1302, alto: 679 }
+  const capas = (izquierda, derecha) => encuadreParaLasCapas({ ...LIENZO, izquierda, derecha })
+
+  /** Dónde cae, en píxeles del lienzo, un punto de la imagen normalizada con un encuadre. */
+  const columnaEnElLienzo = (x, encuadre) => {
+    const centroDelCuadro = encuadre.fullWidth / 2 - encuadre.offsetX
+    return centroDelCuadro + x * (encuadre.fullWidth / 2)
+  }
+
+  const extremosDelLocal = (vista, encuadre) => {
+    const caja = cajaDelLocalEnPantalla(vista, LIENZO.ancho / LIENZO.alto)
+    return [columnaEnElLienzo(caja.minX, encuadre), columnaEnElLienzo(caja.maxX, encuadre)]
+  }
+
+  it('nunca agranda: la escala no pasa de 1', () => {
+    for (const [i, d] of [[0, 0], [360, 0], [0, 360], [360, 360], [100, 20]]) {
+      expect(capas(i, d).escala).toBeLessThanOrEqual(1)
+    }
+    expect(encuadreParaLasCapas({ ancho: 6000, alto: 1000, izquierda: 0, derecha: 0 }).escala).toBe(1)
+  })
+
+  it('con más capas abiertas el local se achica más', () => {
+    expect(capas(360, 0).escala).toBeLessThan(capas(0, 0).escala + 1e-9)
+    expect(capas(360, 360).escala).toBeLessThan(capas(360, 0).escala)
+    expect(capas(360, 0).escala).toBeCloseTo(capas(0, 360).escala, 9)
+  })
+
+  it('el local de la vista inicial queda centrado en el área libre', () => {
+    for (const [i, d] of [[0, 0], [360, 0], [0, 360], [360, 360], [240, 90]]) {
+      const [izquierdo, derecho] = extremosDelLocal(VISTA_INICIAL, capas(i, d))
+      const centroLibre = i + (LIENZO.ancho - i - d) / 2
+      expect((izquierdo + derecho) / 2).toBeCloseTo(centroLibre, 6)
+    }
+  })
+
+  it('el local cabe en el área libre, con margen, en las dos vistas con botón', () => {
+    for (const [i, d] of [[0, 0], [360, 0], [0, 360], [360, 360]]) {
+      const libre = LIENZO.ancho - i - d
+      for (const vista of Object.values(VISTAS)) {
+        const [izquierdo, derecho] = extremosDelLocal(vista, capas(i, d))
+        expect(izquierdo).toBeGreaterThan(i)
+        expect(derecho).toBeLessThan(i + libre)
+        expect(derecho - izquierdo).toBeLessThanOrEqual(libre * 0.95)
+      }
+    }
+  })
+
+  it('el local también cabe a lo alto', () => {
+    const encuadre = capas(360, 360)
+    for (const vista of Object.values(VISTAS)) {
+      const caja = cajaDelLocalEnPantalla(vista, LIENZO.ancho / LIENZO.alto)
+      const alto = ((caja.maxY - caja.minY) / 2) * encuadre.height * encuadre.escala
+      expect(alto).toBeLessThan(LIENZO.alto)
+    }
+  })
+
+  it('el cuadro virtual conserva el aspecto del lienzo y entrega un lienzo del mismo tamaño', () => {
+    const encuadre = capas(360, 0)
+    expect(encuadre.fullWidth / encuadre.fullHeight).toBeCloseTo(LIENZO.ancho / LIENZO.alto, 9)
+    expect(encuadre.width).toBe(LIENZO.ancho)
+    expect(encuadre.height).toBe(LIENZO.alto)
+  })
+
+  it('no depende de dónde esté la cámara: solo de las medidas', () => {
+    expect(capas(360, 0)).toEqual(capas(360, 0))
+  })
+
+  it('con capas absurdas o sin tamaño no produce NaN', () => {
+    for (const medidas of [
+      { ancho: 1302, alto: 679, izquierda: 5000, derecha: 5000 },
+      { ancho: 1302, alto: 679, izquierda: -50, derecha: Number.NaN },
+      { ancho: 1302, alto: 679, izquierda: 1302, derecha: 0 },
+    ]) {
+      const encuadre = encuadreParaLasCapas(medidas)
+      for (const valor of Object.values(encuadre)) {
+        expect(Number.isFinite(valor)).toBe(true)
+      }
+      expect(encuadre.escala).toBeGreaterThan(0)
+    }
+    expect(encuadreParaLasCapas({ ancho: 0, alto: 679, izquierda: 0, derecha: 0 })).toBeNull()
+    expect(encuadreParaLasCapas({ ancho: 1302, alto: 0, izquierda: 0, derecha: 0 })).toBeNull()
+  })
+
+  it('las esquinas del local salen de las columnas del techo', () => {
+    expect(ESQUINAS_DEL_LOCAL).toHaveLength(8)
+    const alturas = new Set(ESQUINAS_DEL_LOCAL.map(([, y]) => y))
+    expect([...alturas].sort((a, b) => a - b)).toEqual([0, ALTO_DEL_TECHO])
   })
 })

@@ -5,6 +5,7 @@ import Aviso from '../components/Aviso.jsx'
 import BotonDePantallaCompleta from '../components/BotonDePantallaCompleta.jsx'
 import IndicadoresDeLaEscena from '../components/IndicadoresDeLaEscena.jsx'
 import MandosMinimos from '../components/MandosMinimos.jsx'
+import AjusteALasCapas from './AjusteALasCapas.jsx'
 import { CAMPO_DE_VISION, VISTA_INICIAL } from './camara.js'
 import { BotonesDeCamara, ControlDeCamara } from './ControlesDeCamara.jsx'
 import { useSimulacion } from '../store/simulacion.js'
@@ -101,6 +102,7 @@ export function EscenaDelLavadero() {
           <Motos />
           <RotulosDeSobrantes />
           <ControlDeCamara tomarOrden={tomarOrden} />
+          <AjusteALasCapas />
         </Canvas>
 
         {/* Todo lo que flota sobre la escena va en las esquinas y el borde de

@@ -82,9 +82,14 @@ export function BarraSuperior() {
           />
         </label>
 
-        <button type="button" className="boton-barra" onClick={abrirAyuda} aria-label="Ayuda">
+        {/* En escritorio la ayuda va al pie de la barra lateral; aquí solo en celular. */}
+        <button
+          type="button"
+          className="boton-barra solo-celular"
+          onClick={abrirAyuda}
+          aria-label="Ayuda"
+        >
           <IconoDeAyuda />
-          <span className="boton-texto">Ayuda</span>
         </button>
       </div>
     </header>
