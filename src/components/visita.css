@@ -1,0 +1,110 @@
+/* Lo del modo "Repetir la visita": el acceso del panel, los avisos junto a la
+   escena y los dos bloques de métricas. Solo variables del tema. */
+
+/* Entrar y salir de la visita, arriba del panel. */
+.acceso-visita {
+  margin-bottom: var(--espacio-3);
+}
+
+.boton-visita {
+  width: 100%;
+  padding: var(--espacio-2) var(--espacio-3);
+  font: inherit;
+  font-size: var(--letra-normal);
+  font-weight: 600;
+  color: var(--agua-interfaz);
+  background: var(--agua-suave);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radio-tarjeta);
+  cursor: pointer;
+}
+
+.boton-visita:hover {
+  border-color: var(--accent);
+}
+
+.boton-visita:focus-visible,
+.aviso-de-la-visita button:focus-visible {
+  outline: 2px solid var(--agua-interfaz);
+  outline-offset: 2px;
+}
+
+.aviso-visita {
+  margin: 0 0 var(--espacio-2);
+  padding: var(--espacio-2) var(--espacio-3);
+  font-size: var(--letra-pequena);
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent-bg);
+}
+
+/* El bloque de parámetros: un `fieldset` sin su marco de siempre. Desactivado,
+   se ve atenuado para que se note que no se puede mover. */
+.parametros {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.parametros:disabled {
+  opacity: 0.55;
+}
+
+.parametros:disabled input,
+.parametros:disabled select {
+  cursor: not-allowed;
+}
+
+/* Los avisos de la visita, pegados a los mandos de la escena. */
+.aviso-de-la-visita {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2) var(--espacio-3);
+  margin-bottom: var(--espacio-3);
+  padding: var(--espacio-2) var(--espacio-3);
+  font-size: var(--letra-pequena);
+  text-align: left;
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent-bg);
+}
+
+.aviso-de-la-visita p {
+  margin: 0;
+  flex: 1 1 18rem;
+}
+
+.aviso-de-la-visita .visita-terminada {
+  padding: var(--espacio-1) var(--espacio-2);
+  border-radius: 4px;
+  background: var(--bg-tarjeta);
+  border: 1px solid var(--accent-border);
+}
+
+.aviso-de-la-visita button {
+  padding: var(--espacio-1) var(--espacio-3);
+  font: inherit;
+  font-weight: 600;
+  color: var(--agua-interfaz);
+  background: var(--bg-tarjeta);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radio-tarjeta);
+  cursor: pointer;
+}
+
+/* Los dos bloques de métricas, separados entre sí. */
+.bloque-visita + .bloque-visita {
+  margin-top: var(--espacio-4);
+  padding-top: var(--espacio-3);
+  border-top: 1px solid var(--border);
+}
+
+/* La escena tiene un alto máximo pensado para que quepa en la ventana, y en una
+   pantalla angosta sus mandos, el lienzo y la leyenda ya lo llenan. Con los
+   avisos de la visita encima no cabría, y la leyenda se saldría de la tarjeta
+   por encima del panel. En la visita la tarjeta crece lo que haga falta. */
+.escena:not(.escena--expandida):has(.aviso-de-la-visita) {
+  max-height: none;
+}

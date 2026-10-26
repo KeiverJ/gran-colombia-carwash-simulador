@@ -127,6 +127,16 @@
   margin: var(--espacio-1) 0 var(--espacio-3);
 }
 
+/* La línea que dice qué escenario se cargó, pegada al selector. */
+.aviso-escenario {
+  margin: calc(-1 * var(--espacio-1)) 0 var(--espacio-3);
+  padding: var(--espacio-1) var(--espacio-2);
+  font-size: var(--letra-pequena);
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent-bg);
+}
+
 .aviso-reinicio {
   margin-top: var(--espacio-3);
   padding: var(--espacio-2) var(--espacio-3);

@@ -6,6 +6,8 @@
  * poder probarlo una vez.
  */
 
+import { HORA_BASE_VISITA, INICIO_OBSERVACION_MIN } from '../data/visita.js'
+
 /**
  * Un número con coma decimal y los decimales pedidos.
  *
@@ -52,4 +54,26 @@ export function comoReloj(minutos) {
     return `${resto} min`
   }
   return `${horas} h ${resto} min`
+}
+
+/**
+ * La hora de la tarde de la visita, a partir de los minutos que llevan
+ * transcurridos desde que empezó la observación, a las 3:10 p. m.
+ * Los segundos no se muestran, como en `comoReloj`.
+ *
+ * @param {number} minutosDesdeElInicio 0 son las 3:10 p. m.
+ * @returns {string} por ejemplo "4:11 p. m."
+ */
+export function comoHoraDeLaTarde(minutosDesdeElInicio) {
+  const transcurridos =
+    Number.isFinite(minutosDesdeElInicio) && minutosDesdeElInicio > 0
+      ? Math.floor(minutosDesdeElInicio)
+      : 0
+  const desdeMedianoche =
+    HORA_BASE_VISITA.minutosDesdeMedianoche + INICIO_OBSERVACION_MIN + transcurridos
+  const hora24 = Math.floor(desdeMedianoche / 60) % 24
+  const minutos = desdeMedianoche % 60
+  const hora12 = hora24 % 12 === 0 ? 12 : hora24 % 12
+  const jornada = hora24 < 12 ? 'a. m.' : 'p. m.'
+  return `${hora12}:${String(minutos).padStart(2, '0')} ${jornada}`
 }

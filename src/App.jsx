@@ -2,6 +2,7 @@ import './estilos/tema.css'
 import './App.css'
 import './components/paneles.css'
 import './components/metricas.css'
+import './components/visita.css'
 import './scene/escena.css'
 
 import GraficaDeColas from './components/GraficaDeColas.jsx'

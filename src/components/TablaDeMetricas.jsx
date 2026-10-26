@@ -3,7 +3,8 @@ import {
   comparacionEsAproximada,
   metricasCalculadas,
 } from '../store/metricas.js'
-import { HORAS_DE_LA_CORRIDA_LARGA, useSimulacion } from '../store/simulacion.js'
+import { HORAS_DE_LA_CORRIDA_LARGA, MODO_VISITA, useSimulacion } from '../store/simulacion.js'
+import BloquesDeLaVisita from './BloquesDeLaVisita.jsx'
 import { comoNumero } from './formato.js'
 
 /** Las cinco métricas de una etapa, con cuántos decimales se muestra cada una. */
@@ -100,6 +101,18 @@ export function TablaDeMetricas() {
   const metricas = useSimulacion((estado) => estado.metricas)
   const corridaLarga = useSimulacion((estado) => estado.corridaLarga)
   const empezarCorridaLarga = useSimulacion((estado) => estado.empezarCorridaLarga)
+  const enLaVisita = useSimulacion((estado) => estado.modo === MODO_VISITA)
+
+  // En la visita no hay columna "Calculado con fórmulas", ni aviso de saturación, ni
+  // corrida larga: es una tarde fija, no una simulación. Solo sus dos bloques.
+  if (enLaVisita) {
+    return (
+      <section className="metricas">
+        <h2>Métricas de la visita</h2>
+        <BloquesDeLaVisita metricas={metricas} />
+      </section>
+    )
+  }
 
   const calculado = metricasCalculadas(parametros)
   const aviso = avisoCortoDeSaturacion(parametros)

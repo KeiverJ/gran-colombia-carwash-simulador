@@ -8,6 +8,7 @@
 
 import { create } from 'zustand'
 
+import { ESCENARIOS } from '../data/escenarios.js'
 import {
   ACABADO_PLAN_MIN,
   LAVADO_MIN,
@@ -17,9 +18,14 @@ import {
   PUESTOS_ACABADO,
 } from '../data/parametros.js'
 import { crearSimulador, MODO_POR_PLAN } from '../engine/simulador.js'
+import { crearReproductor } from '../visita/reproductor.js'
 import { progreso, siguienteTrozoHoras } from './corridaLarga.js'
 import { pasoSimuladoMin } from './paso.js'
 import { agregarPunto, tocaAnotar } from './puntos.js'
+
+/** Los dos modos de la aplicación: la simulación al azar y la tarde de la visita. */
+export const MODO_ALEATORIO = 'aleatorio'
+export const MODO_VISITA = 'visita'
 
 /** Lo que el panel deja elegir. */
 export const PLACAS_POSIBLES = [5, 6, 7]
@@ -53,6 +59,35 @@ const parametrosPorDefecto = () => ({
   puestos: PUESTOS_ACABADO,
   modoAcabado: MODO_POR_PLAN,
 })
+
+/** Los parámetros por defecto con las placas y los puestos de un escenario. */
+const parametrosDelEscenario = (escenario) => ({
+  ...parametrosPorDefecto(),
+  placas: escenario.placas,
+  puestos: escenario.puestos,
+})
+
+/** ¿Dos conjuntos de parámetros tienen exactamente los mismos valores? */
+function mismosParametros(a, b) {
+  return Object.keys(a).every((clave) =>
+    typeof a[clave] === 'object'
+      ? mismosParametros(a[clave], b[clave])
+      : a[clave] === b[clave],
+  )
+}
+
+/**
+ * El escenario cuyos valores coinciden con los parámetros puestos, o `null`
+ * si ya se movió alguno. Se deduce en vez de guardarse: un escenario guardado
+ * seguiría "elegido" después de mover cualquier deslizador, y ya no sería cierto.
+ */
+export function escenarioQueCoincide(parametros) {
+  return (
+    ESCENARIOS.find((escenario) =>
+      mismosParametros(parametrosDelEscenario(escenario), parametros),
+    ) ?? null
+  )
+}
 
 /**
  * E[S₂]: el tiempo medio de acabado de una moto cualquiera, como promedio
@@ -124,6 +159,9 @@ function estadoInicial() {
     motor,
     foto: motor.estado(),
     aviso: null,
+    // El aviso de haber cargado un escenario va aparte: se muestra junto al
+    // selector, que está arriba del panel, y no al final con los demás avisos.
+    avisoDeEscenario: null,
     // Lo que alimenta la tabla y la gráfica. Se refrescan cuatro veces por
     // segundo, no en cada cuadro: una tabla de diez números no gana nada
     // redibujándose sesenta veces por segundo.
@@ -137,6 +175,12 @@ function estadoInicial() {
     resumen: resumenDe(motor.estado()),
     // Progreso de la corrida larga: null cuando no hay ninguna en marcha.
     corridaLarga: null,
+    // El modo "Repetir la visita": el reproductor ocupa el lugar del motor, y
+    // aquí se guarda lo que había antes para poder volver.
+    modo: MODO_ALEATORIO,
+    antesDeLaVisita: null,
+    // { terminada } mientras dura la visita; null en el modo aleatorio.
+    visita: null,
   }
 }
 
@@ -152,17 +196,29 @@ function resumenDe(foto) {
 export const useSimulacion = create((set, get) => ({
   ...estadoInicial(),
 
-  iniciar: () => set({ corriendo: true }),
+  iniciar: () => {
+    // Una visita terminada no se reanuda: hay que reiniciarla o volver al modo normal.
+    if (get().visita?.terminada) {
+      return
+    }
+    set({ corriendo: true })
+  },
   pausar: () => set({ corriendo: false }),
 
-  /** Empieza de cero con los parámetros y la semilla que haya ahora. */
+  /**
+   * Empieza de cero con los parámetros y la semilla que haya ahora; en el modo
+   * visita, otra vez desde las 3:10 p. m.
+   */
   reiniciar: (aviso = null) => {
-    const { parametros, semilla } = get()
-    const motor = motorCon(parametros, semilla)
+    const { parametros, semilla, modo } = get()
+    const enLaVisita = modo === MODO_VISITA
+    const motor = enLaVisita ? crearReproductor() : motorCon(parametros, semilla)
     set({
       motor,
       foto: motor.estado(),
       aviso,
+      avisoDeEscenario: null,
+      visita: enLaVisita ? { terminada: false } : null,
       // Las métricas y los puntos son de la corrida que se acaba de descartar:
       // mezclarlos con los de la nueva daría una gráfica que no ocurrió.
       metricas: null,
@@ -188,6 +244,71 @@ export const useSimulacion = create((set, get) => ({
     const foto = motor.estado()
     set({ foto })
     get().anotarMetricas(foto)
+
+    if (get().modo === MODO_VISITA && motor.terminada() && !get().visita?.terminada) {
+      get().terminarLaVisita(foto)
+    }
+  },
+
+  /**
+   * La visita llegó a las 5:30 p. m.: se detiene y se deja a la vista lo final.
+   * Las métricas y el último punto de la gráfica se guardan sin esperar a los
+   * frenos de siempre, o lo último que se vería sería de un cuarto de segundo antes.
+   */
+  terminarLaVisita: (foto) => {
+    const { motor, puntos } = get()
+    const hayUltimoPunto = puntos.at(-1)?.minuto === foto.relojMin
+    set({
+      corriendo: false,
+      visita: { terminada: true },
+      metricas: motor.metricas(),
+      resumen: resumenDe(foto),
+      puntos: hayUltimoPunto
+        ? puntos
+        : agregarPunto(puntos, {
+            minuto: foto.relojMin,
+            colaLavado: foto.colaLavado.length,
+            colaAcabado: foto.colaAcabado.length,
+          }),
+      ultimoPuntoMin: foto.relojMin,
+    })
+  },
+
+  /**
+   * Entra al modo "Repetir la visita del 17 de octubre": guarda los parámetros
+   * que había, deja el lavadero real (6 placas y 3 puestos, para que la escena
+   * dibuje las losas de ese día) y empieza en pausa a las 3:10 p. m.
+   */
+  entrarEnLaVisita: () => {
+    if (get().modo === MODO_VISITA) {
+      return
+    }
+    set({
+      modo: MODO_VISITA,
+      antesDeLaVisita: { parametros: get().parametros },
+      parametros: parametrosPorDefecto(),
+      corriendo: false,
+    })
+    get().reiniciar(null)
+  },
+
+  /**
+   * Vuelve al modo normal con los parámetros de antes de entrar a la visita.
+   * La semilla y la velocidad nunca se tocaron. Queda en pausa: volver de una
+   * visita para encontrar la simulación corriendo sola sorprende.
+   */
+  volverAlModoNormal: () => {
+    const { modo, antesDeLaVisita } = get()
+    if (modo !== MODO_VISITA) {
+      return
+    }
+    set({
+      modo: MODO_ALEATORIO,
+      parametros: antesDeLaVisita.parametros,
+      antesDeLaVisita: null,
+      corriendo: false,
+    })
+    get().reiniciar(null)
   },
 
   /**
@@ -230,6 +351,9 @@ export const useSimulacion = create((set, get) => ({
    * mezclar mil horas con lo que ya había daría métricas de dos sistemas.
    */
   empezarCorridaLarga: (horas = HORAS_DE_LA_CORRIDA_LARGA) => {
+    if (get().modo === MODO_VISITA) {
+      return
+    }
     get().reiniciar(
       `Simulando ${horas} horas de corrido. La simulación anterior se descartó para empezar de cero.`,
     )
@@ -308,6 +432,9 @@ export const useSimulacion = create((set, get) => ({
    * lavadero; se conservan la semilla, la velocidad y si estaba corriendo.
    */
   cambiarParametro: (nombre, valor) => {
+    if (get().modo === MODO_VISITA) {
+      return
+    }
     const parametros = { ...get().parametros, [nombre]: valor }
     set({ parametros })
     get().reiniciar(
@@ -317,6 +444,9 @@ export const useSimulacion = create((set, get) => ({
 
   /** Cambia el tiempo de acabado de un plan y vuelve a empezar. */
   cambiarAcabadoDePlan: (plan, minutos) => {
+    if (get().modo === MODO_VISITA) {
+      return
+    }
     const anteriores = get().parametros.acabadoPlanMin
     const parametros = {
       ...get().parametros,
@@ -328,8 +458,29 @@ export const useSimulacion = create((set, get) => ({
     )
   },
 
+  /**
+   * Carga un escenario: los parámetros por defecto con sus placas y puestos, y
+   * vuelve a empezar con la misma semilla. Se reinicia porque otro número de
+   * servidores es otro lavadero, y con la misma semilla las llegadas son las
+   * mismas: lo que cambie en las métricas se debe al escenario y no al azar.
+   */
+  elegirEscenario: (id) => {
+    const escenario = ESCENARIOS.find((candidato) => candidato.id === id)
+    if (!escenario || get().modo === MODO_VISITA) {
+      return
+    }
+    set({ parametros: parametrosDelEscenario(escenario) })
+    get().reiniciar(null)
+    set({
+      avisoDeEscenario: `Se cargaron los parámetros por defecto con ${escenario.placas} placas y ${escenario.puestos} puestos.`,
+    })
+  },
+
   /** Mueve la proporción de un plan; las otras dos se reajustan. */
   cambiarProporcion: (plan, valor) => {
+    if (get().modo === MODO_VISITA) {
+      return
+    }
     const proporcionPlan = repartirProporciones(get().parametros.proporcionPlan, plan, valor)
     set({ parametros: { ...get().parametros, proporcionPlan } })
     get().reiniciar(
@@ -339,6 +490,9 @@ export const useSimulacion = create((set, get) => ({
 
   /** Otra semilla es otra tarde simulada: también reinicia. */
   cambiarSemilla: (semilla) => {
+    if (get().modo === MODO_VISITA) {
+      return
+    }
     set({ semilla })
     get().reiniciar('Cambiaste la semilla, así que la simulación volvió a empezar con otro azar.')
   },
