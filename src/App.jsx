@@ -25,9 +25,12 @@ function App() {
 
   return (
     <div className="app">
+      <a className="enlace-saltar" href="#contenido-principal">
+        Saltar al contenido
+      </a>
       <BarraSuperior />
       <BarraLateral />
-      <main className="zona-escena">
+      <main id="contenido-principal" tabIndex={-1} className="zona-escena">
         <ZonaDeEscena />
         <LineaDeTiempoDeLaVisita />
       </main>

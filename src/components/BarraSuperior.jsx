@@ -34,9 +34,12 @@ export function BarraSuperior() {
   return (
     <header className="barra-superior">
       <div className="marca">
-        <h1>Gran Colombia Car Wash Express</h1>
+        <h1 translate="no">Gran Colombia Car Wash Express</h1>
         <p className="subtitulo">
-          Simulador de colas · lavado M/M/{placas} → acabado M/M/{puestos}
+          Simulador de colas · lavado{' '}
+          <span translate="no">
+            M/M/{placas} → acabado M/M/{puestos}
+          </span>
         </p>
       </div>
 
@@ -70,7 +73,7 @@ export function BarraSuperior() {
 
         <label className="velocidad">
           <span>
-            Velocidad <strong>{comoNumero(velocidad, 2)} min/s</strong>
+            Velocidad <strong>{comoNumero(velocidad, 2)} min/s</strong>
           </span>
           <input
             type="range"

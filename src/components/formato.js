@@ -33,7 +33,7 @@ export function comoNumero(valor, decimales = 2) {
  * @returns {string}
  */
 export function comoPorcentaje(proporcion, decimales = 1) {
-  return `${comoNumero(proporcion * 100, decimales)} %`
+  return `${comoNumero(proporcion * 100, decimales)} %`
 }
 
 /**
@@ -45,15 +45,15 @@ export function comoPorcentaje(proporcion, decimales = 1) {
  */
 export function comoReloj(minutos) {
   if (!Number.isFinite(minutos) || minutos < 0) {
-    return '0 min'
+    return '0 min'
   }
   const totalMinutos = Math.floor(minutos)
   const horas = Math.floor(totalMinutos / 60)
   const resto = totalMinutos % 60
   if (horas === 0) {
-    return `${resto} min`
+    return `${resto} min`
   }
-  return `${horas} h ${resto} min`
+  return `${horas} h ${resto} min`
 }
 
 /**
@@ -74,6 +74,6 @@ export function comoHoraDeLaTarde(minutosDesdeElInicio) {
   const hora24 = Math.floor(desdeMedianoche / 60) % 24
   const minutos = desdeMedianoche % 60
   const hora12 = hora24 % 12 === 0 ? 12 : hora24 % 12
-  const jornada = hora24 < 12 ? 'a. m.' : 'p. m.'
-  return `${hora12}:${String(minutos).padStart(2, '0')} ${jornada}`
+  const jornada = hora24 < 12 ? 'a. m.' : 'p. m.'
+  return `${hora12}:${String(minutos).padStart(2, '0')} ${jornada}`
 }

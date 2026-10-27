@@ -1,3 +1,5 @@
+import { moverConLasFlechas } from './moverConLasFlechas.js'
+
 /**
  * Una fila de pestañas con su panel. Sirve igual en el panel de Resultados y
  * en la hoja inferior del celular.
@@ -14,10 +16,18 @@
  * @param {string} props.elegida id de la pestaña que se ve
  * @param {(id: string) => void} props.alElegir
  * @param {string} props.prefijo para enlazar cada pestaña con su panel
+ *
+ * Teclado: una sola parada de Tab (la pestaña elegida) y, dentro de la fila,
+ * flecha izquierda y derecha, Inicio y Fin pasan de pestaña y la abren.
  */
 export function ListaDePestanas({ etiqueta, pestanas, elegida, alElegir, prefijo }) {
   return (
-    <div className="pestanas-lista" role="tablist" aria-label={etiqueta}>
+    <div
+      className="pestanas-lista"
+      role="tablist"
+      aria-label={etiqueta}
+      onKeyDown={(evento) => moverConLasFlechas(evento, { selector: '[role="tab"]' })}
+    >
       {pestanas.map((pestana) => {
         const activa = pestana.id === elegida
         return (

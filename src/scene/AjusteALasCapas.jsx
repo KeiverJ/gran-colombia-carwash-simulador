@@ -23,6 +23,11 @@ import { funcionDeLaCurva } from './curva.js'
  * lienzo se dibuja el cuadro. Lo que la persona haya girado o acercado a mano
  * no se toca, y los botones de vista siguen llevando a las mismas posiciones.
  *
+ * Cada cuadro se hace en tres pasos: primero todas las lecturas del diseño (lo
+ * que tapan las capas, la fila de arriba, los indicadores), después los
+ * cálculos y al final las escrituras (las variables de CSS y la cámara). Así el
+ * navegador calcula el diseño una sola vez por cuadro.
+ *
  * Mientras se arrastra el borde del panel el encuadre se queda quieto (el
  * panel cambia de alto en cada cuadro, pero la cámara no se recalcula); al
  * soltar, o con un doble clic o una flecha del teclado, pasa al nuevo encuadre
@@ -93,6 +98,26 @@ const mezclar = (desde, hasta, avance) => {
   return resultado
 }
 
+/**
+ * Lee del diseño todo lo que el cuadro necesita, de una sola vez y sin escribir
+ * nada: así el navegador calcula el diseño una vez por cuadro y no una por cada
+ * lectura que viene después de una escritura.
+ */
+function leerElDiseno(lienzo, hayCapas, necesitaElEncuadre) {
+  const caja = lienzo.getBoundingClientRect()
+  const izquierda = hayCapas ? cuantoTapaLaCapa(caja) : 0
+  const panel = hayCapas ? cuantoTapaElPanel(caja) : 0
+  const fila = necesitaElEncuadre ? document.querySelector('.flotante-superior') : null
+  const indicadores = necesitaElEncuadre ? document.querySelector('.indicadores-panel') : null
+  return {
+    caja,
+    izquierda,
+    panel,
+    arriba: fila ? Math.max(fila.getBoundingClientRect().bottom - caja.top, 0) + AIRE_PX : 0,
+    altoDeLosIndicadores: indicadores ? indicadores.offsetHeight : 0,
+  }
+}
+
 export function AjusteALasCapas() {
   const aplicado = useRef(null)
   const variables = useRef({ izquierda: null, inferior: null })
@@ -102,18 +127,40 @@ export function AjusteALasCapas() {
   useFrame(({ camera, gl, controls }) => {
     const lienzo = gl.domElement
     const zona = lienzo.closest('.zona-lienzo')
-    const caja = lienzo.getBoundingClientRect()
-    if (!zona || caja.width === 0 || caja.height === 0) {
+    if (!zona) {
       return
     }
 
+    // ---- 1. Todas las lecturas del diseño y del estilo, antes de escribir nada.
     const interfaz = useInterfaz.getState()
     const enCelular = categoriaDeAncho(interfaz.ancho) === 'celular'
     const aPantallaCompleta = Boolean(document.fullscreenElement) || Boolean(lienzo.closest('.escena--expandida'))
     const hayCapas = !enCelular && !aPantallaCompleta
-    const izquierda = hayCapas ? cuantoTapaLaCapa(caja) : 0
-    const panel = hayCapas ? cuantoTapaElPanel(caja) : 0
+    const encuadrar = !enCelular && !interfaz.arrastrandoElPanel
+    const { caja, izquierda, panel, arriba, altoDeLosIndicadores } = leerElDiseno(lienzo, hayCapas, encuadrar)
+    if (caja.width === 0 || caja.height === 0) {
+      return
+    }
+    const cambioElAlto = interfaz.ajustesDelPanel !== versionVista.current
+    const duracion = encuadrar && cambioElAlto ? duracionDeLaVariable('--duracion-media') : 0
+    const curva =
+      duracion > 0 ? getComputedStyle(document.documentElement).getPropertyValue('--curva-entrada') : ''
 
+    // ---- 2. Los cálculos, que no tocan el diseño.
+    const abajo = panel + SEPARACION_DE_LOS_INDICADORES_PX + altoDeLosIndicadores + AIRE_PX
+    const objetivo = controls?.target?.toArray?.() ?? VISTA_INICIAL.objetivo
+    const meta = encuadrar
+      ? encuadreParaLasCapas({
+          ancho: caja.width,
+          alto: caja.height,
+          izquierda,
+          arriba,
+          abajo,
+          elevacion: elevacionDeVista({ posicion: camera.position.toArray(), objetivo }),
+        })
+      : null
+
+    // ---- 3. Todas las escrituras, al final.
     if (cambio(variables.current.izquierda, izquierda)) {
       variables.current.izquierda = izquierda
       zona.style.setProperty('--capa-izquierda', `${izquierda}px`)
@@ -133,27 +180,6 @@ export function AjusteALasCapas() {
     }
 
     // Mientras se arrastra el borde del panel el encuadre no se toca.
-    if (interfaz.arrastrandoElPanel) {
-      return
-    }
-
-    // Lo que se descuenta además de las capas: la fila de controles de arriba y
-    // el panel de indicadores, que se apoya sobre el panel de Resultados.
-    const fila = document.querySelector('.flotante-superior')
-    const arriba = fila ? Math.max(fila.getBoundingClientRect().bottom - caja.top, 0) + AIRE_PX : 0
-    const indicadores = document.querySelector('.indicadores-panel')
-    const altoDeLosIndicadores = indicadores ? indicadores.offsetHeight : 0
-    const abajo = panel + SEPARACION_DE_LOS_INDICADORES_PX + altoDeLosIndicadores + AIRE_PX
-
-    const objetivo = controls?.target?.toArray?.() ?? VISTA_INICIAL.objetivo
-    const meta = encuadreParaLasCapas({
-      ancho: caja.width,
-      alto: caja.height,
-      izquierda,
-      arriba,
-      abajo,
-      elevacion: elevacionDeVista({ posicion: camera.position.toArray(), objetivo }),
-    })
     if (!meta) {
       return
     }
@@ -161,11 +187,9 @@ export function AjusteALasCapas() {
     // Un cambio de alto que no sigue una animación de CSS (soltar el arrastre,
     // doble clic, flechas) pasa al nuevo encuadre con una transición.
     const ahora = performance.now()
-    if (interfaz.ajustesDelPanel !== versionVista.current) {
+    if (cambioElAlto) {
       versionVista.current = interfaz.ajustesDelPanel
-      const duracion = duracionDeLaVariable('--duracion-media')
       if (aplicado.current !== null && duracion > 0) {
-        const curva = getComputedStyle(document.documentElement).getPropertyValue('--curva-entrada')
         transicion.current = {
           inicio: ahora,
           duracion,

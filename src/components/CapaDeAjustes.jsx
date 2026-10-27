@@ -12,6 +12,7 @@ import {
   useSimulacion,
 } from '../store/simulacion.js'
 import Aviso from './Aviso.jsx'
+import BotonConConfirmacion from './BotonConConfirmacion.jsx'
 import { RANGOS } from './campoNumerico.js'
 import CampoNumerico from './CampoNumerico.jsx'
 import Capa from './Capa.jsx'
@@ -64,7 +65,7 @@ function Escenarios() {
         })}
       </div>
       {avisoDeEscenario ? (
-        <Aviso tipo="info" className="aviso--en-linea">
+        <Aviso tipo="info" role="status" className="aviso--en-linea">
           {avisoDeEscenario}
         </Aviso>
       ) : null}
@@ -114,7 +115,7 @@ function EtapaDeLavado() {
         alAplicar={(valor) => cambiarParametro('lavadoMin', valor)}
       />
       <p className="calculado">
-        μ₁ = {comoNumero(calculado.servicioLavadoPorHora, 4)} motos/h por placa
+        μ₁ = {comoNumero(calculado.servicioLavadoPorHora, 4)} motos/h por placa
       </p>
       <div className="control">
         <span className="control-nombre">Placas</span>
@@ -162,8 +163,8 @@ function EtapaDeAcabado() {
         ))}
       </div>
       <p className="calculado">
-        E[S₂] = {comoNumero(acabadoPromedioDe(parametros), 2)} min · μ₂ ={' '}
-        {comoNumero(calculado.servicioAcabadoPorHora, 4)} motos/h por puesto
+        E[S₂] = {comoNumero(acabadoPromedioDe(parametros), 2)} min · μ₂ ={' '}
+        {comoNumero(calculado.servicioAcabadoPorHora, 4)} motos/h por puesto
       </p>
 
       <div className="control">
@@ -272,17 +273,19 @@ export function ContenidoDeAjustes() {
 
   return (
     <div className="ajustes">
-      <button
-        type="button"
+      <BotonConConfirmacion
+        ancha
         className="boton-secundario boton-ancho"
-        onClick={restablecerValores}
         disabled={enLaVisita}
+        pregunta="Los parámetros volverán a sus valores por defecto y la simulación empezará de nuevo."
+        textoDeLaAccion="Restablecer"
+        alConfirmar={restablecerValores}
       >
         Restablecer valores
-      </button>
+      </BotonConConfirmacion>
 
       {enLaVisita ? (
-        <Aviso tipo="info" className="aviso--separado">
+        <Aviso tipo="info" role="status" className="aviso--separado">
           En la visita los tiempos <strong>no son aleatorios</strong>: salen de la tabla de la
           visita. Por eso los ajustes están desactivados.
         </Aviso>
@@ -301,7 +304,7 @@ export function ContenidoDeAjustes() {
       </fieldset>
 
       {aviso ? (
-        <Aviso tipo="info" className="aviso--separado">
+        <Aviso tipo="info" role="status" className="aviso--separado">
           {aviso}
         </Aviso>
       ) : null}

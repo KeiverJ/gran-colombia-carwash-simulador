@@ -6,6 +6,8 @@
  * tamaños del tema están en `rem` y se calcularon para esa base.
  */
 :root {
+  /* Sin el destello gris al tocar en un celular. */
+  -webkit-tap-highlight-color: transparent;
   font-family: var(--fuente);
   font-size: 100%;
   line-height: 1.5;
@@ -38,6 +40,24 @@ body {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+/* Los encabezados reparten sus líneas sin dejar una palabra suelta. */
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+/* Sin el retraso del doble toque para ampliar en los controles. */
+button,
+[role="tab"],
+[role="radio"],
+summary,
+input,
+a {
+  touch-action: manipulation;
 }
 
 h1,

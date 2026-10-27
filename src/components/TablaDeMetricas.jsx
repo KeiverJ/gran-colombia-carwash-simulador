@@ -5,6 +5,7 @@ import {
 } from '../store/metricas.js'
 import { HORAS_DE_LA_CORRIDA_LARGA, useSimulacion } from '../store/simulacion.js'
 import Aviso from './Aviso.jsx'
+import BotonConConfirmacion from './BotonConConfirmacion.jsx'
 import { comoNumero } from './formato.js'
 
 /** Lo que dice el encabezado "Fórmulas" al pasar el mouse y a las ayudas técnicas. */
@@ -70,7 +71,7 @@ function Celda({ etiqueta, valor, decimales, unidad, cuandoFalta }) {
   return (
     <td className="numero" data-etiqueta={etiqueta}>
       {comoNumero(valor, decimales)}
-      {unidad ? <span className="unidad"> {unidad}</span> : null}
+      {unidad ? <span className="unidad"> {unidad}</span> : null}
     </td>
   )
 }
@@ -160,6 +161,11 @@ export function ContenidoDeMetricas({ enPanel = false }) {
   const metricas = useSimulacion((estado) => estado.metricas)
   const corridaLarga = useSimulacion((estado) => estado.corridaLarga)
   const empezarCorridaLarga = useSimulacion((estado) => estado.empezarCorridaLarga)
+  // Con una simulación ya en marcha (corriendo o con tiempo avanzado), la corrida
+  // larga la descarta: antes de eso no hay nada que perder y no se pide confirmar.
+  const hayUnaSimulacionEnCurso = useSimulacion(
+    (estado) => estado.corriendo || estado.resumen.relojMin > 0,
+  )
 
   const calculado = metricasCalculadas(parametros)
   const aviso = avisoCortoDeSaturacion(parametros)
@@ -197,7 +203,7 @@ export function ContenidoDeMetricas({ enPanel = false }) {
           <p className="total">
             Tiempo total en el lavadero, de la llegada a la salida:{' '}
             <strong>
-              {metricas ? `${comoNumero(metricas.total.wMin, 2)} min` : 'sin datos'}
+              {metricas ? `${comoNumero(metricas.total.wMin, 2)} min` : 'sin datos'}
             </strong>
           </p>
 
@@ -210,16 +216,21 @@ export function ContenidoDeMetricas({ enPanel = false }) {
           ) : null}
 
           <div className="corrida-larga">
-            <button
-              type="button"
+            <BotonConConfirmacion
               className="boton-principal"
-              onClick={() => empezarCorridaLarga()}
               disabled={corridaLarga !== null}
+              necesitaConfirmacion={hayUnaSimulacionEnCurso}
+              lado="arriba"
+              pregunta="Se descartará la simulación actual para empezar de cero."
+              textoDeLaAccion="Iniciar corrida larga"
+              alConfirmar={() => empezarCorridaLarga()}
             >
               Corrida larga (estado estable)
-            </button>
+            </BotonConConfirmacion>
             {corridaLarga ? (
-              <p className="progreso">Simulando… {corridaLarga.porcentaje} %</p>
+              <p className="progreso" role="status" aria-live="polite">
+                Simulando… {corridaLarga.porcentaje} %
+              </p>
             ) : (
               <p className="nota">
                 Simula {HORAS_DE_LA_CORRIDA_LARGA} horas seguidas, desde cero, para que los

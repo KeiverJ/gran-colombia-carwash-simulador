@@ -118,6 +118,7 @@ export function HojaInferior() {
 
   return (
     <section ref={hoja} className="hoja" data-altura={altura} aria-label="Paneles">
+      <h2 className="solo-lectores">Paneles</h2>
       <button
         type="button"
         className="hoja-asa"

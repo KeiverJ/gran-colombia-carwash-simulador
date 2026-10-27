@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 import {
   altoEfectivoDelPanel,
@@ -18,6 +18,9 @@ import { ContenidoDeMetricas } from './TablaDeMetricas.jsx'
 import { usePresencia } from './usePresencia.js'
 
 const TEXTO_DE_LA_PESTANA = { metricas: 'Métricas', graficas: 'Gráficas', visita: 'Visita' }
+
+/** La clase que lleva la página mientras se arrastra el borde: sin selección de texto. */
+const CLASE_DE_ARRASTRE = 'arrastrando-panel'
 
 /** Cuántos píxeles tiene que moverse el puntero para que el gesto cuente como arrastre y no como clic. */
 const MARGEN_DE_CLIC_PX = 3
@@ -57,6 +60,9 @@ function BordeDelPanel({ panel, altoActual }) {
   const alternar = useInterfaz((estado) => estado.alternarAltoDelPanel)
   const arrastre = useRef(null)
 
+  // Si el borde desaparece en pleno arrastre, la página no se queda sin selección.
+  useEffect(() => () => document.documentElement.classList.remove(CLASE_DE_ARRASTRE), [])
+
   const escribirElAlto = (alto) => {
     panel.current?.style.setProperty('--alto-panel', `${alto}px`)
   }
@@ -66,6 +72,7 @@ function BordeDelPanel({ panel, altoActual }) {
       return
     }
     evento.currentTarget.setPointerCapture?.(evento.pointerId)
+    document.documentElement.classList.add(CLASE_DE_ARRASTRE)
     arrastre.current = { inicioY: evento.clientY, inicioAlto: altoActual, alto: altoActual, cuadro: null, movido: false }
     empezar()
   }
@@ -91,6 +98,7 @@ function BordeDelPanel({ panel, altoActual }) {
   const alSoltarElPuntero = () => {
     const actual = arrastre.current
     arrastre.current = null
+    document.documentElement.classList.remove(CLASE_DE_ARRASTRE)
     if (!actual) {
       return
     }

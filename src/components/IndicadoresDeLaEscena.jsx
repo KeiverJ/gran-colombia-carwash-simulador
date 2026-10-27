@@ -63,6 +63,7 @@ export function IndicadoresDeLaEscena() {
   return (
     <div className="indicadores">
       <div className="indicadores-panel" role="group" aria-label="Indicadores de la simulación">
+        <h2 className="solo-lectores">Indicadores de la simulación</h2>
         <section className="indicadores-grupo indicadores-grupo--lavado" aria-labelledby="grupo-lavado">
           <h3 id="grupo-lavado" className="grupo-nombre">
             Lavado

@@ -32,6 +32,10 @@ function hayWebGL() {
   }
 }
 
+/** Lo que se lee del lienzo 3D: no tiene texto, así que se dice qué se ve en él. */
+const DESCRIPCION_DE_LA_ESCENA =
+  'Escena 3D del lavadero: placas de lavado, fila de espera y puestos de acabado'
+
 /** Los rótulos de "+X motos más", con el mismo freno que el resumen. */
 function RotulosDeSobrantes() {
   const sobranLavado = useSimulacion((estado) => sobrantesDe(estado.resumen.enFilaLavado))
@@ -93,6 +97,11 @@ export function EscenaDelLavadero() {
         <Canvas
           camera={{ position: VISTA_INICIAL.posicion, fov: CAMPO_DE_VISION }}
           shadows={false}
+          onCreated={({ gl }) => {
+            // El lienzo es una imagen para las ayudas técnicas: se describe qué muestra.
+            gl.domElement.setAttribute('role', 'img')
+            gl.domElement.setAttribute('aria-label', DESCRIPCION_DE_LA_ESCENA)
+          }}
         >
           <ambientLight intensity={0.75} />
           <directionalLight position={[8, 14, 6]} intensity={1.1} />

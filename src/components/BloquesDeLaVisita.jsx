@@ -67,7 +67,7 @@ function Valor({ etiqueta, valor, decimales, unidad }) {
   return (
     <td className="numero" data-etiqueta={etiqueta}>
       {comoNumero(valor, decimales)}
-      {unidad ? <span className="unidad"> {unidad}</span> : null}
+      {unidad ? <span className="unidad"> {unidad}</span> : null}
     </td>
   )
 }

@@ -395,6 +395,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--espacio-4);
 }
 
@@ -752,6 +753,103 @@
   margin: 0;
 }
 
+/* ----------------------------------------------- la confirmación junto al botón -- */
+
+/*
+ * Un recuadro pequeño pegado al botón que pide confirmar ("Cancelar" y la
+ * acción). Flota sobre lo que tiene alrededor, así que lleva la sombra de las
+ * capas flotantes. Ocupa el ancho de su envoltura.
+ */
+.confirmacion-envoltura {
+  position: relative;
+}
+
+.confirmacion-envoltura--ancha {
+  margin-bottom: var(--espacio-3);
+}
+
+.confirmacion-envoltura--ancha > .boton-ancho {
+  margin-bottom: 0;
+}
+
+.confirmacion {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 20;
+  padding: var(--espacio-3);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--fondo-tarjeta);
+  box-shadow: var(--sombra-capa);
+}
+
+.confirmacion--abajo {
+  top: calc(100% + var(--espacio-1));
+}
+
+.confirmacion--arriba {
+  bottom: calc(100% + var(--espacio-1));
+}
+
+.confirmacion-pregunta {
+  margin: 0 0 var(--espacio-3);
+  font-size: var(--letra-secundaria);
+  line-height: 1.4;
+  color: var(--texto);
+}
+
+.confirmacion-botones {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--espacio-2);
+}
+
+.confirmacion-botones .boton-principal {
+  width: auto;
+}
+
+/* ------------------------------------------------- saltar al contenido y lectores -- */
+
+/* El enlace "Saltar al contenido" solo se ve cuando recibe el foco con el teclado. */
+.enlace-saltar {
+  position: absolute;
+  top: var(--espacio-2);
+  left: var(--espacio-2);
+  z-index: 200;
+  padding: var(--espacio-2) var(--espacio-3);
+  border: 1px solid var(--borde-campo);
+  border-radius: var(--radio-control);
+  background: var(--fondo-tarjeta);
+  color: var(--etapa-1-texto);
+  font-weight: 600;
+  transform: translateY(-300%);
+}
+
+.enlace-saltar:focus {
+  transform: none;
+}
+
+/* Texto solo para las ayudas técnicas: está en la página pero no se ve. */
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+/* Mientras se arrastra el borde del panel no se selecciona texto. */
+.arrastrando-panel,
+.arrastrando-panel * {
+  user-select: none;
+  cursor: ns-resize;
+}
+
 /* ---------------------------------------------------------------- pestañas -- */
 
 .pestanas-lista {
@@ -936,6 +1034,7 @@
   min-height: 0;
   padding: var(--espacio-3) var(--espacio-4);
   overflow: auto;
+  overscroll-behavior: contain;
   border-top: 1px solid var(--borde);
 }
 
@@ -1080,6 +1179,7 @@
 
 .ayuda-cuerpo {
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--espacio-2) var(--espacio-4) var(--espacio-4);
   font-size: var(--letra-normal);
 }
