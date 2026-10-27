@@ -7,6 +7,9 @@ import { HORAS_DE_LA_CORRIDA_LARGA, useSimulacion } from '../store/simulacion.js
 import Aviso from './Aviso.jsx'
 import { comoNumero } from './formato.js'
 
+/** Lo que dice el encabezado "Fórmulas" al pasar el mouse y a las ayudas técnicas. */
+const EXPLICACION_DE_LAS_FORMULAS = 'Calculado con las fórmulas M/M/s de la especificación'
+
 /**
  * Las cinco métricas de una etapa. El nombre cabe en una línea (el símbolo y una
  * descripción corta) y la explicación completa sale como tooltip y la leen las
@@ -109,7 +112,9 @@ function TablaDeEtapa({ titulo, simulado, calculado, saturada }) {
           <tr>
             <th>Métrica</th>
             <th>Simulado</th>
-            <th>Calculado con fórmulas</th>
+            <th title={EXPLICACION_DE_LAS_FORMULAS} aria-label={EXPLICACION_DE_LAS_FORMULAS}>
+              Fórmulas
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -126,7 +131,7 @@ function TablaDeEtapa({ titulo, simulado, calculado, saturada }) {
                 cuandoFalta="—"
               />
               <Celda
-                etiqueta="Calculado con fórmulas"
+                etiqueta="Fórmulas"
                 valor={calculado.estable ? calculado[clave] : null}
                 decimales={decimales}
                 unidad={unidad}

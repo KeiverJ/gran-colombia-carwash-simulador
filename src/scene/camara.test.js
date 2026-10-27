@@ -261,7 +261,7 @@ describe('el encuadre con las capas abiertas', () => {
 describe('el encuadre con los controles de arriba y el panel de abajo', () => {
   const LIENZO = { ancho: 1310, alto: 679 }
   const ARRIBA = 52
-  const ABAJO = 307 + 8 + 88 + 4
+  const ABAJO = 261 + 8 + 88 + 4
 
   const filaEnElLienzo = (y, encuadre) => {
     const centroDelCuadro = encuadre.fullHeight / 2 - encuadre.offsetY

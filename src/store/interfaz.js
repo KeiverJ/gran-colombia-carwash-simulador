@@ -115,9 +115,9 @@ export const ALTO_DE_LA_BARRA_PLEGADA = 40
 export const ALTO_MINIMO_DEL_PANEL = 200
 /** El alto al que lleva el doble clic en el borde, la primera vez. */
 export const ALTO_COMPACTO_DEL_PANEL = 260
-/** El panel inicial mide el 40 % de la ventana, entre 260 y 380 px. */
-export const PROPORCION_INICIAL_DEL_PANEL = 0.4
-export const ALTO_INICIAL_MINIMO = 260
+/** El panel inicial mide el 34 % de la ventana, entre 240 y 380 px. */
+export const PROPORCION_INICIAL_DEL_PANEL = 0.34
+export const ALTO_INICIAL_MINIMO = 240
 export const ALTO_INICIAL_MAXIMO = 380
 /** Como mucho, el 60 % del alto de la ventana. */
 export const PROPORCION_MAXIMA_DEL_PANEL = 0.6

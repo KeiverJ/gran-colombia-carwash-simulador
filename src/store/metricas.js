@@ -1,7 +1,7 @@
 /**
  * Lo que las fórmulas predicen para los parámetros que están puestos ahora.
  *
- * Es la columna "Calculado con fórmulas" de la tabla, y el aviso de cuando una
+ * Es la columna "Fórmulas" de la tabla, y el aviso de cuando una
  * etapa se satura. Está aparte de los componentes para poder probarlo con Node.
  */
 

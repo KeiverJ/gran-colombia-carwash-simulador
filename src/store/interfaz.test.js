@@ -280,13 +280,13 @@ describe('los umbrales coinciden con las hojas de estilo', () => {
 })
 
 describe('el alto del panel de Resultados', () => {
-  it('el alto inicial es el 40 % de la ventana, entre 260 y 380 px', () => {
-    expect(altoInicialDelPanel(600)).toBe(260)
-    expect(altoInicialDelPanel(768)).toBe(307)
-    expect(altoInicialDelPanel(864)).toBe(346)
-    expect(altoInicialDelPanel(1080)).toBe(380)
+  it('el alto inicial es el 34 % de la ventana, entre 240 y 380 px', () => {
+    expect(altoInicialDelPanel(600)).toBe(240)
+    expect(altoInicialDelPanel(768)).toBe(261)
+    expect(altoInicialDelPanel(864)).toBe(294)
+    expect(altoInicialDelPanel(1080)).toBe(367)
     expect(altoInicialDelPanel(1440)).toBe(380)
-    expect(altoInicialDelPanel(Number.NaN)).toBe(260)
+    expect(altoInicialDelPanel(Number.NaN)).toBe(240)
   })
 
   it('se puede ajustar de 200 px al 60 % del alto de la ventana', () => {
@@ -306,7 +306,7 @@ describe('el alto del panel de Resultados', () => {
   it('si la ventana se achica, el alto elegido se acomoda al nuevo máximo', () => {
     expect(altoEfectivoDelPanel(500, 864)).toBe(500)
     expect(altoEfectivoDelPanel(500, 600)).toBe(360)
-    expect(altoEfectivoDelPanel(null, 768)).toBe(307)
+    expect(altoEfectivoDelPanel(null, 768)).toBe(261)
   })
 
   it('el doble clic alterna entre 260 px y el último alto, una y otra vez', () => {
@@ -319,6 +319,6 @@ describe('el alto del panel de Resultados', () => {
   })
 
   it('si nunca se eligió otro alto, el doble clic desde 260 lleva al alto inicial', () => {
-    expect(altoTrasDobleClic({ actual: 260, ultimo: 260, altoDeVentana: 864 }).alto).toBe(346)
+    expect(altoTrasDobleClic({ actual: 260, ultimo: 260, altoDeVentana: 864 }).alto).toBe(294)
   })
 })

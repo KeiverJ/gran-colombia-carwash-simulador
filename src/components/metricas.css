@@ -259,7 +259,7 @@
 }
 
 .metricas--panel thead th {
-  white-space: normal;
+  white-space: nowrap;
   vertical-align: bottom;
 }
 

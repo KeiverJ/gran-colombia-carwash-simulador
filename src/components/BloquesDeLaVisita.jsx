@@ -74,7 +74,7 @@ function Valor({ etiqueta, valor, decimales, unidad }) {
 
 /**
  * Las métricas del modo "Repetir la visita", en dos bloques separados que no se
- * mezclan entre sí ni con la columna "Calculado con fórmulas" (que aquí no se
+ * mezclan entre sí ni con la columna "Fórmulas" (que aquí no se
  * muestra): lo que sale de reproducir la tabla de horas, y lo que se contó
  * aquel día.
  *
