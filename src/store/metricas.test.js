@@ -4,6 +4,7 @@ import { ACABADO_POR_HORA } from '../data/parametros.js'
 import { MODO_MMS, MODO_POR_PLAN } from '../engine/simulador.js'
 import {
   avisoCortoDeSaturacion,
+  avisoDeSaturacionConLoSimulado,
   avisoDeSaturacion,
   comparacionEsAproximada,
   etapaSaturada,
@@ -146,5 +147,30 @@ describe('el aviso corto de saturación', () => {
         expect(avisoCortoDeSaturacion(parametros) !== null).toBe(hayLargos)
       }
     }
+  })
+})
+
+describe('el aviso de saturación con lo simulado', () => {
+  it('con los parámetros por defecto dice las cifras de ahora y por qué no se estabilizan', () => {
+    const texto = avisoDeSaturacionConLoSimulado(porDefecto(), true)
+    expect(texto).toBe(
+      'Con estos parámetros el acabado no da abasto: se satura a partir de 11,34 motos por hora y están llegando 14,19, así que la fila crece sin parar. Por eso sus valores simulados no se estabilizan.',
+    )
+  })
+
+  it('las cifras salen de los parámetros puestos, no de un texto fijo', () => {
+    const texto = avisoDeSaturacionConLoSimulado({ ...porDefecto(), llegadasPorHora: 20 }, true)
+    expect(texto).toContain('están llegando 20,00')
+    expect(texto).not.toContain('14,19')
+  })
+
+  it('antes de simular no se agrega la frase de los valores simulados', () => {
+    const texto = avisoDeSaturacionConLoSimulado(porDefecto(), false)
+    expect(texto).toBe(avisoCortoDeSaturacion(porDefecto()))
+    expect(texto).not.toContain('Por eso')
+  })
+
+  it('sin saturación no hay aviso', () => {
+    expect(avisoDeSaturacionConLoSimulado({ ...porDefecto(), llegadasPorHora: 3 }, true)).toBeNull()
   })
 })

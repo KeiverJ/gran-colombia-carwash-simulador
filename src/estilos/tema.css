@@ -100,6 +100,10 @@
   /* --- Botón principal: amarillo con texto oscuro --- */
   --boton-principal: #f2b600;
   --boton-principal-texto: #1a1a1a;
+  /* Al pasar el mouse el amarillo se oscurece un poco y, al pulsar, un poco más.
+     Con el texto #1A1A1A dan 8,18 : 1 y 6,52 : 1 (el reposo, 9,50 : 1). */
+  --boton-principal-hover: #e3a800;
+  --boton-principal-activo: #cc9500;
   --boton-principal-borde: #b88a04;
 
   /* --- Velo de los elementos que flotan sobre la escena --- */

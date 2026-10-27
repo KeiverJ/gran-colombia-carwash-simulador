@@ -1,56 +1,58 @@
 import { OBSERVADO_EN_LA_VISITA } from '../data/censo.js'
 import { comoNumero } from './formato.js'
 
-/** Las filas del bloque de la reproducción: cuántos decimales lleva cada una. */
-const FILAS_DE_LA_REPRODUCCION = [
-  { nombre: 'Placas ocupadas (promedio)', valor: (m) => m.promedios.placasOcupadas, decimales: 2 },
-  { nombre: 'Motos en la fila del lavado (promedio)', valor: (m) => m.promedios.enCola1, decimales: 2 },
-  { nombre: 'Motos en la fila del acabado (promedio)', valor: (m) => m.promedios.enCola2, decimales: 2 },
+/**
+ * Las filas de las dos tablas, definidas una sola vez: así las etiquetas son
+ * idénticas, fila por fila, en "Según la reproducción de la tabla" y en
+ * "Observado en la visita". Cada fila dice cómo sale su valor al reproducir la
+ * tabla, qué se contó aquel día (`null` si no se midió: se ve "—", no un cero)
+ * y cuántos decimales lleva cada uno.
+ */
+const FILAS = [
+  {
+    nombre: 'Placas ocupadas (promedio)',
+    reproduccion: (m) => m.promedios.placasOcupadas,
+    observado: OBSERVADO_EN_LA_VISITA.placasOcupadas,
+    decimales: { reproduccion: 2, observado: 2 },
+  },
+  {
+    nombre: 'Motos en la fila del lavado (promedio)',
+    reproduccion: (m) => m.promedios.enCola1,
+    observado: OBSERVADO_EN_LA_VISITA.enCola1,
+    decimales: { reproduccion: 2, observado: 2 },
+  },
+  {
+    nombre: 'Motos en la fila del acabado (promedio)',
+    reproduccion: (m) => m.promedios.enCola2,
+    observado: OBSERVADO_EN_LA_VISITA.enCola2,
+    decimales: { reproduccion: 2, observado: 2 },
+  },
   {
     nombre: 'Puestos de acabado ocupados (promedio)',
-    valor: (m) => m.promedios.puestosOcupados,
-    decimales: 2,
+    reproduccion: (m) => m.promedios.puestosOcupados,
+    observado: OBSERVADO_EN_LA_VISITA.puestosOcupados,
+    decimales: { reproduccion: 2, observado: 2 },
   },
   {
     nombre: 'Espera antes de la placa',
-    valor: (m) => m.porMoto.esperaAntesDeLaPlacaMin,
-    decimales: 2,
+    reproduccion: (m) => m.porMoto.esperaAntesDeLaPlacaMin,
+    observado: OBSERVADO_EN_LA_VISITA.esperaAntesDeLaPlacaMin,
+    decimales: { reproduccion: 2, observado: 1 },
     unidad: 'min',
   },
   {
     nombre: 'Espera en la fila del acabado',
-    valor: (m) => m.porMoto.esperaEnCola2Min,
-    decimales: 2,
+    reproduccion: (m) => m.porMoto.esperaEnCola2Min,
+    // La visita no la midió: la fila queda para que las dos tablas se alineen.
+    observado: null,
+    decimales: { reproduccion: 2, observado: 1 },
     unidad: 'min',
   },
   {
     nombre: 'Tiempo total en el lavadero',
-    valor: (m) => m.porMoto.tiempoTotalMin,
-    decimales: 2,
-    unidad: 'min',
-  },
-]
-
-/** Las filas del bloque de lo observado, con los seis valores fijos del censo. */
-const FILAS_DE_LO_OBSERVADO = [
-  { nombre: 'Placas ocupadas (promedio)', valor: OBSERVADO_EN_LA_VISITA.placasOcupadas, decimales: 2 },
-  { nombre: 'Motos en la fila del lavadero (promedio)', valor: OBSERVADO_EN_LA_VISITA.enCola1, decimales: 2 },
-  { nombre: 'Motos en la fila del acabado (promedio)', valor: OBSERVADO_EN_LA_VISITA.enCola2, decimales: 2 },
-  {
-    nombre: 'Puestos de acabado ocupados (promedio)',
-    valor: OBSERVADO_EN_LA_VISITA.puestosOcupados,
-    decimales: 2,
-  },
-  {
-    nombre: 'Espera antes de la placa',
-    valor: OBSERVADO_EN_LA_VISITA.esperaAntesDeLaPlacaMin,
-    decimales: 1,
-    unidad: 'min',
-  },
-  {
-    nombre: 'Tiempo total en el lavadero',
-    valor: OBSERVADO_EN_LA_VISITA.tiempoTotalMin,
-    decimales: 1,
+    reproduccion: (m) => m.porMoto.tiempoTotalMin,
+    observado: OBSERVADO_EN_LA_VISITA.tiempoTotalMin,
+    decimales: { reproduccion: 2, observado: 1 },
     unidad: 'min',
   },
 ]
@@ -74,9 +76,9 @@ function Valor({ etiqueta, valor, decimales, unidad }) {
 
 /**
  * Las métricas del modo "Repetir la visita", en dos bloques separados que no se
- * mezclan entre sí ni con la columna "Fórmulas" (que aquí no se
- * muestra): lo que sale de reproducir la tabla de horas, y lo que se contó
- * aquel día.
+ * mezclan entre sí ni con la columna "Fórmulas" (que aquí no se muestra): lo
+ * que sale de reproducir la tabla de horas, y lo que se contó aquel día. Van
+ * lado a lado y con las mismas filas; las notas, debajo de cada tabla.
  *
  * @param {object|null} props.metricas lo que entrega el reproductor, o `null` si todavía no avanzó
  */
@@ -86,14 +88,6 @@ export function BloquesDeLaVisita({ metricas }) {
       <div className="bloques-visita">
         <div className="etapa bloque-visita">
           <h3>Según la reproducción de la tabla</h3>
-          {metricas === null ? (
-            <p className="nota">Aún no hay datos reproducidos. Pulsa Iniciar para ver los valores.</p>
-          ) : (
-            <p className="nota">
-              Hasta la hora que marca el reloj. Cada promedio por moto cuenta las motos que ya
-              pasaron por esa etapa; al terminar la visita cuentan las 23.
-            </p>
-          )}
           <table>
             <thead>
               <tr>
@@ -102,19 +96,27 @@ export function BloquesDeLaVisita({ metricas }) {
               </tr>
             </thead>
             <tbody>
-              {FILAS_DE_LA_REPRODUCCION.map(({ nombre, valor, decimales, unidad }) => (
+              {FILAS.map(({ nombre, reproduccion, decimales, unidad }) => (
                 <tr key={nombre}>
                   <th scope="row">{nombre}</th>
                   <Valor
                     etiqueta="Reproducción"
-                    valor={metricas ? valor(metricas) : null}
-                    decimales={decimales}
+                    valor={metricas ? reproduccion(metricas) : null}
+                    decimales={decimales.reproduccion}
                     unidad={unidad}
                   />
                 </tr>
               ))}
             </tbody>
           </table>
+          {metricas === null ? (
+            <p className="nota">Aún no hay datos reproducidos. Pulsa Iniciar para ver los valores.</p>
+          ) : (
+            <p className="nota">
+              Hasta la hora que marca el reloj. Cada promedio por moto cuenta las motos que ya
+              pasaron por esa etapa; al terminar la visita cuentan las 23.
+            </p>
+          )}
           <p className="nota">
             La espera en la fila del acabado y los puestos ocupados salen de una asignación
             aproximada, porque la tabla no dice qué puesto usó cada moto.
@@ -131,14 +133,15 @@ export function BloquesDeLaVisita({ metricas }) {
               </tr>
             </thead>
             <tbody>
-              {FILAS_DE_LO_OBSERVADO.map(({ nombre, valor, decimales, unidad }) => (
+              {FILAS.map(({ nombre, observado, decimales, unidad }) => (
                 <tr key={nombre}>
                   <th scope="row">{nombre}</th>
-                  <Valor etiqueta="Observado" valor={valor} decimales={decimales} unidad={unidad} />
+                  <Valor etiqueta="Observado" valor={observado} decimales={decimales.observado} unidad={unidad} />
                 </tr>
               ))}
             </tbody>
           </table>
+          <p className="nota">La visita no midió la espera en la fila del acabado.</p>
         </div>
       </div>
 

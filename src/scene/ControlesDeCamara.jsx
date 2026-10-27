@@ -26,12 +26,21 @@ const DISTANCIA_PARA_SOLTAR = 0.05
 /**
  * @param {object} props
  * @param {(sacarLaVista: Function) => void} props.alPedirVista deja la orden
+ * @param {boolean} [props.vertical] los botones uno debajo del otro (el menú "Vista" del celular)
+ * @param {() => void} [props.alElegir] se llama después de pedir una vista (para cerrar el menú)
  */
-export function BotonesDeCamara({ alPedirVista }) {
-  const pedir = (sacarLaVista) => () => alPedirVista(sacarLaVista)
+export function BotonesDeCamara({ alPedirVista, vertical = false, alElegir }) {
+  const pedir = (sacarLaVista) => () => {
+    alPedirVista(sacarLaVista)
+    alElegir?.()
+  }
 
   return (
-    <div className="mandos-de-camara" role="group" aria-label="Vistas de la cámara">
+    <div
+      className={vertical ? 'mandos-de-camara mandos-de-camara--vertical' : 'mandos-de-camara'}
+      role="group"
+      aria-label="Vistas de la cámara"
+    >
       <button type="button" onClick={pedir(() => VISTAS.comoEnLaFoto)}>
         Como en la foto
       </button>

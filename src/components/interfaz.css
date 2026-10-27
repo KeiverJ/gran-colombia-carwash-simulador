@@ -215,6 +215,11 @@
   color: var(--texto);
 }
 
+/* La ayuda de la barra superior es solo para el celular; en escritorio está al pie de la barra lateral. */
+.boton-barra.solo-celular {
+  display: none;
+}
+
 .barra-derecha .boton-principal,
 .mandos-minimos .boton-principal {
   width: auto;
@@ -376,12 +381,16 @@
   transition-timing-function: var(--curva-salida);
 }
 
+/* Misma altura que la barra plegada del panel de Resultados (40 px). */
 .capa-cabecera {
+  box-sizing: border-box;
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: space-between;
   gap: var(--espacio-2);
-  padding: var(--espacio-3) var(--espacio-4);
+  height: var(--alto-barra-plegada);
+  padding: 0 var(--espacio-4);
   border-bottom: 1px solid var(--borde);
 }
 
@@ -396,7 +405,7 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--espacio-4);
+  padding: var(--espacio-3) var(--espacio-4) var(--espacio-4);
 }
 
 /* -------------------------------------------- el contenido de los ajustes -- */
@@ -504,11 +513,15 @@
   color: var(--texto-secundario);
 }
 
-.tres-columnas {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--espacio-2);
-  margin-bottom: var(--espacio-3);
+/* Los dos valores calculados de la etapa 2: en una línea y, si no caben, uno por línea. */
+.calculado--pareja {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--espacio-4);
+}
+
+.calculado--pareja > span {
+  white-space: nowrap;
 }
 
 .control--compacto .control-nombre {
@@ -530,7 +543,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--espacio-3);
-  min-height: 2.5rem;
+  min-height: 3rem;
   padding: var(--espacio-1) var(--espacio-3);
   border: 1px solid transparent;
   border-radius: var(--radio-control);
@@ -985,10 +998,10 @@
 }
 
 .panel-asa {
-  width: 2.5rem;
+  width: 3rem;
   height: 4px;
   border-radius: 2px;
-  background: var(--borde-campo);
+  background: var(--texto-tenue);
   transition: background-color var(--duracion-corta) var(--curva-entrada);
 }
 

@@ -110,6 +110,16 @@
   border: 1px solid var(--boton-principal-borde);
   border-radius: var(--radio-control);
   cursor: pointer;
+  transition: background-color var(--duracion-corta) var(--curva-entrada);
+}
+
+/* Al pasar el mouse y al pulsar el amarillo se oscurece; deshabilitado no cambia. */
+.boton-principal:hover:not(:disabled) {
+  background: var(--boton-principal-hover);
+}
+
+.boton-principal:active:not(:disabled) {
+  background: var(--boton-principal-activo);
 }
 
 .boton-principal:disabled {
@@ -144,7 +154,7 @@
 .nota-inestable .porque {
   margin-left: var(--espacio-1);
   font-weight: 600;
-  color: var(--advertencia-texto);
+  color: inherit;
   text-decoration: underline;
 }
 
@@ -226,6 +236,7 @@
 .metricas--capa .bloques-visita {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 0;
 }
 
@@ -245,17 +256,35 @@
   order: -2;
 }
 
+/* En la hoja del celular la corrida larga va al final, como siempre. */
+.metricas--capa .corrida-larga {
+  order: 1;
+}
+
 .metricas--panel h3 {
   margin-top: 0;
 }
 
+/* Una tabla no pasa de 560 px: en pantallas anchas la etiqueta no queda lejos de su número. */
 .metricas--panel table {
+  max-width: 35rem;
   font-size: var(--letra-secundaria);
 }
 
 .metricas--panel th,
 .metricas--panel td {
   padding: var(--espacio-1);
+}
+
+/* La primera columna empieza en la misma línea que el título y la última termina en el borde. */
+.metricas--panel th:first-child,
+.metricas--panel td:first-child {
+  padding-left: 0;
+}
+
+.metricas--panel th:last-child,
+.metricas--panel td:last-child {
+  padding-right: 0;
 }
 
 .metricas--panel thead th {
@@ -273,9 +302,20 @@
   margin-top: 0;
 }
 
+/* La tercera columna: la corrida larga arriba, y 8 px entre un bloque y el siguiente. */
+.metricas--panel .metricas-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+}
+
+.metricas--panel .metricas-lateral > * {
+  margin: 0;
+}
+
 .metricas--panel .corrida-larga {
-  margin-top: var(--espacio-3);
-  padding-top: var(--espacio-3);
+  padding-top: 0;
+  border-top: 0;
 }
 
 .nota-visita {

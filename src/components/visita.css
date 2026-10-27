@@ -1,7 +1,7 @@
 /* Lo del modo "Visita del 17 de octubre" que vive dentro de las capas. Solo variables del tema. */
 
-/* Los dos bloques de métricas, separados entre sí. */
-.bloque-visita + .bloque-visita {
+/* Los dos bloques de métricas, separados entre sí cuando van apilados (en el panel van lado a lado). */
+.metricas--capa .bloque-visita + .bloque-visita {
   margin-top: var(--espacio-4);
   padding-top: var(--espacio-4);
   border-top: 1px solid var(--borde);

@@ -127,6 +127,27 @@ export function avisoCortoDeSaturacion(parametros) {
   )
 }
 
+/** La frase que une el aviso de saturación con lo que pasa con los valores simulados. */
+export const FRASE_DE_LOS_VALORES_SIMULADOS = 'Por eso sus valores simulados no se estabilizan.'
+
+/**
+ * El aviso de la tercera columna de Métricas: el aviso corto de saturación y,
+ * si ya hay valores simulados, la frase que dice por qué no se estabilizan. Las
+ * cifras salen de los parámetros puestos. Antes de simular no hay ningún valor
+ * simulado que advertir, así que la frase no se agrega.
+ *
+ * @param {object} parametros
+ * @param {boolean} hayValoresSimulados
+ * @returns {string|null} el aviso, o nada si ninguna etapa está saturada
+ */
+export function avisoDeSaturacionConLoSimulado(parametros, hayValoresSimulados) {
+  const corto = avisoCortoDeSaturacion(parametros)
+  if (corto === null) {
+    return null
+  }
+  return hayValoresSimulados ? `${corto} ${FRASE_DE_LOS_VALORES_SIMULADOS}` : corto
+}
+
 function conComa(numero) {
   return numero.toFixed(2).replace('.', ',')
 }

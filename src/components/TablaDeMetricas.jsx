@@ -1,5 +1,5 @@
 import {
-  avisoCortoDeSaturacion,
+  avisoDeSaturacionConLoSimulado,
   comparacionEsAproximada,
   metricasCalculadas,
 } from '../store/metricas.js'
@@ -77,20 +77,19 @@ function Celda({ etiqueta, valor, decimales, unidad, cuandoFalta }) {
 }
 
 /**
- * La advertencia de la columna simulada, en una frase.
- *
- * Solo aparece cuando **ya hay valores simulados que advertir**: antes de
- * simular no hay ningún número que se pueda malinterpretar, así que advertir
- * no aporta nada y resta. El "¿por qué?" es un `<details>` nativo: funciona sin
- * JavaScript, se maneja con el teclado y no hay que mantenerlo.
+ * El aviso de saturación, en la tercera columna: una sola advertencia que dice
+ * que la etapa no da abasto (con las cifras de los parámetros de ahora) y, si
+ * ya hay valores simulados, que por eso no se estabilizan. Termina con el
+ * enlace "¿Por qué?", que despliega la explicación para quien la quiera y no
+ * ocupa sitio para quien no. Es un `<details>` nativo: funciona sin
+ * JavaScript y se maneja con el teclado.
  */
-function AdvertenciaDeLoSimulado() {
+function AvisoDeSaturacion({ texto }) {
   return (
-    <Aviso tipo="advertencia" className="aviso--separado">
+    <Aviso tipo="peligro" role="status" className="aviso--separado lateral-aviso">
       <details className="nota-inestable">
         <summary>
-          Estos valores simulados <strong>no se estabilizan</strong>: crecen mientras
-          más tiempo se simule. <span className="porque">¿Por qué?</span>
+          {texto} <span className="porque">¿Por qué?</span>
         </summary>
         <p>
           La etapa está saturada: llegan más motos de las que alcanza a atender, así
@@ -103,11 +102,10 @@ function AdvertenciaDeLoSimulado() {
   )
 }
 
-function TablaDeEtapa({ titulo, simulado, calculado, saturada }) {
+function TablaDeEtapa({ titulo, simulado, calculado }) {
   return (
     <div className="etapa">
       <h3>{titulo}</h3>
-      {saturada && simulado ? <AdvertenciaDeLoSimulado /> : null}
       <table>
         <thead>
           <tr>
@@ -168,7 +166,7 @@ export function ContenidoDeMetricas({ enPanel = false }) {
   )
 
   const calculado = metricasCalculadas(parametros)
-  const aviso = avisoCortoDeSaturacion(parametros)
+  const aviso = avisoDeSaturacionConLoSimulado(parametros, metricas !== null)
 
   return (
     <div className={enPanel ? 'metricas metricas--panel' : 'metricas metricas--capa'}>
@@ -177,50 +175,19 @@ export function ContenidoDeMetricas({ enPanel = false }) {
           titulo="Etapa 1 · Lavado"
           simulado={metricas?.lavado}
           calculado={calculado.lavado}
-          saturada={!calculado.lavado.estable}
         />
         <TablaDeEtapa
           titulo="Etapa 2 · Acabado"
           simulado={metricas?.acabado}
           calculado={calculado.acabado}
-          saturada={!calculado.acabado.estable}
         />
 
         <div className="metricas-lateral">
-          {metricas === null ? (
-            <p className="nota lateral-sin-datos">
-              Aún no hay datos simulados. Pulsa Iniciar o usa la corrida larga para obtener
-              valores estables.
-            </p>
-          ) : null}
-
-          {aviso ? (
-            <Aviso tipo="peligro" className="aviso--separado lateral-aviso" role="status">
-              {aviso}
-            </Aviso>
-          ) : null}
-
-          <p className="total">
-            Tiempo total en el lavadero, de la llegada a la salida:{' '}
-            <strong>
-              {metricas ? `${comoNumero(metricas.total.wMin, 2)} min` : 'sin datos'}
-            </strong>
-          </p>
-
-          {comparacionEsAproximada(parametros) ? (
-            <p className="nota">
-              Con el modo «Según su plan», cada moto usa el tiempo de su propio plan; las
-              fórmulas suponen un único tiempo medio, así que la comparación del acabado
-              es aproximada. Para compararla con exactitud, elige «Un solo promedio (M/M/s)».
-            </p>
-          ) : null}
-
           <div className="corrida-larga">
             <BotonConConfirmacion
               className="boton-principal"
               disabled={corridaLarga !== null}
               necesitaConfirmacion={hayUnaSimulacionEnCurso}
-              lado="arriba"
               pregunta="Se descartará la simulación actual para empezar de cero."
               textoDeLaAccion="Iniciar corrida larga"
               alConfirmar={() => empezarCorridaLarga()}
@@ -238,6 +205,30 @@ export function ContenidoDeMetricas({ enPanel = false }) {
               </p>
             )}
           </div>
+
+          {metricas === null ? (
+            <p className="nota lateral-sin-datos">
+              Aún no hay datos simulados. Pulsa Iniciar o usa la corrida larga para obtener
+              valores estables.
+            </p>
+          ) : null}
+
+          {aviso ? <AvisoDeSaturacion texto={aviso} /> : null}
+
+          <p className="total">
+            Tiempo total en el lavadero, de la llegada a la salida:{' '}
+            <strong>
+              {metricas ? `${comoNumero(metricas.total.wMin, 2)} min` : 'sin datos'}
+            </strong>
+          </p>
+
+          {comparacionEsAproximada(parametros) ? (
+            <p className="nota">
+              Con el modo «Según su plan», cada moto usa el tiempo de su propio plan; las
+              fórmulas suponen un único tiempo medio, así que la comparación del acabado
+              es aproximada. Para compararla con exactitud, elige «Un solo promedio (M/M/s)».
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

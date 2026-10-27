@@ -150,21 +150,22 @@ function EtapaDeAcabado() {
       </header>
 
       <h4 className="subtitulo-de-seccion">Tiempo de acabado por plan</h4>
-      <div className="tres-columnas">
-        {[1, 2, 3].map((plan) => (
-          <CampoNumerico
-            key={plan}
-            compacto
-            etiqueta={NOMBRE_DE_PLAN[plan]}
-            valor={parametros.acabadoPlanMin[plan]}
-            rango={RANGOS.acabado}
-            alAplicar={(valor) => cambiarAcabadoDePlan(plan, valor)}
-          />
-        ))}
-      </div>
-      <p className="calculado">
-        E[S₂] = {comoNumero(acabadoPromedioDe(parametros), 2)} min · μ₂ ={' '}
-        {comoNumero(calculado.servicioAcabadoPorHora, 4)} motos/h por puesto
+      {/* Un campo por fila: la etiqueta completa arriba, el campo y el deslizador abajo. */}
+      {[1, 2, 3].map((plan) => (
+        <CampoNumerico
+          key={plan}
+          etiqueta={NOMBRE_DE_PLAN[plan]}
+          valor={parametros.acabadoPlanMin[plan]}
+          rango={RANGOS.acabado}
+          alAplicar={(valor) => cambiarAcabadoDePlan(plan, valor)}
+        />
+      ))}
+      {/* Los dos valores calculados van en una línea y, si no caben, uno por línea. */}
+      <p className="calculado calculado--pareja">
+        <span>E[S₂] = {comoNumero(acabadoPromedioDe(parametros), 2)} min</span>
+        <span>
+          μ₂ = {comoNumero(calculado.servicioAcabadoPorHora, 4)} motos/h por puesto
+        </span>
       </p>
 
       <div className="control">

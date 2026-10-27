@@ -6,18 +6,26 @@ import { BotonesDeCamara } from './ControlesDeCamara.jsx'
 import LeyendaDePlanes from './LeyendaDePlanes.jsx'
 
 /**
- * El botón "Leyenda": cuando la fila de arriba no cabe completa, la leyenda se
- * pliega en este botón y su contenido sale en un recuadro pequeño. Se cierra
- * con Escape (que no llega a cerrar también la capa de Ajustes o el panel) o
- * con un clic fuera.
+ * Un botón que abre un recuadro pequeño pegado a él, para las cosas que no
+ * caben en la fila de arriba: el menú de vistas de la cámara y la leyenda. Se
+ * cierra con Escape (que no llega a cerrar también la capa de Ajustes o el
+ * panel) o con un clic fuera.
+ *
+ * @param {object} props
+ * @param {string} props.texto lo que dice el botón
+ * @param {string} [props.clase] una clase extra para la envoltura
+ * @param {'centro'|'izquierda'} [props.alineacion] cómo sale el recuadro respecto al botón
+ * @param {import('react').ReactNode | ((cerrar: () => void) => import('react').ReactNode)} props.children
+ *   el contenido del recuadro; si es una función, recibe cómo cerrarlo
  */
-function BotonDeLeyenda() {
-  const [abierta, setAbierta] = useState(false)
+function BotonConRecuadro({ texto, clase = '', alineacion = 'centro', children, ...atributos }) {
+  const [abierto, setAbierto] = useState(false)
   const raiz = useRef(null)
   const boton = useRef(null)
+  const cerrar = () => setAbierto(false)
 
   useEffect(() => {
-    if (!abierta) {
+    if (!abierto) {
       return undefined
     }
     const alPulsarUnaTecla = (evento) => {
@@ -25,13 +33,13 @@ function BotonDeLeyenda() {
         // En el documento, antes de que el evento llegue a la ventana, donde
         // otro oyente cerraría la capa que se abrió última.
         evento.stopPropagation()
-        setAbierta(false)
+        setAbierto(false)
         boton.current?.focus()
       }
     }
     const alPulsarFuera = (evento) => {
       if (raiz.current && !raiz.current.contains(evento.target)) {
-        setAbierta(false)
+        setAbierto(false)
       }
     }
     document.addEventListener('keydown', alPulsarUnaTecla)
@@ -40,23 +48,23 @@ function BotonDeLeyenda() {
       document.removeEventListener('keydown', alPulsarUnaTecla)
       document.removeEventListener('pointerdown', alPulsarFuera)
     }
-  }, [abierta])
+  }, [abierto])
 
   return (
-    <div className="leyenda-plegable" ref={raiz}>
+    <div className={`boton-con-recuadro${clase ? ` ${clase}` : ''}`} ref={raiz} {...atributos}>
       <button
         ref={boton}
         type="button"
-        className="boton-leyenda"
-        aria-expanded={abierta}
-        aria-controls="leyenda-recuadro"
-        onClick={() => setAbierta((valor) => !valor)}
+        className="boton-del-recuadro"
+        aria-expanded={abierto}
+        aria-haspopup="true"
+        onClick={() => setAbierto((valor) => !valor)}
       >
-        Leyenda
+        {texto}
       </button>
-      {abierta ? (
-        <div id="leyenda-recuadro" className="leyenda-recuadro">
-          <LeyendaDePlanes vertical />
+      {abierto ? (
+        <div className={`recuadro-flotante recuadro-flotante--${alineacion}`}>
+          {typeof children === 'function' ? children(cerrar) : children}
         </div>
       ) : null}
     </div>
@@ -64,16 +72,18 @@ function BotonDeLeyenda() {
 }
 
 /**
- * La fila de controles de arriba de la escena: los botones de cámara a la
- * izquierda, la leyenda compacta al centro y "Pantalla completa", solo con
- * ícono, a la derecha.
+ * La fila de controles de arriba de la escena.
  *
- * Si el ancho visible no alcanza para la fila completa, la leyenda se pliega en
- * un botón. Se mide con un `ResizeObserver` sobre la fila; como plegada ya no
- * se sabe cuánto ocupaba la leyenda, se recuerda el ancho que necesitaba la
- * última vez que se vio completa para saber cuándo volver a desplegarla.
- * En un celular se conserva la disposición de siempre (la leyenda, en una
- * segunda línea).
+ * En escritorio: los botones de cámara a la izquierda, la leyenda compacta al
+ * centro y "Pantalla completa", solo con ícono, a la derecha. Si el ancho
+ * visible no alcanza para la fila completa, la leyenda se pliega en un botón.
+ * Se mide con un `ResizeObserver` sobre la fila; como plegada ya no se sabe
+ * cuánto ocupaba la leyenda, se recuerda el ancho que necesitaba la última vez
+ * que se vio completa para saber cuándo volver a desplegarla.
+ *
+ * En un celular (menos de 768 px) todo cabe en una sola fila: un botón "Vista"
+ * que abre el menú con las vistas, un botón "Leyenda" con su recuadro y, a la
+ * derecha, "Pantalla completa". Así los controles ocupan una línea y no tres.
  */
 export function FilaSuperiorDeLaEscena({ alPedirVista, contenedor, expandida, alExpandir }) {
   const fila = useRef(null)
@@ -93,7 +103,7 @@ export function FilaSuperiorDeLaEscena({ alPedirVista, contenedor, expandida, al
         return
       }
       const disponible = nodo.clientWidth
-      if (!nodo.querySelector('.leyenda-plegable')) {
+      if (!nodo.querySelector('[data-leyenda-plegada]')) {
         const estilo = getComputedStyle(nodo)
         const hueco = Number.parseFloat(estilo.columnGap) || 0
         const hijos = [...nodo.children]
@@ -110,15 +120,31 @@ export function FilaSuperiorDeLaEscena({ alPedirVista, contenedor, expandida, al
     observador.observe(nodo)
     recalcular()
     // Cuando llega la fuente cambian los anchos de los textos.
-    document.fonts?.ready?.then(recalcular)
+    void document.fonts?.ready?.then(recalcular)
     return () => observador.disconnect()
   }, [enCelular, plegada])
 
   return (
     <div className="flotante-superior" ref={fila}>
-      <BotonesDeCamara alPedirVista={alPedirVista} />
+      {enCelular ? (
+        <BotonConRecuadro texto="Vista" alineacion="izquierda" clase="boton-con-recuadro--vista">
+          {(cerrar) => <BotonesDeCamara alPedirVista={alPedirVista} vertical alElegir={cerrar} />}
+        </BotonConRecuadro>
+      ) : (
+        <BotonesDeCamara alPedirVista={alPedirVista} />
+      )}
       <div className="flotante-centro">
-        {plegada && !enCelular ? <BotonDeLeyenda /> : <LeyendaDePlanes />}
+        {plegada || enCelular ? (
+          <BotonConRecuadro
+            texto="Leyenda"
+            alineacion={enCelular ? 'izquierda' : 'centro'}
+            data-leyenda-plegada=""
+          >
+            <LeyendaDePlanes vertical />
+          </BotonConRecuadro>
+        ) : (
+          <LeyendaDePlanes />
+        )}
       </div>
       <BotonDePantallaCompleta contenedor={contenedor} expandida={expandida} alExpandir={alExpandir} />
     </div>

@@ -104,7 +104,7 @@
 
 .mandos-de-camara button,
 .boton-pantalla-completa,
-.boton-leyenda {
+.boton-del-recuadro {
   display: inline-flex;
   align-items: center;
   gap: var(--espacio-1);
@@ -125,19 +125,19 @@
 
 .mandos-de-camara button:hover,
 .boton-pantalla-completa:hover,
-.boton-leyenda:hover {
+.boton-del-recuadro:hover {
   background: var(--fondo-tarjeta);
   border-color: var(--etapa-1);
 }
 
 .mandos-de-camara button:focus-visible,
 .boton-pantalla-completa:focus-visible,
-.boton-leyenda:focus-visible {
+.boton-del-recuadro:focus-visible {
   outline: 2px solid var(--etapa-1-texto);
   outline-offset: 2px;
 }
 
-/* --- Pantalla completa (solo ícono) y leyenda plegada --- */
+/* --- Pantalla completa (solo ícono) y botones con recuadro (Leyenda y Vista) --- */
 
 .boton-pantalla-completa {
   position: relative;
@@ -170,21 +170,41 @@
   opacity: 1;
 }
 
-.leyenda-plegable {
+.boton-con-recuadro {
   position: relative;
 }
 
-.leyenda-recuadro {
+.recuadro-flotante {
   position: absolute;
   top: calc(100% + var(--espacio-1));
-  left: 50%;
   z-index: 20;
   padding: var(--espacio-2);
   border: 1px solid var(--borde);
   border-radius: var(--radio-tarjeta);
   background: var(--fondo-tarjeta);
   box-shadow: var(--sombra-capa);
+}
+
+.recuadro-flotante--centro {
+  left: 50%;
   transform: translateX(-50%);
+}
+
+.recuadro-flotante--izquierda {
+  left: 0;
+}
+
+/* El menú de vistas dentro del recuadro: una debajo de otra, sin el velo de la escena. */
+.mandos-de-camara--vertical {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.mandos-de-camara--vertical button {
+  justify-content: flex-start;
+  background: none;
+  border-color: transparent;
+  white-space: nowrap;
 }
 
 .leyenda {
@@ -193,9 +213,10 @@
   margin: 0;
   padding: var(--espacio-1) var(--espacio-2);
   display: flex;
-  flex-wrap: wrap;
   flex-wrap: nowrap;
+  align-items: center;
   justify-content: center;
+  min-height: var(--alto-control);
   gap: var(--espacio-1) var(--espacio-3);
   border: 1px solid var(--borde);
   border-radius: var(--radio-control);
@@ -422,49 +443,29 @@
 }
 
 /*
- * En un celular la fila de arriba se acomoda en dos líneas: la cámara y la
- * pantalla completa (solo ícono) en la primera, y la leyenda en la segunda.
+ * En un celular la fila de arriba cabe en una sola línea: "Vista" (menú de las
+ * vistas de la cámara), "Leyenda" (su recuadro) y, a la derecha, la pantalla
+ * completa (solo ícono).
  */
 @media (max-width: 767px) {
   .flotante-superior {
     right: var(--espacio-2);
     left: var(--espacio-2);
-    gap: var(--espacio-1);
+    flex-wrap: nowrap;
+    gap: var(--espacio-2);
   }
 
-  .mandos-de-camara {
-    order: 1;
-    flex: 1 1 0;
-  }
-
-  .mandos-de-camara button {
-    flex: 1 1 auto;
-    justify-content: center;
-    padding: 0 var(--espacio-1);
-    font-size: var(--letra-pequena);
+  .flotante-centro {
+    margin: 0;
   }
 
   .boton-pantalla-completa {
-    order: 2;
+    margin-left: auto;
     width: var(--alto-control);
   }
 
   .boton-pantalla-completa::after {
     display: none;
-  }
-
-  .flotante-centro {
-    order: 3;
-    flex: 1 0 100%;
-    margin: 0;
-  }
-
-  .leyenda {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    gap: 2px var(--espacio-2);
-    padding: var(--espacio-1);
-    font-size: var(--letra-minima);
   }
 
   /* En el celular el panel lleva solo Lavado y Acabado. */
@@ -473,7 +474,7 @@
   }
 
   .indicadores-panel {
-    padding: var(--espacio-1) var(--espacio-2);
+    padding: var(--espacio-2);
   }
 
   .indicadores-grupo + .indicadores-grupo {
@@ -481,16 +482,33 @@
     padding-left: var(--espacio-2);
   }
 
+  /*
+   * Cada medida en una fila (la etiqueta a la izquierda y la cifra a la
+   * derecha): así ninguna etiqueta se parte en dos líneas con el ancho de un
+   * celular.
+   */
   .medidas {
-    gap: var(--espacio-2);
+    flex-direction: column;
+    gap: var(--espacio-1);
+  }
+
+  .medida {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    column-gap: var(--espacio-2);
   }
 
   .medida-etiqueta {
-    white-space: normal;
-    overflow-wrap: break-word;
+    white-space: nowrap;
   }
 
   .medida-valor {
     font-size: var(--letra-destacada);
+  }
+
+  .ocupacion {
+    grid-column: 1 / -1;
+    margin-top: 0;
   }
 }
