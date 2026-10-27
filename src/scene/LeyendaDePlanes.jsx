@@ -15,9 +15,9 @@ const FORMA_DE_PLAN = {
  * planes tienen que poder leerse igual. Los nombres completos de los planes
  * están en Ajustes y en la Ayuda.
  */
-export function LeyendaDePlanes() {
+export function LeyendaDePlanes({ vertical = false }) {
   return (
-    <ul className="leyenda" aria-label="Leyenda de la escena">
+    <ul className={vertical ? 'leyenda leyenda--vertical' : 'leyenda'} aria-label="Leyenda de la escena">
       {[1, 2, 3].map((plan) => (
         <li key={plan}>
           <span

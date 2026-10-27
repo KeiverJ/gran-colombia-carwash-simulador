@@ -201,3 +201,106 @@
     text-align: left;
   }
 }
+
+/* -------------------------------------------- el panel de Resultados, en horizontal -- */
+
+/*
+ * En el panel inferior las tablas van lado a lado y, en una tercera columna, el
+ * tiempo total, los avisos y la corrida larga. Si el ancho no alcanza para las
+ * columnas, `auto-fit` las apila. En la hoja del celular (`.metricas--capa`)
+ * siempre van apiladas, con los avisos arriba.
+ */
+.metricas-columnas,
+.bloques-visita {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--espacio-3);
+  align-items: start;
+}
+
+.bloques-visita {
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+}
+
+.metricas--capa .metricas-columnas,
+.metricas--capa .bloques-visita {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.metricas-lateral {
+  min-width: 0;
+}
+
+.metricas--capa .metricas-lateral {
+  display: contents;
+}
+
+.metricas--capa .lateral-aviso {
+  order: -1;
+}
+
+.metricas--capa .lateral-sin-datos {
+  order: -2;
+}
+
+.metricas--panel h3 {
+  margin-top: 0;
+}
+
+.metricas--panel table {
+  font-size: var(--letra-secundaria);
+}
+
+.metricas--panel th,
+.metricas--panel td {
+  padding: var(--espacio-1);
+}
+
+.metricas--panel thead th {
+  white-space: normal;
+  vertical-align: bottom;
+}
+
+/* Las etiquetas de las métricas caben siempre en una línea; la explicación sale como tooltip. */
+.etiqueta-metrica {
+  white-space: nowrap;
+  cursor: help;
+}
+
+.metricas--panel .total {
+  margin-top: 0;
+}
+
+.metricas--panel .corrida-larga {
+  margin-top: var(--espacio-3);
+  padding-top: var(--espacio-3);
+}
+
+.nota-visita {
+  margin-top: var(--espacio-3);
+}
+
+/* La gráfica a todo el ancho y a todo el alto del panel. */
+.metricas--grafica {
+  height: 100%;
+}
+
+.metricas--grafica .grafica {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.metricas--grafica .grafica .lienzo {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+}
+
+/* Con el dibujo a la vista la nota de arriba sobra; sin datos, es el aviso de una línea. */
+.metricas--grafica .grafica .lienzo ~ .nota,
+.metricas--grafica .grafica > .nota:not(:only-child) {
+  display: none;
+}

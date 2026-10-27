@@ -2,14 +2,13 @@ import { Canvas } from '@react-three/fiber'
 import { useCallback, useMemo, useRef, useState } from 'react'
 
 import Aviso from '../components/Aviso.jsx'
-import BotonDePantallaCompleta from '../components/BotonDePantallaCompleta.jsx'
 import IndicadoresDeLaEscena from '../components/IndicadoresDeLaEscena.jsx'
 import MandosMinimos from '../components/MandosMinimos.jsx'
 import AjusteALasCapas from './AjusteALasCapas.jsx'
 import { CAMPO_DE_VISION, VISTA_INICIAL } from './camara.js'
-import { BotonesDeCamara, ControlDeCamara } from './ControlesDeCamara.jsx'
+import { ControlDeCamara } from './ControlesDeCamara.jsx'
+import FilaSuperiorDeLaEscena from './FilaSuperiorDeLaEscena.jsx'
 import { useSimulacion } from '../store/simulacion.js'
-import LeyendaDePlanes from './LeyendaDePlanes.jsx'
 import { Local, Servidores, Sobrantes } from './Local.jsx'
 import Motos from './Motos.jsx'
 import { sobrantesDe } from './posiciones.js'
@@ -105,19 +104,14 @@ export function EscenaDelLavadero() {
           <AjusteALasCapas />
         </Canvas>
 
-        {/* Todo lo que flota sobre la escena va en las esquinas y el borde de
+        {/* Todo lo que flota sobre la escena va en una fila arriba y un panel
             abajo, con fondo semitransparente, y deja libre el centro. */}
-        <div className="flotante-superior">
-          <BotonesDeCamara alPedirVista={pedirVista} />
-          <div className="flotante-derecha">
-            <LeyendaDePlanes />
-            <BotonDePantallaCompleta
-              contenedor={contenedor}
-              expandida={expandida}
-              alExpandir={setExpandida}
-            />
-          </div>
-        </div>
+        <FilaSuperiorDeLaEscena
+          alPedirVista={pedirVista}
+          contenedor={contenedor}
+          expandida={expandida}
+          alExpandir={setExpandida}
+        />
         <IndicadoresDeLaEscena />
         <MandosMinimos />
       </div>

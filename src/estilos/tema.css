@@ -156,8 +156,7 @@
   --ancho-barra-lateral: 56px;
   --tamano-boton-lateral: 2.5rem;
   --ancho-capa-ajustes: 360px;
-  --ancho-capa-resultados: 360px;
-  --alto-franja: min(220px, 25svh);
+  --alto-barra-plegada: 40px;
 
   /* --- Tarjetas y sombras ---
      La única sombra es la de las capas flotantes (las dos capas, la hoja del

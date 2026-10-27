@@ -1,6 +1,7 @@
 /*
  * La estructura de la interfaz: la rejilla de pantalla completa, las dos
- * barras, las capas que se abren encima de la escena, la franja de gráficas y
+ * barras, la capa de Ajustes y el panel de Resultados que se abren encima de la
+ * escena y
  * la línea de tiempo de la visita. Solo variables del tema.
  *
  * Los anchos de las consultas de pantalla (768 y 1200 px) son los mismos de
@@ -40,7 +41,7 @@
   min-height: 0;
 }
 
-/* La escena se queda con todo lo que sobra; la franja y la línea de tiempo
+/* La escena se queda con todo lo que sobra; la línea de tiempo
    toman solo su alto. */
 .zona-lienzo {
   position: relative;
@@ -65,8 +66,7 @@
 .boton-lateral,
 .tarjeta,
 .opcion,
-.pestana,
-.franja-boton {
+.pestana {
   transition:
     background-color var(--duracion-corta) var(--curva-entrada),
     border-color var(--duracion-corta) var(--curva-entrada),
@@ -362,12 +362,6 @@
   border-right: 1px solid var(--borde);
 }
 
-.capa--derecha {
-  right: 0;
-  width: var(--ancho-capa-resultados);
-  border-left: 1px solid var(--borde);
-}
-
 .capa--entrando,
 .capa--saliendo {
   opacity: 0;
@@ -376,11 +370,6 @@
 .capa--izquierda.capa--entrando,
 .capa--izquierda.capa--saliendo {
   transform: translateX(-100%);
-}
-
-.capa--derecha.capa--entrando,
-.capa--derecha.capa--saliendo {
-  transform: translateX(100%);
 }
 
 .capa--saliendo {
@@ -816,7 +805,7 @@
 /* Las métricas y las gráficas dentro de una capa no llevan marco de tarjeta. */
 .metricas.metricas--capa,
 .metricas--capa .grafica,
-.franja .grafica {
+.metricas--panel .grafica {
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -848,91 +837,110 @@
   font-size: var(--letra-secundaria);
 }
 
-/* ---------------------------------------------------- la franja de gráficas -- */
-
-.franja {
-  flex: none;
-  background: var(--fondo-tarjeta);
-  border-top: 1px solid var(--borde);
-}
-
-.franja-boton {
-  display: flex;
-  align-items: center;
-  gap: var(--espacio-1);
-  width: 100%;
-  min-height: var(--alto-control);
-  padding: 0 var(--espacio-4);
-  border: 0;
-  background: none;
-  color: var(--etapa-1-texto);
-  font: inherit;
-  font-size: var(--letra-secundaria);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.franja-boton:hover {
-  background: var(--fondo-pagina);
-}
+/* ------------------------------------------------ el panel de Resultados -- */
 
 /*
- * El cuerpo reserva su alto de una vez (el lienzo cambia de tamaño una sola
- * vez al abrir y otra al terminar de cerrar); lo que se anima es el contenido,
- * con `transform` y `opacity`, recortado por el `overflow`.
+ * El panel de Resultados flota abajo, encima de la escena: no cambia el
+ * tamaño del lienzo. Mide siempre su alto completo (`--alto-panel`) y se pliega
+ * con `transform`, de modo que solo queda a la vista su barra de 40 px; por
+ * eso se mueve sin tocar el diseño y la cámara puede seguirlo. Empieza donde
+ * termina la capa de Ajustes (`--capa-izquierda`, que mide la escena).
  */
-.franja-cuerpo {
+.panel-resultados {
   box-sizing: border-box;
-  /* La franja entera (botón y cuerpo) no pasa de --alto-franja. */
-  height: calc(var(--alto-franja) - var(--alto-control) - 1px);
-  padding: 0 var(--espacio-4) var(--espacio-2);
-  overflow: hidden;
+  position: absolute;
+  left: var(--capa-izquierda, 0px);
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  height: var(--alto-panel);
+  background: var(--fondo-tarjeta);
+  border-top: 1px solid var(--borde);
+  box-shadow: var(--sombra-capa);
+  transform: translateY(calc(var(--alto-panel) - var(--alto-barra-plegada)));
+  transition: transform var(--duracion-media) var(--curva-entrada);
 }
 
-/* Sin datos todavía: una sola línea con el aviso. */
-.franja-cuerpo--vacia {
-  height: auto;
+.panel-resultados--visible {
+  transform: none;
 }
 
-.franja-contenido {
-  height: 100%;
-  transition:
-    transform var(--duracion-media) var(--curva-entrada),
-    opacity var(--duracion-media) var(--curva-entrada);
-}
-
-.franja-contenido--entrando,
-.franja-contenido--saliendo {
-  transform: translateY(100%);
-  opacity: 0;
-}
-
-.franja-contenido--saliendo {
+.panel-resultados--saliendo {
   transition-timing-function: var(--curva-salida);
 }
 
-.franja .grafica {
+/* El borde de arriba, que se arrastra: cursor de redimensionar y un asa. */
+.panel-borde {
+  position: absolute;
+  top: -5px;
+  right: 0;
+  left: 0;
+  z-index: 2;
   display: flex;
-  flex-direction: column;
-  height: 100%;
+  align-items: center;
+  justify-content: center;
+  height: 10px;
+  cursor: ns-resize;
+  touch-action: none;
 }
 
-.franja .grafica .lienzo {
+.panel-asa {
+  width: 2.5rem;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--borde-campo);
+  transition: background-color var(--duracion-corta) var(--curva-entrada);
+}
+
+.panel-borde:hover .panel-asa,
+.panel-borde:focus-visible .panel-asa {
+  background: var(--etapa-1);
+}
+
+.panel-cabecera {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--espacio-4);
+  height: var(--alto-barra-plegada);
+  padding: 0 var(--espacio-4);
+}
+
+.panel-cabecera h2 {
+  margin: 0;
+  font-size: var(--letra-titulo);
+  font-weight: 600;
+}
+
+.panel-cabecera .pestanas-lista {
+  align-self: stretch;
+  gap: var(--espacio-1);
+  margin: 0;
+  border-bottom: 0;
+}
+
+.panel-cabecera .pestana {
+  flex: none;
+  min-height: 0;
+  padding: 0 var(--espacio-3);
+}
+
+.panel-boton {
+  margin-left: auto;
+}
+
+.panel-cuerpo {
   flex: 1;
   min-height: 0;
-  margin: 0;
+  padding: var(--espacio-3) var(--espacio-4);
+  overflow: auto;
+  border-top: 1px solid var(--borde);
 }
 
-/* En la franja el dibujo lleva su leyenda: la nota de arriba sobra, salvo el
-   aviso de que todavía no hay nada. */
-.franja .grafica .lienzo ~ .nota,
-.franja .grafica > .nota:not(:only-child) {
-  display: none;
-}
-
-.franja .grafica > .nota:only-child {
-  margin: var(--espacio-1) 0;
-  font-size: var(--letra-secundaria);
+.panel-cuerpo > .pestanas-contenido {
+  height: 100%;
 }
 
 /* --------------------------------------------------- la línea de tiempo -- */
@@ -1187,7 +1195,7 @@
 
   .barra-lateral,
   .capa,
-  .franja,
+  .panel-resultados,
   .marca,
   .velocidad,
   .boton-texto,

@@ -6,7 +6,8 @@
  * de cámara, leyenda, indicadores— está colocado con `position: absolute` en
  * las esquinas y el borde de abajo, con un velo semitransparente, y deja libre
  * el centro. Las capas de Ajustes y Resultados se abren encima y corren esos
- * elementos con las variables `--capa-izquierda` y `--capa-derecha`.
+ * elementos con las variables `--capa-izquierda` y `--capa-inferior`, que
+ * escribe `AjusteALasCapas` con lo que tapan en cada instante.
  * Solo variables del tema.
  */
 
@@ -63,24 +64,24 @@
   color: var(--texto);
 }
 
-/* --- Arriba: los botones de cámara a la izquierda y la leyenda a la derecha --- */
+/* --- Arriba: una sola fila --- */
 
 /*
- * Una sola franja para los dos, entre las capas. Así nunca se pisan: si no
- * caben en una línea, la leyenda se parte en dos en vez de taparle los botones
- * a la cámara.
+ * Los botones de cámara a la izquierda, la leyenda compacta al centro y
+ * "Pantalla completa", solo con ícono, a la derecha. Empieza donde termina la
+ * capa de Ajustes. Si la fila no cabe completa, `FilaSuperiorDeLaEscena`
+ * pliega la leyenda en un botón; y si aun así no cabe, pasa a dos líneas.
  */
 .flotante-superior {
   position: absolute;
   top: var(--espacio-2);
   left: calc(var(--capa-izquierda, 0px) + var(--espacio-2));
-  right: calc(var(--capa-derecha, 0px) + var(--espacio-2));
+  right: var(--espacio-2);
   z-index: 2;
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--espacio-1) var(--espacio-2);
+  align-items: center;
+  gap: var(--espacio-1) var(--espacio-4);
   pointer-events: none;
 }
 
@@ -88,16 +89,22 @@
   pointer-events: auto;
 }
 
+/* La leyenda, centrada en lo que queda entre los botones de cámara y el ícono. */
+.flotante-centro {
+  flex: none;
+  margin: 0 auto;
+}
+
 .mandos-de-camara {
-  flex: 0 1 auto;
+  flex: none;
   max-width: 100%;
   display: flex;
-  flex-wrap: wrap;
   gap: var(--espacio-1);
 }
 
 .mandos-de-camara button,
-.boton-pantalla-completa {
+.boton-pantalla-completa,
+.boton-leyenda {
   display: inline-flex;
   align-items: center;
   gap: var(--espacio-1);
@@ -117,28 +124,67 @@
 }
 
 .mandos-de-camara button:hover,
-.boton-pantalla-completa:hover {
+.boton-pantalla-completa:hover,
+.boton-leyenda:hover {
   background: var(--fondo-tarjeta);
   border-color: var(--etapa-1);
 }
 
 .mandos-de-camara button:focus-visible,
-.boton-pantalla-completa:focus-visible {
+.boton-pantalla-completa:focus-visible,
+.boton-leyenda:focus-visible {
   outline: 2px solid var(--etapa-1-texto);
   outline-offset: 2px;
 }
 
-/* --- Leyenda y pantalla completa --- */
+/* --- Pantalla completa (solo ícono) y leyenda plegada --- */
 
-.flotante-derecha {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 100%;
-  margin-left: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--espacio-1);
+.boton-pantalla-completa {
+  position: relative;
+  justify-content: center;
+  width: var(--alto-control);
+  padding: 0;
+}
+
+/* El tooltip con el nombre, debajo del botón y pegado a su borde derecho. */
+.boton-pantalla-completa::after {
+  content: attr(data-nombre);
+  position: absolute;
+  top: calc(100% + var(--espacio-1));
+  right: 0;
+  z-index: 20;
+  padding: var(--espacio-1) var(--espacio-2);
+  border-radius: var(--radio-control);
+  background: var(--texto);
+  color: var(--fondo-tarjeta);
+  font-size: var(--letra-pequena);
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duracion-corta) var(--curva-entrada);
+}
+
+.boton-pantalla-completa:hover::after,
+.boton-pantalla-completa:focus-visible::after {
+  opacity: 1;
+}
+
+.leyenda-plegable {
+  position: relative;
+}
+
+.leyenda-recuadro {
+  position: absolute;
+  top: calc(100% + var(--espacio-1));
+  left: 50%;
+  z-index: 20;
+  padding: var(--espacio-2);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--fondo-tarjeta);
+  box-shadow: var(--sombra-capa);
+  transform: translateX(-50%);
 }
 
 .leyenda {
@@ -148,7 +194,8 @@
   padding: var(--espacio-1) var(--espacio-2);
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-wrap: nowrap;
+  justify-content: center;
   gap: var(--espacio-1) var(--espacio-3);
   border: 1px solid var(--borde);
   border-radius: var(--radio-control);
@@ -164,7 +211,16 @@
   white-space: nowrap;
 }
 
-/* --- Indicadores: abajo y al centro, entre las capas --- */
+/* En el recuadro de la leyenda plegada, una debajo de otra y sin marco propio. */
+.leyenda--vertical {
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* --- Indicadores: justo encima del panel de Resultados, centrados en el área libre --- */
 
 /*
  * Un solo panel semitransparente, con borde fino y esquinas suaves, centrado
@@ -174,8 +230,8 @@
 .indicadores {
   position: absolute;
   left: calc(var(--capa-izquierda, 0px) + var(--espacio-2));
-  right: calc(var(--capa-derecha, 0px) + var(--espacio-2));
-  bottom: var(--espacio-2);
+  right: var(--espacio-2);
+  bottom: calc(var(--capa-inferior, 0px) + var(--espacio-2));
   z-index: 2;
   display: flex;
   justify-content: center;
@@ -366,14 +422,14 @@
 }
 
 /*
- * En un celular los tres grupos de arriba se acomodan en dos filas: la cámara
- * y la pantalla completa (como ícono) en la primera, y la leyenda en la
- * segunda. Con "display: contents" los hijos de la columna de la derecha se
- * ordenan como hijos de la franja.
+ * En un celular la fila de arriba se acomoda en dos líneas: la cámara y la
+ * pantalla completa (solo ícono) en la primera, y la leyenda en la segunda.
  */
 @media (max-width: 767px) {
-  .flotante-derecha {
-    display: contents;
+  .flotante-superior {
+    right: var(--espacio-2);
+    left: var(--espacio-2);
+    gap: var(--espacio-1);
   }
 
   .mandos-de-camara {
@@ -390,13 +446,21 @@
 
   .boton-pantalla-completa {
     order: 2;
-    justify-content: center;
-    padding: 0;
+    width: var(--alto-control);
+  }
+
+  .boton-pantalla-completa::after {
+    display: none;
+  }
+
+  .flotante-centro {
+    order: 3;
+    flex: 1 0 100%;
+    margin: 0;
   }
 
   .leyenda {
-    order: 3;
-    flex: 1 0 100%;
+    flex-wrap: wrap;
     justify-content: flex-start;
     gap: 2px var(--espacio-2);
     padding: var(--espacio-1);

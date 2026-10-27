@@ -48,7 +48,7 @@ export function BarraLateral() {
       <BotonLateral
         nombre="Resultados"
         activo={capas.resultados}
-        controla="capa-de-resultados"
+        controla="panel-de-resultados"
         alPulsar={() => alternarCapa('resultados')}
       >
         <IconoDeResultados />

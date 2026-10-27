@@ -1,44 +1,57 @@
 import { useFrame } from '@react-three/fiber'
 import { useRef } from 'react'
 
+import { duracionDeLaVariable } from '../components/usePresencia.js'
 import { categoriaDeAncho, useInterfaz } from '../store/interfaz.js'
-import { encuadreParaLasCapas } from './camara.js'
+import { elevacionDeVista, encuadreParaLasCapas, VISTA_INICIAL } from './camara.js'
+import { funcionDeLaCurva } from './curva.js'
 
 /**
- * Las capas de Ajustes y de Resultados flotan encima del lienzo 3D y no lo
- * achican. Este componente, que vive dentro del lienzo y no dibuja nada, hace
- * que la imagen se acomode a lo que ellas dejan libre.
+ * La capa de Ajustes (a la izquierda) y el panel de Resultados (abajo) flotan
+ * encima del lienzo 3D y no lo achican. Este componente, que vive dentro del
+ * lienzo y no dibuja nada, hace que la imagen se acomode a lo que dejan libre.
  *
- * En cada cuadro mide con `getBoundingClientRect` cuánto del lienzo tapa cada
- * capa. Ese rectángulo incluye el `transform` de la animación CSS de la capa,
- * así que el encuadre se mueve con su misma duración y su misma curva, sin
- * temporizadores propios; y con "reducir movimiento" la capa aparece de
- * golpe y el encuadre también.
+ * En cada cuadro mide con `getBoundingClientRect` cuánto del lienzo tapan. Ese
+ * rectángulo incluye el `transform` de la animación CSS, así que el encuadre se
+ * mueve con la misma duración y la misma curva que ellos, sin temporizadores
+ * propios; y con "reducir movimiento" aparecen de golpe y el encuadre también.
  *
- * Con esa medida pide a la cámara un `setViewOffset` (ver `camara.js`): no
- * mueve la cámara ni la gira, solo decide en qué parte del lienzo se dibuja el
- * cuadro. Lo que la persona haya girado o acercado a mano no se toca, y los
- * botones de vista siguen llevando a las mismas posiciones.
+ * Además de lo que tapan las capas se descuentan solo dos cosas: la fila de
+ * controles de arriba y el panel de indicadores (que se apoya sobre el panel
+ * de Resultados). Con esa medida pide a la cámara un `setViewOffset` (ver
+ * `camara.js`): no mueve la cámara ni la gira, solo decide en qué parte del
+ * lienzo se dibuja el cuadro. Lo que la persona haya girado o acercado a mano
+ * no se toca, y los botones de vista siguen llevando a las mismas posiciones.
  *
- * También escribe `--capa-izquierda` y `--capa-derecha` (los píxeles que cubre
- * cada capa en ese instante) en el contenedor del lienzo, para que los botones
- * de cámara, la leyenda, la pantalla completa y los indicadores se muevan y se
- * centren en el área libre a la vez que la imagen.
+ * Mientras se arrastra el borde del panel el encuadre se queda quieto (el
+ * panel cambia de alto en cada cuadro, pero la cámara no se recalcula); al
+ * soltar, o con un doble clic o una flecha del teclado, pasa al nuevo encuadre
+ * con una transición de la misma duración y curva que las capas.
  *
- * En celular no hay capas encima (la hoja inferior no tapa la escena): no se
- * hace nada y se limpia lo que hubiera. A pantalla completa las capas no se
- * ven, así que tampoco cuentan.
+ * También escribe `--capa-izquierda` y `--capa-inferior` (los píxeles que cubre
+ * cada una en ese instante) en la zona de la escena, para que los botones de
+ * cámara, la leyenda, los indicadores y el propio panel se muevan y se centren
+ * en el área libre a la vez que la imagen.
+ *
+ * En celular no hay capas ni panel encima (la hoja inferior no tapa la
+ * escena): no se hace nada y se limpia lo que hubiera. A pantalla completa no
+ * se ven, así que tampoco cuentan.
  */
 
-const CAPA_DE_LA_IZQUIERDA = 'capa-de-ajustes'
-const CAPA_DE_LA_DERECHA = 'capa-de-resultados'
+const CAPA_DE_AJUSTES = 'capa-de-ajustes'
+const PANEL_DE_RESULTADOS = 'panel-de-resultados'
 
 /** Con menos que esto de diferencia (en píxeles) no vale la pena volver a calcular. */
 const DIFERENCIA_MINIMA_PX = 0.25
 
-/** Cuántos píxeles del lienzo tapa una capa ahora mismo, con su animación a medias incluida. */
-function cuantoTapa(id, lado, lienzo) {
-  const capa = document.getElementById(id)
+/** Hueco entre el panel de indicadores y lo que tiene debajo, igual que en el CSS. */
+const SEPARACION_DE_LOS_INDICADORES_PX = 8
+/** Un poco de aire entre los controles flotantes y el local. */
+const AIRE_PX = 4
+
+/** Cuántos píxeles del lienzo tapa la capa de Ajustes ahora mismo, con su animación a medias incluida. */
+function cuantoTapaLaCapa(lienzo) {
+  const capa = document.getElementById(CAPA_DE_AJUSTES)
   if (!capa) {
     return 0
   }
@@ -46,61 +59,134 @@ function cuantoTapa(id, lado, lienzo) {
   if (caja.width === 0) {
     return 0
   }
-  const tapado = lado === 'izquierda' ? caja.right - lienzo.left : lienzo.right - caja.left
-  return Math.min(Math.max(tapado, 0), lienzo.width)
+  return Math.min(Math.max(caja.right - lienzo.left, 0), lienzo.width)
 }
 
-const cambio = (anterior, actual) => anterior === null || Math.abs(anterior - actual) >= DIFERENCIA_MINIMA_PX
+/** Cuántos píxeles del lienzo tapa el panel de Resultados por abajo (la barra plegada ya cuenta). */
+function cuantoTapaElPanel(lienzo) {
+  const panel = document.getElementById(PANEL_DE_RESULTADOS)
+  if (!panel) {
+    return 0
+  }
+  const caja = panel.getBoundingClientRect()
+  return Math.min(Math.max(lienzo.bottom - caja.top, 0), lienzo.height)
+}
+
+const cambio = (anterior, actual) =>
+  anterior === null || Math.abs(anterior - actual) >= DIFERENCIA_MINIMA_PX
+
+const CLAVES_DEL_ENCUADRE = ['fullWidth', 'fullHeight', 'offsetX', 'offsetY']
+
+const sonIguales = (a, b) =>
+  a !== null &&
+  b !== null &&
+  CLAVES_DEL_ENCUADRE.every((clave) => !cambio(a[clave], b[clave])) &&
+  a.width === b.width &&
+  a.height === b.height
+
+/** El punto de un encuadre entre `desde` y `hasta`, con `avance` de 0 a 1. */
+const mezclar = (desde, hasta, avance) => {
+  const resultado = { ...hasta }
+  for (const clave of CLAVES_DEL_ENCUADRE) {
+    resultado[clave] = desde[clave] + (hasta[clave] - desde[clave]) * avance
+  }
+  return resultado
+}
 
 export function AjusteALasCapas() {
   const aplicado = useRef(null)
-  const variables = useRef({ izquierda: null, derecha: null })
+  const variables = useRef({ izquierda: null, inferior: null })
+  const transicion = useRef(null)
+  const versionVista = useRef(useInterfaz.getState().ajustesDelPanel)
 
-  useFrame(({ camera, gl }) => {
+  useFrame(({ camera, gl, controls }) => {
     const lienzo = gl.domElement
-    const contenedor = lienzo.closest('.lienzo-3d')
+    const zona = lienzo.closest('.zona-lienzo')
     const caja = lienzo.getBoundingClientRect()
-    if (!contenedor || caja.width === 0 || caja.height === 0) {
+    if (!zona || caja.width === 0 || caja.height === 0) {
       return
     }
 
-    const enCelular = categoriaDeAncho(useInterfaz.getState().ancho) === 'celular'
+    const interfaz = useInterfaz.getState()
+    const enCelular = categoriaDeAncho(interfaz.ancho) === 'celular'
     const aPantallaCompleta = Boolean(document.fullscreenElement) || Boolean(lienzo.closest('.escena--expandida'))
     const hayCapas = !enCelular && !aPantallaCompleta
-    const izquierda = hayCapas ? cuantoTapa(CAPA_DE_LA_IZQUIERDA, 'izquierda', caja) : 0
-    const derecha = hayCapas ? cuantoTapa(CAPA_DE_LA_DERECHA, 'derecha', caja) : 0
+    const izquierda = hayCapas ? cuantoTapaLaCapa(caja) : 0
+    const panel = hayCapas ? cuantoTapaElPanel(caja) : 0
 
     if (cambio(variables.current.izquierda, izquierda)) {
       variables.current.izquierda = izquierda
-      contenedor.style.setProperty('--capa-izquierda', `${izquierda}px`)
+      zona.style.setProperty('--capa-izquierda', `${izquierda}px`)
     }
-    if (cambio(variables.current.derecha, derecha)) {
-      variables.current.derecha = derecha
-      contenedor.style.setProperty('--capa-derecha', `${derecha}px`)
+    if (cambio(variables.current.inferior, panel)) {
+      variables.current.inferior = panel
+      zona.style.setProperty('--capa-inferior', `${panel}px`)
     }
 
     if (enCelular) {
       if (aplicado.current !== null) {
         aplicado.current = null
+        transicion.current = null
         camera.clearViewOffset()
       }
       return
     }
 
-    const encuadre = encuadreParaLasCapas({ ancho: caja.width, alto: caja.height, izquierda, derecha })
-    if (!encuadre) {
+    // Mientras se arrastra el borde del panel el encuadre no se toca.
+    if (interfaz.arrastrandoElPanel) {
       return
     }
-    const anterior = aplicado.current
-    const igual =
-      anterior !== null &&
-      !cambio(anterior.fullWidth, encuadre.fullWidth) &&
-      !cambio(anterior.fullHeight, encuadre.fullHeight) &&
-      !cambio(anterior.offsetX, encuadre.offsetX) &&
-      !cambio(anterior.offsetY, encuadre.offsetY) &&
-      anterior.width === encuadre.width &&
-      anterior.height === encuadre.height
-    if (igual) {
+
+    // Lo que se descuenta además de las capas: la fila de controles de arriba y
+    // el panel de indicadores, que se apoya sobre el panel de Resultados.
+    const fila = document.querySelector('.flotante-superior')
+    const arriba = fila ? Math.max(fila.getBoundingClientRect().bottom - caja.top, 0) + AIRE_PX : 0
+    const indicadores = document.querySelector('.indicadores-panel')
+    const altoDeLosIndicadores = indicadores ? indicadores.offsetHeight : 0
+    const abajo = panel + SEPARACION_DE_LOS_INDICADORES_PX + altoDeLosIndicadores + AIRE_PX
+
+    const objetivo = controls?.target?.toArray?.() ?? VISTA_INICIAL.objetivo
+    const meta = encuadreParaLasCapas({
+      ancho: caja.width,
+      alto: caja.height,
+      izquierda,
+      arriba,
+      abajo,
+      elevacion: elevacionDeVista({ posicion: camera.position.toArray(), objetivo }),
+    })
+    if (!meta) {
+      return
+    }
+
+    // Un cambio de alto que no sigue una animación de CSS (soltar el arrastre,
+    // doble clic, flechas) pasa al nuevo encuadre con una transición.
+    const ahora = performance.now()
+    if (interfaz.ajustesDelPanel !== versionVista.current) {
+      versionVista.current = interfaz.ajustesDelPanel
+      const duracion = duracionDeLaVariable('--duracion-media')
+      if (aplicado.current !== null && duracion > 0) {
+        const curva = getComputedStyle(document.documentElement).getPropertyValue('--curva-entrada')
+        transicion.current = {
+          inicio: ahora,
+          duracion,
+          desde: aplicado.current,
+          curva: funcionDeLaCurva(curva),
+        }
+      }
+    }
+
+    let encuadre = meta
+    const en = transicion.current
+    if (en) {
+      const progreso = (ahora - en.inicio) / en.duracion
+      if (progreso >= 1) {
+        transicion.current = null
+      } else {
+        encuadre = mezclar(en.desde, meta, en.curva(progreso))
+      }
+    }
+
+    if (sonIguales(aplicado.current, encuadre)) {
       return
     }
     aplicado.current = encuadre

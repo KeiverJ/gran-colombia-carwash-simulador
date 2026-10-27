@@ -49,17 +49,18 @@ export function BotonDePantallaCompleta({ contenedor, expandida, alExpandir }) {
     }
   }
 
+  // Solo el ícono: el nombre sale como tooltip (CSS, con `data-nombre`) y lo leen
+  // las ayudas técnicas por `aria-label`.
+  const nombre = estaGrande ? 'Salir de pantalla completa' : 'Pantalla completa'
   return (
     <button
       type="button"
       className="boton-pantalla-completa"
-      aria-label={estaGrande ? 'Salir de pantalla completa' : 'Pantalla completa'}
+      aria-label={nombre}
+      data-nombre={nombre}
       onClick={alternar}
     >
       <IconoDePantallaCompleta />
-      <span className="boton-texto">
-        {estaGrande ? 'Salir de pantalla completa' : 'Pantalla completa'}
-      </span>
     </button>
   )
 }

@@ -13,7 +13,10 @@ import { MODO_VISITA, useSimulacion } from './simulacion.js'
  */
 export function useEnlacesDeLaInterfaz() {
   useEffect(() => {
-    const ajustarAncho = () => useInterfaz.getState().cambiarAncho(window.innerWidth)
+    const ajustarAncho = () => {
+      useInterfaz.getState().cambiarAncho(window.innerWidth)
+      useInterfaz.getState().cambiarAlto(window.innerHeight)
+    }
     const alPulsarUnaTecla = (evento) => {
       if (evento.key === 'Escape') {
         useInterfaz.getState().pulsarEscape()

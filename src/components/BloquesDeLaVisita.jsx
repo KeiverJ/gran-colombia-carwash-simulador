@@ -83,71 +83,73 @@ function Valor({ etiqueta, valor, decimales, unidad }) {
 export function BloquesDeLaVisita({ metricas }) {
   return (
     <>
-      <div className="etapa bloque-visita">
-        <h3>Según la reproducción de la tabla</h3>
-        {metricas === null ? (
-          <p className="nota">Aún no hay datos reproducidos. Pulsa Iniciar para ver los valores.</p>
-        ) : (
-          <p className="nota">
-            Hasta la hora que marca el reloj. Cada promedio por moto cuenta las motos que ya
-            pasaron por esa etapa; al terminar la visita cuentan las 23.
-          </p>
-        )}
-        <table>
-          <thead>
-            <tr>
-              <th>Métrica</th>
-              <th>Reproducción</th>
-            </tr>
-          </thead>
-          <tbody>
-            {FILAS_DE_LA_REPRODUCCION.map(({ nombre, valor, decimales, unidad }) => (
-              <tr key={nombre}>
-                <th scope="row">{nombre}</th>
-                <Valor
-                  etiqueta="Reproducción"
-                  valor={metricas ? valor(metricas) : null}
-                  decimales={decimales}
-                  unidad={unidad}
-                />
+      <div className="bloques-visita">
+        <div className="etapa bloque-visita">
+          <h3>Según la reproducción de la tabla</h3>
+          {metricas === null ? (
+            <p className="nota">Aún no hay datos reproducidos. Pulsa Iniciar para ver los valores.</p>
+          ) : (
+            <p className="nota">
+              Hasta la hora que marca el reloj. Cada promedio por moto cuenta las motos que ya
+              pasaron por esa etapa; al terminar la visita cuentan las 23.
+            </p>
+          )}
+          <table>
+            <thead>
+              <tr>
+                <th>Métrica</th>
+                <th>Reproducción</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="nota">
-          La espera en la fila del acabado y los puestos ocupados salen de una asignación
-          aproximada, porque la tabla no dice qué puesto usó cada moto.
-        </p>
+            </thead>
+            <tbody>
+              {FILAS_DE_LA_REPRODUCCION.map(({ nombre, valor, decimales, unidad }) => (
+                <tr key={nombre}>
+                  <th scope="row">{nombre}</th>
+                  <Valor
+                    etiqueta="Reproducción"
+                    valor={metricas ? valor(metricas) : null}
+                    decimales={decimales}
+                    unidad={unidad}
+                  />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="nota">
+            La espera en la fila del acabado y los puestos ocupados salen de una asignación
+            aproximada, porque la tabla no dice qué puesto usó cada moto.
+          </p>
+        </div>
+
+        <div className="etapa bloque-visita">
+          <h3>Observado en la visita (15 conteos)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Métrica</th>
+                <th>Observado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {FILAS_DE_LO_OBSERVADO.map(({ nombre, valor, decimales, unidad }) => (
+                <tr key={nombre}>
+                  <th scope="row">{nombre}</th>
+                  <Valor etiqueta="Observado" valor={valor} decimales={decimales} unidad={unidad} />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div className="etapa bloque-visita">
-        <h3>Observado en la visita (15 conteos)</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Métrica</th>
-              <th>Observado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {FILAS_DE_LO_OBSERVADO.map(({ nombre, valor, decimales, unidad }) => (
-              <tr key={nombre}>
-                <th scope="row">{nombre}</th>
-                <Valor etiqueta="Observado" valor={valor} decimales={decimales} unidad={unidad} />
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="nota">
-          La espera antes de la placa y el tiempo total <strong>coinciden</strong> con lo que
-          sale de la tabla. Las que <strong>difieren</strong> son las ocupaciones (placas
-          ocupadas, fila del lavado, fila del acabado y puestos ocupados), por cuatro razones:
-          esos valores vienen de 15 conteos hechos aparte; el lavadero real no asigna por
-          primer libre; al llegar había motos en fila con placas libres (se tomó la hora
-          anotada como llegada); y había una moto en el acabado a las 3:10 que no se
-          reproduce.
-        </p>
-      </div>
+      <p className="nota nota-visita">
+        La espera antes de la placa y el tiempo total <strong>coinciden</strong> con lo que sale
+        de la tabla. Las que <strong>difieren</strong> son las ocupaciones (placas ocupadas, fila
+        del lavado, fila del acabado y puestos ocupados), por cuatro razones: esos valores vienen
+        de 15 conteos hechos aparte; el lavadero real no asigna por primer libre; al llegar había
+        motos en fila con placas libres (se tomó la hora anotada como llegada); y había una moto
+        en el acabado a las 3:10 que no se reproduce.
+      </p>
     </>
   )
 }

@@ -6,6 +6,7 @@ import {
   cajaDelLocalEnPantalla,
   DIAGONAL_DEL_LOCAL,
   distanciaDe,
+  elevacionDeVista,
   encuadreParaLasCapas,
   ESQUINAS_DEL_LOCAL,
   LIMITES_DE_CAMARA,
@@ -254,5 +255,96 @@ describe('el encuadre con las capas abiertas', () => {
     expect(ESQUINAS_DEL_LOCAL).toHaveLength(8)
     const alturas = new Set(ESQUINAS_DEL_LOCAL.map(([, y]) => y))
     expect([...alturas].sort((a, b) => a - b)).toEqual([0, ALTO_DEL_TECHO])
+  })
+})
+
+describe('el encuadre con los controles de arriba y el panel de abajo', () => {
+  const LIENZO = { ancho: 1310, alto: 679 }
+  const ARRIBA = 52
+  const ABAJO = 307 + 8 + 88 + 4
+
+  const filaEnElLienzo = (y, encuadre) => {
+    const centroDelCuadro = encuadre.fullHeight / 2 - encuadre.offsetY
+    return centroDelCuadro - y * (encuadre.fullHeight / 2)
+  }
+  const columnaEnElLienzo = (x, encuadre) => {
+    const centroDelCuadro = encuadre.fullWidth / 2 - encuadre.offsetX
+    return centroDelCuadro + x * (encuadre.fullWidth / 2)
+  }
+  const aspecto = LIENZO.ancho / LIENZO.alto
+
+  it('el local de la foto queda centrado a lo alto en lo que dejan libre arriba y abajo', () => {
+    const encuadre = encuadreParaLasCapas({ ...LIENZO, izquierda: 360, arriba: ARRIBA, abajo: ABAJO })
+    const caja = cajaDelLocalEnPantalla(VISTA_INICIAL, aspecto)
+    const arribaDelLocal = filaEnElLienzo(caja.maxY, encuadre)
+    const abajoDelLocal = filaEnElLienzo(caja.minY, encuadre)
+    expect((arribaDelLocal + abajoDelLocal) / 2).toBeCloseTo(ARRIBA + (LIENZO.alto - ARRIBA - ABAJO) / 2, 6)
+    expect(arribaDelLocal).toBeGreaterThanOrEqual(ARRIBA)
+    expect(abajoDelLocal).toBeLessThanOrEqual(LIENZO.alto - ABAJO + 1e-6)
+  })
+
+  it('y también a lo ancho, junto a la capa de Ajustes', () => {
+    const encuadre = encuadreParaLasCapas({ ...LIENZO, izquierda: 360, arriba: ARRIBA, abajo: ABAJO })
+    const caja = cajaDelLocalEnPantalla(VISTA_INICIAL, aspecto)
+    const izquierdo = columnaEnElLienzo(caja.minX, encuadre)
+    const derecho = columnaEnElLienzo(caja.maxX, encuadre)
+    expect((izquierdo + derecho) / 2).toBeCloseTo(360 + (LIENZO.ancho - 360) / 2, 6)
+  })
+
+  it('cuanto más tapa el panel de abajo, más se achica el local', () => {
+    const escala = (abajo) => encuadreParaLasCapas({ ...LIENZO, arriba: ARRIBA, abajo }).escala
+    expect(escala(100)).toBeGreaterThanOrEqual(escala(300))
+    expect(escala(300)).toBeGreaterThan(escala(420))
+    expect(escala(420)).toBeGreaterThan(escala(480))
+  })
+
+  it('con el panel plegado (solo la barra) el local no se achica por lo de abajo', () => {
+    expect(encuadreParaLasCapas({ ...LIENZO, arriba: ARRIBA, abajo: 40 + 8 + 88 + 4 }).escala).toBe(1)
+  })
+
+  it('con el alto inicial y Ajustes abiertas a 1366 × 768 el local cabe y es de buen tamaño', () => {
+    const encuadre = encuadreParaLasCapas({ ...LIENZO, izquierda: 360, arriba: ARRIBA, abajo: ABAJO })
+    expect(encuadre.escala).toBeGreaterThan(0.7)
+    expect(encuadre.escala).toBeLessThan(1)
+  })
+
+  it('una cámara que mira desde arriba necesita más alto: la escala baja con la inclinación', () => {
+    const base = { ...LIENZO, arriba: ARRIBA, abajo: ABAJO }
+    const deFrente = encuadreParaLasCapas({ ...base, elevacion: elevacionDeVista(VISTAS.comoEnLaFoto) })
+    const aMedias = encuadreParaLasCapas({ ...base, elevacion: 50 })
+    const deArriba = encuadreParaLasCapas({ ...base, elevacion: elevacionDeVista(VISTAS.desdeArriba) })
+    expect(deFrente.escala).toBeGreaterThan(aMedias.escala)
+    expect(aMedias.escala).toBeGreaterThan(deArriba.escala)
+  })
+
+  it('la vista de plano también cabe en lo que queda libre', () => {
+    const elevacion = elevacionDeVista(VISTAS.desdeArriba)
+    const encuadre = encuadreParaLasCapas({ ...LIENZO, arriba: ARRIBA, abajo: ABAJO, elevacion })
+    const caja = cajaDelLocalEnPantalla(VISTAS.desdeArriba, aspecto)
+    expect(filaEnElLienzo(caja.maxY, encuadre)).toBeGreaterThanOrEqual(ARRIBA - 1e-6)
+    expect(filaEnElLienzo(caja.minY, encuadre)).toBeLessThanOrEqual(LIENZO.alto - ABAJO + 1e-6)
+  })
+
+  it('las elevaciones de las dos vistas con botón son las esperadas', () => {
+    expect(elevacionDeVista(VISTAS.comoEnLaFoto)).toBeGreaterThan(5)
+    expect(elevacionDeVista(VISTAS.comoEnLaFoto)).toBeLessThan(20)
+    expect(elevacionDeVista(VISTAS.desdeArriba)).toBeGreaterThan(80)
+  })
+
+  it('acercar o alejar la cámara no cambia el encuadre: solo importa la inclinación', () => {
+    const base = { ...LIENZO, arriba: ARRIBA, abajo: ABAJO }
+    expect(encuadreParaLasCapas({ ...base, elevacion: 30 })).toEqual(encuadreParaLasCapas({ ...base, elevacion: 30 }))
+  })
+
+  it('con una elevación que no es un número usa la de la foto', () => {
+    const base = { ...LIENZO, arriba: ARRIBA, abajo: ABAJO }
+    expect(encuadreParaLasCapas({ ...base, elevacion: Number.NaN })).toEqual(encuadreParaLasCapas(base))
+  })
+
+  it('con medidas absurdas arriba y abajo no produce NaN', () => {
+    const encuadre = encuadreParaLasCapas({ ...LIENZO, arriba: 5000, abajo: Number.NaN })
+    for (const valor of Object.values(encuadre)) {
+      expect(Number.isFinite(valor)).toBe(true)
+    }
   })
 })

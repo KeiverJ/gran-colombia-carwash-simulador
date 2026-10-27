@@ -8,7 +8,7 @@ import {
 } from '../store/interfaz.js'
 import { MODO_VISITA, useSimulacion } from '../store/simulacion.js'
 import { ContenidoDeAjustes } from './CapaDeAjustes.jsx'
-import { ContenidoDeResultados } from './CapaDeResultados.jsx'
+import { ContenidoDeResultados } from './PanelDeResultados.jsx'
 import Pestanas from './Pestanas.jsx'
 
 const TEXTO_DE_LA_PESTANA = {

@@ -156,11 +156,14 @@ export const ESQUINAS_DEL_LOCAL = (() => {
   return esquinas
 })()
 
-/** Qué parte del área libre se deja vacía, a lo ancho (total, repartida a los dos lados). */
-const MARGEN_A_LO_ANCHO = 0.1
+/** Qué parte del área libre se deja vacía a lo ancho (total, repartida a los dos lados). */
+const MARGEN_A_LO_ANCHO = 0.06
 
-/** Y a lo alto: arriba van los botones y la leyenda, y abajo los indicadores. */
-const MARGEN_A_LO_ALTO = 0.22
+/**
+ * Y a lo alto: mínimo, porque ya se descuentan la fila de controles de arriba
+ * y los indicadores y el panel de abajo.
+ */
+const MARGEN_A_LO_ALTO = 0.04
 
 /**
  * Dónde cae un punto del mundo en la imagen de una cámara, en coordenadas
@@ -212,57 +215,111 @@ export function cajaDelLocalEnPantalla(vista, aspecto) {
 }
 
 /**
+ * Cuánto se inclina una vista sobre el suelo, en grados: 0° es mirar de
+ * frente a ras de suelo y 90°, desde arriba.
+ */
+export function elevacionDeVista({ posicion, objetivo }) {
+  const horizontal = Math.hypot(posicion[0] - objetivo[0], posicion[2] - objetivo[2])
+  return (Math.atan2(posicion[1] - objetivo[1], horizontal) * 180) / Math.PI
+}
+
+/** La inclinación de la vista de la foto (la normal) y la de la vista de plano. */
+const ELEVACION_DE_LA_FOTO = elevacionDeVista(VISTAS.comoEnLaFoto)
+const ELEVACION_DEL_PLANO = elevacionDeVista(VISTAS.desdeArriba)
+
+/**
+ * La caja que ocupa el local en la imagen para una cámara con la inclinación
+ * dada: la de la vista de la foto, la de la vista de plano o, entre las dos,
+ * una mezcla. No depende de cuánto se haya acercado o alejado la persona, así
+ * que acercarse a mano no se contrarresta.
+ */
+export function cajaDelLocalSegunLaElevacion(elevacion, aspecto) {
+  const foto = cajaDelLocalEnPantalla(VISTAS.comoEnLaFoto, aspecto)
+  const plano = cajaDelLocalEnPantalla(VISTAS.desdeArriba, aspecto)
+  const dado = Number.isFinite(elevacion) ? elevacion : ELEVACION_DE_LA_FOTO
+  const peso = Math.min(
+    1,
+    Math.max(0, (dado - ELEVACION_DE_LA_FOTO) / (ELEVACION_DEL_PLANO - ELEVACION_DE_LA_FOTO)),
+  )
+  const mezcla = (a, b) => a + (b - a) * peso
+  return {
+    minX: mezcla(foto.minX, plano.minX),
+    maxX: mezcla(foto.maxX, plano.maxX),
+    minY: mezcla(foto.minY, plano.minY),
+    maxY: mezcla(foto.maxY, plano.maxY),
+  }
+}
+
+/**
  * Cómo colocar el cuadro virtual de la cámara para que el local entero quepa,
- * centrado, en el área que dejan libre las capas.
+ * centrado, en el área que dejan libre las capas, el panel de Resultados y los
+ * controles que flotan.
  *
- * La escala sale de las dos vistas que tienen botón (la de la foto y la de
- * plano) y no de dónde esté la cámara ahora: así, si la persona se acerca a
- * mano, no se le contrarresta. Nunca pasa de 1 (no agranda). El resultado se
+ * Se descuentan solo lo que tapa de verdad: la capa de Ajustes (`izquierda`),
+ * la fila de controles de arriba (`arriba`) y, abajo, el panel de Resultados
+ * junto con el panel de indicadores (`abajo`). El margen que se deja alrededor
+ * del local es mínimo. La escala nunca pasa de 1 (no agranda). El resultado se
  * entrega en los términos de `PerspectiveCamera.setViewOffset`.
  *
  * @param {object} medidas
  * @param {number} medidas.ancho ancho del lienzo en píxeles
  * @param {number} medidas.alto alto del lienzo en píxeles
- * @param {number} medidas.izquierda píxeles del lienzo que tapa la capa de la izquierda
- * @param {number} medidas.derecha píxeles que tapa la de la derecha
+ * @param {number} [medidas.izquierda] píxeles que tapa algo por la izquierda
+ * @param {number} [medidas.derecha] por la derecha
+ * @param {number} [medidas.arriba] por arriba
+ * @param {number} [medidas.abajo] por abajo
+ * @param {number} [medidas.elevacion] la inclinación de la cámara sobre el suelo, en grados
+ *   (por defecto, la de la vista de la foto)
  * @returns {{ escala: number, fullWidth: number, fullHeight: number, offsetX: number,
  *   offsetY: number, width: number, height: number } | null} `null` si el lienzo no tiene tamaño
  */
-export function encuadreParaLasCapas({ ancho, alto, izquierda, derecha }) {
+export function encuadreParaLasCapas({
+  ancho,
+  alto,
+  izquierda = 0,
+  derecha = 0,
+  arriba = 0,
+  abajo = 0,
+  elevacion,
+}) {
   if (!(ancho > 0) || !(alto > 0)) {
     return null
   }
-  const tapa = (valor) => (Number.isFinite(valor) ? Math.min(Math.max(valor, 0), ancho) : 0)
-  const izq = tapa(izquierda)
-  const der = tapa(derecha)
-  // Con las dos capas tapando casi todo se deja al menos un píxel: sin NaN.
-  const libre = Math.max(ancho - izq - der, 1)
-  const aspecto = ancho / alto
+  const tapa = (valor, tope) => (Number.isFinite(valor) ? Math.min(Math.max(valor, 0), tope) : 0)
+  const izq = tapa(izquierda, ancho)
+  const der = tapa(derecha, ancho)
+  const arr = tapa(arriba, alto)
+  const aba = tapa(abajo, alto)
+  // Si algo tapa casi todo se deja al menos un píxel: sin NaN ni escalas de cero.
+  const libreAncho = Math.max(ancho - izq - der, 1)
+  const libreAlto = Math.max(alto - arr - aba, 1)
 
-  const cajas = Object.values(VISTAS).map((vista) => cajaDelLocalEnPantalla(vista, aspecto))
-  const fraccionAncha = Math.max(...cajas.map((c) => (c.maxX - c.minX) / 2))
-  const fraccionAlta = Math.max(...cajas.map((c) => (c.maxY - c.minY) / 2))
+  const caja = cajaDelLocalSegunLaElevacion(elevacion, ancho / alto)
+  const fraccionAncha = (caja.maxX - caja.minX) / 2
+  const fraccionAlta = (caja.maxY - caja.minY) / 2
   const escala = Math.min(
     1,
-    (libre * (1 - MARGEN_A_LO_ANCHO)) / (ancho * fraccionAncha),
-    ((1 - MARGEN_A_LO_ALTO) * alto) / (alto * fraccionAlta),
+    (libreAncho * (1 - MARGEN_A_LO_ANCHO)) / (ancho * fraccionAncha),
+    (libreAlto * (1 - MARGEN_A_LO_ALTO)) / (alto * fraccionAlta),
   )
 
-  // El local de la vista inicial es el que se centra: queda a `centroDelLocal`
-  // (en normalizadas) del centro del cuadro virtual.
-  const caja = cajaDelLocalEnPantalla(VISTA_INICIAL, aspecto)
-  const centroDelLocal = (caja.minX + caja.maxX) / 2
   const fullWidth = ancho * escala
   const fullHeight = alto * escala
-  const centroLibre = izq + libre / 2
-  const centroDelCuadro = centroLibre - centroDelLocal * (fullWidth / 2)
+  // El centro del local en el cuadro virtual (de -1 a 1) tiene que caer en el
+  // centro del área libre.
+  const centroDelLocalX = (caja.minX + caja.maxX) / 2
+  const centroDelLocalY = (caja.minY + caja.maxY) / 2
+  const centroLibreX = izq + libreAncho / 2
+  const centroLibreY = arr + libreAlto / 2
+  const centroDelCuadroX = centroLibreX - centroDelLocalX * (fullWidth / 2)
+  const centroDelCuadroY = centroLibreY + centroDelLocalY * (fullHeight / 2)
 
   return {
     escala,
     fullWidth,
     fullHeight,
-    offsetX: fullWidth / 2 - centroDelCuadro,
-    offsetY: (fullHeight - alto) / 2,
+    offsetX: fullWidth / 2 - centroDelCuadroX,
+    offsetY: fullHeight / 2 - centroDelCuadroY,
     width: ancho,
     height: alto,
   }
