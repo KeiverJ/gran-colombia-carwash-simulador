@@ -16,14 +16,20 @@ import {
   posicionDelRotuloDeSobrantes,
   posicionEnFila,
   posicionDePuesto,
-  POSICION_ENCUENTRO,
+  FILA_DEL_LAVADO,
+  FRANJA_DE_ESPERA,
+  PUNTO_DE_UNION_A_LA_FILA,
+  PASO_A_LA_COLA,
+  Z_DETRAS_DE_LOS_PUESTOS,
   REJILLA_DE_DESAGUE,
   repartoDePlacas,
   SEPARACION_EN_FILA,
   SERVIDOR,
   sobrantesDe,
+  TECHO,
   TOPE_DE_MOTOS_DIBUJADAS,
   X_CABEZA_DE_FILA,
+  TERRENO,
   ZONA_DE_SERVIDORES,
 } from './posiciones.js'
 
@@ -205,58 +211,45 @@ describe('los puestos de acabado', () => {
   })
 })
 
+const ETAPAS = ['lavado', 'acabado']
+
 describe('las filas de espera', () => {
   it('la del lavado y la del acabado están en planos distintos', () => {
-    expect(posicionEnFila(0, 'lavado')[2]).not.toBe(posicionEnFila(0, 'acabado')[2])
+    expect(posicionEnFila(0, 'lavado')).not.toEqual(posicionEnFila(0, 'acabado'))
+    expect(posicionEnFila(0, 'lavado')[0]).not.toBe(posicionEnFila(0, 'acabado')[0])
   })
 
-  it('cada fila está delante de su etapa', () => {
-    expect(posicionEnFila(0, 'lavado')[2]).toBeGreaterThan(LOCAL.zPlacasAdelante)
+  it('la del acabado está entre la fila de placas de atrás y los puestos', () => {
     expect(posicionEnFila(0, 'acabado')[2]).toBeGreaterThan(LOCAL.zPuestos)
     expect(posicionEnFila(0, 'acabado')[2]).toBeLessThan(LOCAL.zPlacasAtras)
   })
 
   it('las motos de una fila se separan entre sí y van en orden', () => {
-    const primera = posicionEnFila(0, 'lavado')[0]
-    const segunda = posicionEnFila(1, 'lavado')[0]
-    // La cola crece hacia el pasillo, así que la segunda va a la izquierda.
-    expect(primera - segunda).toBeCloseTo(SEPARACION_EN_FILA, 10)
-  })
-
-  it('todas las motos dibujables caben dentro del local', () => {
-    for (const etapa of ['lavado', 'acabado']) {
-      for (let i = 0; i < TOPE_DE_MOTOS_DIBUJADAS; i += 1) {
-        expect(Math.abs(posicionEnFila(i, etapa)[0])).toBeLessThanOrEqual(LOCAL.ancho / 2)
-      }
-    }
+    // La del acabado crece hacia la izquierda, hacia el pasillo.
+    expect(posicionEnFila(0, 'acabado')[0] - posicionEnFila(1, 'acabado')[0]).toBeCloseTo(SEPARACION_EN_FILA, 10)
+    // La del lavado crece hacia el fondo, a lo largo del lado derecho.
+    expect(posicionEnFila(0, 'lavado')[2] - posicionEnFila(1, 'lavado')[2]).toBeCloseTo(SEPARACION_EN_FILA, 10)
   })
 
   it('ninguna moto de la fila se monta sobre la de delante', () => {
-    for (const etapa of ['lavado', 'acabado']) {
-      for (let i = 1; i < TOPE_DE_MOTOS_DIBUJADAS; i += 1) {
-        const hueco = Math.abs(
-          posicionEnFila(i, etapa)[0] - posicionEnFila(i - 1, etapa)[0],
-        )
-        expect(hueco, `${etapa}, motos ${i} y ${i + 1}`).toBeGreaterThan(MOTO.largo)
+    for (const etapa of ETAPAS) {
+      for (let i = 1; i < TOPE_DE_MOTOS_DIBUJADAS[etapa]; i += 1) {
+        const [x, , z] = posicionEnFila(i, etapa)
+        const [xAntes, , zAntes] = posicionEnFila(i - 1, etapa)
+        expect(Math.hypot(x - xAntes, z - zAntes), `${etapa}, motos ${i} y ${i + 1}`).toBeGreaterThan(MOTO.largo)
       }
     }
   })
 
-  it('la fila dibujada no se mete en el pasillo aunque la cola crezca', () => {
+  it('la del acabado no se mete en el pasillo aunque la cola crezca', () => {
     // Con la etapa 2 saturada la cola llega a miles. Lo que la corta antes de
     // invadir el pasillo es el tope de dibujadas.
     const bordeDelPasillo = PASILLO.centroX + PASILLO.ancho / 2
-    for (const etapa of ['lavado', 'acabado']) {
-      for (let i = 0; i < TOPE_DE_MOTOS_DIBUJADAS; i += 1) {
-        const morro = posicionEnFila(i, etapa)[0] - MOTO.largo / 2
-        expect(morro, `${etapa}, moto ${i + 1}`).toBeGreaterThanOrEqual(bordeDelPasillo)
-      }
+    for (let i = 0; i < TOPE_DE_MOTOS_DIBUJADAS.acabado; i += 1) {
+      const morro = posicionEnFila(i, 'acabado')[0] - MOTO.largo / 2
+      expect(morro, `moto ${i + 1}`).toBeGreaterThanOrEqual(bordeDelPasillo)
     }
-  })
-
-  it('el tope corta justo antes: la siguiente ya pisaría el pasillo', () => {
-    const bordeDelPasillo = PASILLO.centroX + PASILLO.ancho / 2
-    const siguiente = posicionEnFila(TOPE_DE_MOTOS_DIBUJADAS, 'lavado')[0] - MOTO.largo / 2
+    const siguiente = posicionEnFila(TOPE_DE_MOTOS_DIBUJADAS.acabado, 'acabado')[0] - MOTO.largo / 2
     expect(siguiente).toBeLessThan(bordeDelPasillo)
   })
 
@@ -265,62 +258,122 @@ describe('las filas de espera', () => {
       ...Array.from({ length: 7 }, (_, i) => posicionDePlaca(i, 7)),
       ...Array.from({ length: 5 }, (_, i) => posicionDePuesto(i, 5)),
     ]
-    for (const etapa of ['lavado', 'acabado']) {
-      for (let i = 0; i < TOPE_DE_MOTOS_DIBUJADAS; i += 1) {
+    for (const etapa of ETAPAS) {
+      for (let i = 0; i < TOPE_DE_MOTOS_DIBUJADAS[etapa]; i += 1) {
         const [x, , z] = posicionEnFila(i, etapa)
+        // Las motos de la fila del lavado van de largo a lo largo de Z; las del acabado, de X.
+        const [medioEnX, medioEnZ] =
+          etapa === 'lavado' ? [MOTO.ancho / 2, MOTO.largo / 2] : [MOTO.largo / 2, MOTO.ancho / 2]
         for (const [lx, , lz] of losas) {
-          const seSolapanEnX = Math.abs(x - lx) < (SERVIDOR.ancho + MOTO.largo) / 2
-          const seSolapanEnZ = Math.abs(z - lz) < (SERVIDOR.fondo + MOTO.ancho) / 2
+          const seSolapanEnX = Math.abs(x - lx) < SERVIDOR.ancho / 2 + medioEnX
+          const seSolapanEnZ = Math.abs(z - lz) < SERVIDOR.fondo / 2 + medioEnZ
           expect(seSolapanEnX && seSolapanEnZ, `${etapa}, moto ${i + 1}`).toBe(false)
         }
       }
     }
   })
 
-  it('la primera de la fila cabe dentro del local', () => {
-    for (const etapa of ['lavado', 'acabado']) {
-      const cola = posicionEnFila(0, etapa)[0] + MOTO.largo / 2
-      expect(cola).toBeLessThanOrEqual(LOCAL.ancho / 2)
-    }
-  })
-
   it('el tope sale de la geometría, no de un número puesto a mano', () => {
-    expect(TOPE_DE_MOTOS_DIBUJADAS).toBe(cuantasMotosCabenEnLaFila())
-    expect(TOPE_DE_MOTOS_DIBUJADAS).toBeGreaterThan(1)
+    for (const etapa of ETAPAS) {
+      expect(TOPE_DE_MOTOS_DIBUJADAS[etapa]).toBe(cuantasMotosCabenEnLaFila(etapa))
+      expect(TOPE_DE_MOTOS_DIBUJADAS[etapa]).toBeGreaterThan(1)
+    }
   })
 
   it('rechaza una etapa que no existe', () => {
     expect(() => posicionEnFila(0, 'pintura')).toThrow(/lavado/)
+    expect(() => cuantasMotosCabenEnLaFila('pintura')).toThrow(/lavado/)
+  })
+})
+
+describe('la fila del lavado, en el lado derecho', () => {
+  const COLUMNAS_DE_LA_DERECHA = COLUMNAS_DEL_TECHO.filter(([x]) => x > 0)
+  /** La mitad del ancho de la moto: va de largo a lo largo de Z. */
+  const MEDIO_ANCHO = MOTO.ancho / 2
+
+  it('va por fuera de las columnas, sobre la franja de espera del lado derecho', () => {
+    for (let i = 0; i < TOPE_DE_MOTOS_DIBUJADAS.lavado; i += 1) {
+      const [x] = posicionEnFila(i, 'lavado')
+      for (const [cx] of COLUMNAS_DE_LA_DERECHA) {
+        expect(x - MEDIO_ANCHO - cx, `moto ${i + 1}`).toBeGreaterThan(0.5)
+      }
+      expect(x - MEDIO_ANCHO).toBeGreaterThanOrEqual(FRANJA_DE_ESPERA.x0)
+      expect(x + MEDIO_ANCHO).toBeLessThanOrEqual(FRANJA_DE_ESPERA.x0 + FRANJA_DE_ESPERA.ancho)
+    }
+  })
+
+  it('queda fuera del techo, que termina en las columnas más su vuelo', () => {
+    const [x] = posicionEnFila(0, 'lavado')
+    const bordeDelTecho = COLUMNAS_DE_LA_DERECHA[0][0] + TECHO.vuelo
+    expect(x - MEDIO_ANCHO).toBeGreaterThan(bordeDelTecho)
+  })
+
+  it('empieza cerca de la esquina del frente y crece hacia el fondo', () => {
+    const cabeza = posicionEnFila(0, 'lavado')
+    expect(cabeza[2] + MOTO.largo / 2).toBeLessThanOrEqual(LOCAL.zFrente)
+    expect(LOCAL.zFrente - (cabeza[2] + MOTO.largo / 2)).toBeLessThan(1)
+    expect(posicionEnFila(1, 'lavado')[2]).toBeLessThan(cabeza[2])
+  })
+
+  it('la última moto dibujada no llega al corredor de detrás de los puestos', () => {
+    const ultima = posicionEnFila(TOPE_DE_MOTOS_DIBUJADAS.lavado - 1, 'lavado')[2]
+    expect(ultima - MOTO.largo / 2).toBeGreaterThan(Z_DETRAS_DE_LOS_PUESTOS)
+    // Y la siguiente ya no dejaría sitio para la que viene a unirse: el tope corta justo antes.
+    const siguiente = posicionEnFila(TOPE_DE_MOTOS_DIBUJADAS.lavado, 'lavado')[2]
+    expect(siguiente - MOTO.largo).toBeLessThan(Z_DETRAS_DE_LOS_PUESTOS)
+  })
+
+  it('caben al menos diez motos dibujadas, y el resto se cuenta en el rótulo', () => {
+    expect(TOPE_DE_MOTOS_DIBUJADAS.lavado).toBeGreaterThanOrEqual(10)
+  })
+
+  it('el punto donde las dos entradas se juntan queda justo antes del último sitio de la fila', () => {
+    const [x, , z] = PUNTO_DE_UNION_A_LA_FILA
+    const ultima = posicionEnFila(TOPE_DE_MOTOS_DIBUJADAS.lavado - 1, 'lavado')
+    expect(x).toBe(FILA_DEL_LAVADO.x)
+    expect(z).toBeLessThanOrEqual(ultima[2])
+    expect(ultima[2] - z).toBeLessThan(MOTO.largo)
+    expect(z).toBeGreaterThan(Z_DETRAS_DE_LOS_PUESTOS)
+    for (const camino of Object.values(PASO_A_LA_COLA)) {
+      expect(camino.at(-1)).toEqual(PUNTO_DE_UNION_A_LA_FILA)
+    }
   })
 })
 
 describe('cuántas motos se dibujan de una fila', () => {
   const colaDe = (cuantas) =>
     Array.from({ length: cuantas }, (_, i) => ({ n: i + 1, plan: 2 }))
+  const TOPE = TOPE_DE_MOTOS_DIBUJADAS.acabado
 
   it('con la cola vacía no hay nada que dibujar', () => {
-    expect(motosVisibles([])).toEqual({ visibles: [], sobrantes: 0 })
+    expect(motosVisibles([], TOPE)).toEqual({ visibles: [], sobrantes: 0 })
   })
 
   it('cuando caben, se dibujan todas', () => {
     const cola = colaDe(5)
-    const { visibles, sobrantes } = motosVisibles(cola)
+    const { visibles, sobrantes } = motosVisibles(cola, TOPE)
     expect(visibles).toEqual(cola)
     expect(sobrantes).toBe(0)
   })
 
   it('justo en el tope no hay sobrantes', () => {
-    const { visibles, sobrantes } = motosVisibles(colaDe(TOPE_DE_MOTOS_DIBUJADAS))
-    expect(visibles).toHaveLength(TOPE_DE_MOTOS_DIBUJADAS)
+    const { visibles, sobrantes } = motosVisibles(colaDe(TOPE), TOPE)
+    expect(visibles).toHaveLength(TOPE)
     expect(sobrantes).toBe(0)
   })
 
   it('con la fila del acabado desbordada se dibujan las primeras y se cuentan las demás', () => {
     // Lo que pasa de verdad con 3 puestos tras mil horas simuladas.
-    const { visibles, sobrantes } = motosVisibles(colaDe(3090))
-    expect(visibles).toHaveLength(TOPE_DE_MOTOS_DIBUJADAS)
-    expect(sobrantes).toBe(3090 - TOPE_DE_MOTOS_DIBUJADAS)
+    const { visibles, sobrantes } = motosVisibles(colaDe(3090), TOPE)
+    expect(visibles).toHaveLength(TOPE)
+    expect(sobrantes).toBe(3090 - TOPE)
     expect(visibles.length + sobrantes).toBe(3090)
+  })
+
+  it('cada fila tiene su propio tope: con quince en espera, la del lavado dibuja las que caben', () => {
+    const { visibles, sobrantes } = motosVisibles(colaDe(15), TOPE_DE_MOTOS_DIBUJADAS.lavado)
+    expect(visibles).toHaveLength(TOPE_DE_MOTOS_DIBUJADAS.lavado)
+    expect(sobrantes).toBe(15 - TOPE_DE_MOTOS_DIBUJADAS.lavado)
   })
 
   it('ni pierde ni duplica motos', () => {
@@ -341,19 +394,23 @@ describe('cuántas motos se dibujan de una fila', () => {
   it('sobrantesDe cuenta lo mismo sabiendo solo cuántas hay en la fila', () => {
     // El rótulo de la escena solo conoce el número; tiene que coincidir con
     // lo que se dibuja o diría una cosa distinta de la que se ve.
-    for (const cuantas of [0, 5, 12, 13, 100, 3090]) {
-      const cola = colaDe(cuantas)
-      expect(sobrantesDe(cuantas)).toBe(motosVisibles(cola).sobrantes)
+    for (const etapa of ETAPAS) {
+      for (const cuantas of [0, 5, 12, 13, 100, 3090]) {
+        const cola = colaDe(cuantas)
+        const tope = TOPE_DE_MOTOS_DIBUJADAS[etapa]
+        expect(sobrantesDe(cuantas, tope)).toBe(motosVisibles(cola, tope).sobrantes)
+      }
     }
   })
 
   it('sobrantesDe nunca es negativo', () => {
-    expect(sobrantesDe(0)).toBe(0)
-    expect(sobrantesDe(3)).toBe(0)
+    expect(sobrantesDe(0, TOPE)).toBe(0)
+    expect(sobrantesDe(3, TOPE)).toBe(0)
   })
 
-  it('rechaza un tope imposible', () => {
+  it('rechaza un tope imposible o que falte', () => {
     expect(() => motosVisibles([], -1)).toThrow(/mayor o igual que 0/)
+    expect(() => motosVisibles([])).toThrow(/mayor o igual que 0/)
   })
 })
 
@@ -448,19 +505,11 @@ describe('las dos avenidas', () => {
     }
   })
 
-  it('las dos confluyen en el pasillo, antes de la fila del lavado', () => {
-    const [x, , z] = POSICION_ENCUENTRO
-    expect(z).toBeGreaterThan(LOCAL.zFilaLavado)
-    expect(z).toBeLessThan(LOCAL.zFrente)
-    expect(Math.abs(x - PASILLO.centroX)).toBeLessThanOrEqual(PASILLO.ancho / 2)
-  })
-
-  it('del encuentro a la fila no se pasa por la zona de acabado', () => {
-    const [, , zEncuentro] = POSICION_ENCUENTRO
-    const [, , zFila] = posicionEnFila(0, 'lavado')
-    // Todo el tramo queda por delante de las placas, y el acabado está detrás.
-    expect(Math.min(zEncuentro, zFila)).toBeGreaterThan(LOCAL.zPlacasAdelante)
-    expect(LOCAL.zPlacasAdelante).toBeGreaterThan(LOCAL.zFilaAcabado)
+  it('las dos se juntan al final de una sola fila (cola 1), en el lado derecho', () => {
+    for (const camino of Object.values(PASO_A_LA_COLA)) {
+      expect(camino.at(-1)).toEqual(PUNTO_DE_UNION_A_LA_FILA)
+    }
+    expect(PUNTO_DE_UNION_A_LA_FILA[0]).toBe(posicionEnFila(0, 'lavado')[0])
   })
 })
 
@@ -490,7 +539,7 @@ describe('por qué avenida entra cada moto', () => {
 describe('el piso del lavadero', () => {
   it('la rejilla de desagüe va al frente de las placas, a lo ancho de su zona', () => {
     expect(REJILLA_DE_DESAGUE.z).toBeGreaterThan(LOCAL.zPlacasAdelante)
-    expect(REJILLA_DE_DESAGUE.z).toBeLessThan(LOCAL.zFilaLavado)
+    expect(REJILLA_DE_DESAGUE.z).toBeLessThan(LOCAL.zFrente)
     expect(REJILLA_DE_DESAGUE.ancho).toBe(ZONA_DE_SERVIDORES.ancho)
     expect(REJILLA_DE_DESAGUE.centroX).toBe(ZONA_DE_SERVIDORES.centroX)
   })
@@ -521,42 +570,63 @@ describe('el piso del lavadero', () => {
 
 describe('el rótulo de "+X motos más"', () => {
   it('marca el final de la fila dibujada, sin solaparse con la última moto', () => {
-    for (const etapa of ['lavado', 'acabado']) {
+    for (const etapa of ETAPAS) {
       const [x, , z] = posicionDelRotuloDeSobrantes(etapa)
-      const [ultimaX, , ultimaZ] = posicionEnFila(TOPE_DE_MOTOS_DIBUJADAS - 1, etapa)
-      expect(z, etapa).toBe(ultimaZ)
-      expect(Math.abs(x - ultimaX), etapa).toBeGreaterThanOrEqual(MOTO.largo)
+      const [ultimaX, , ultimaZ] = posicionEnFila(TOPE_DE_MOTOS_DIBUJADAS[etapa] - 1, etapa)
+      expect(Math.hypot(x - ultimaX, z - ultimaZ), etapa).toBeGreaterThanOrEqual(MOTO.largo)
     }
   })
 
   it('cae del lado por el que crece la fila, no encima de ella', () => {
-    for (const etapa of ['lavado', 'acabado']) {
-      const [x] = posicionDelRotuloDeSobrantes(etapa)
-      const [primera] = posicionEnFila(0, etapa)
-      const [ultima] = posicionEnFila(TOPE_DE_MOTOS_DIBUJADAS - 1, etapa)
-      // La fila crece hacia la izquierda: el rótulo va más allá de la última.
-      expect(x, etapa).toBeLessThan(ultima)
-      expect(ultima).toBeLessThan(primera)
-    }
+    // La del acabado crece hacia la izquierda; la del lavado, hacia el fondo.
+    const [xAcabado] = posicionDelRotuloDeSobrantes('acabado')
+    expect(xAcabado).toBeLessThan(posicionEnFila(TOPE_DE_MOTOS_DIBUJADAS.acabado - 1, 'acabado')[0])
+    const [, , zLavado] = posicionDelRotuloDeSobrantes('lavado')
+    expect(zLavado).toBeLessThan(posicionEnFila(TOPE_DE_MOTOS_DIBUJADAS.lavado - 1, 'lavado')[2])
   })
 
   it('va por encima de las motos, para que no lo tapen', () => {
     expect(posicionDelRotuloDeSobrantes('lavado')[1]).toBeGreaterThan(MOTO.alto)
   })
 
-  it('no se sale del local', () => {
-    for (const etapa of ['lavado', 'acabado']) {
+  it('no se sale del local ni de su franja de espera', () => {
+    for (const etapa of ETAPAS) {
       const [x, , z] = posicionDelRotuloDeSobrantes(etapa)
-      expect(Math.abs(x), etapa).toBeLessThanOrEqual(LOCAL.ancho / 2)
+      expect(x, etapa).toBeLessThanOrEqual(FRANJA_DE_ESPERA.x0 + FRANJA_DE_ESPERA.ancho)
+      expect(x, etapa).toBeGreaterThanOrEqual(-LOCAL.ancho / 2)
       expect(Math.abs(z), etapa).toBeLessThanOrEqual(LOCAL.fondo / 2)
     }
   })
 
-  it('las dos filas tienen su rótulo, cada uno en su altura de fila', () => {
+  it('las dos filas tienen su rótulo, cada uno en su sitio', () => {
     const lavado = posicionDelRotuloDeSobrantes('lavado')
     const acabado = posicionDelRotuloDeSobrantes('acabado')
-    expect(lavado[2]).toBe(LOCAL.zFilaLavado)
+    expect(lavado[0]).toBe(FILA_DEL_LAVADO.x)
     expect(acabado[2]).toBe(LOCAL.zFilaAcabado)
-    expect(lavado[2]).not.toBe(acabado[2])
+    expect(lavado[0]).not.toBe(acabado[0])
+  })
+})
+
+describe('el terreno base', () => {
+  const [cx, , cz] = TERRENO.centro
+  const distancia = ([x, z]) => Math.hypot(x - cx, z - cz)
+
+  it('cubre el local y las dos avenidas sin desvanecerlos', () => {
+    const { x0, x1, z0, z1 } = {
+      x0: AVENIDAS.guaimaral.calle.centro[0] - AVENIDAS.guaimaral.calle.ancho / 2,
+      x1: LOCAL.ancho / 2,
+      z0: AVENIDAS.granColombia.calle.centro[2] - AVENIDAS.granColombia.calle.fondo / 2,
+      z1: LOCAL.fondo / 2,
+    }
+    for (const esquina of [[x0, z0], [x0, z1], [x1, z0], [x1, z1]]) {
+      expect(distancia(esquina)).toBeLessThan(TERRENO.desvanecerDesde)
+    }
+  })
+
+  it('el velo termina de tapar antes de donde acaban las avenidas, y estas antes que el terreno', () => {
+    expect(TERRENO.desvanecerDesde).toBeLessThan(TERRENO.desvanecerHasta)
+    expect(TERRENO.desvanecerHasta).toBeLessThan(TERRENO.alcanceDeLasAvenidas)
+    expect(TERRENO.alcanceDeLasAvenidas).toBeLessThan(TERRENO.radio)
+    expect(TERRENO.radio).toBeLessThan(TERRENO.radioDelVelo)
   })
 })

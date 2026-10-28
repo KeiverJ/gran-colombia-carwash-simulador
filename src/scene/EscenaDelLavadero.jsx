@@ -9,9 +9,15 @@ import { CAMPO_DE_VISION, VISTA_INICIAL } from './camara.js'
 import { ControlDeCamara } from './ControlesDeCamara.jsx'
 import FilaSuperiorDeLaEscena from './FilaSuperiorDeLaEscena.jsx'
 import { useSimulacion } from '../store/simulacion.js'
-import { Local, Servidores, Sobrantes } from './Local.jsx'
+import Avenidas from './Avenidas.jsx'
+import Iluminacion from './Iluminacion.jsx'
+import Local from './Local.jsx'
 import Motos from './Motos.jsx'
-import { sobrantesDe } from './posiciones.js'
+import Particulas from './Particulas.jsx'
+import { sobrantesDe, TOPE_DE_MOTOS_DIBUJADAS } from './posiciones.js'
+import { Servidores, Sobrantes } from './Servidores.jsx'
+import Sombras from './Sombras.jsx'
+import Terreno from './Terreno.jsx'
 
 /**
  * ¿Puede este navegador dibujar en 3D?
@@ -38,8 +44,8 @@ const DESCRIPCION_DE_LA_ESCENA =
 
 /** Los rótulos de "+X motos más", con el mismo freno que el resumen. */
 function RotulosDeSobrantes() {
-  const sobranLavado = useSimulacion((estado) => sobrantesDe(estado.resumen.enFilaLavado))
-  const sobranAcabado = useSimulacion((estado) => sobrantesDe(estado.resumen.enFilaAcabado))
+  const sobranLavado = useSimulacion((estado) => sobrantesDe(estado.resumen.enFilaLavado, TOPE_DE_MOTOS_DIBUJADAS.lavado))
+  const sobranAcabado = useSimulacion((estado) => sobrantesDe(estado.resumen.enFilaAcabado, TOPE_DE_MOTOS_DIBUJADAS.acabado))
   return (
     <>
       <Sobrantes cuantas={sobranLavado} etapa="lavado" />
@@ -66,8 +72,8 @@ export function EscenaDelLavadero() {
   const contenedor = useRef(null)
 
   const vistaPedida = useRef(null)
-  const pedirVista = useCallback((sacarLaVista) => {
-    vistaPedida.current = sacarLaVista
+  const pedirVista = useCallback((clave) => {
+    vistaPedida.current = clave
   }, [])
   const tomarOrden = useCallback(() => {
     const pedida = vistaPedida.current
@@ -103,11 +109,14 @@ export function EscenaDelLavadero() {
             gl.domElement.setAttribute('aria-label', DESCRIPCION_DE_LA_ESCENA)
           }}
         >
-          <ambientLight intensity={0.75} />
-          <directionalLight position={[8, 14, 6]} intensity={1.1} />
+          <Iluminacion />
+          <Terreno />
           <Local />
+          <Avenidas />
           <Servidores placas={placas} puestos={puestos} />
+          <Particulas placas={placas} />
           <Motos />
+          <Sombras placas={placas} puestos={puestos} />
           <RotulosDeSobrantes />
           <ControlDeCamara tomarOrden={tomarOrden} />
           <AjusteALasCapas />

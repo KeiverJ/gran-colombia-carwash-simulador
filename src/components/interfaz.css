@@ -1216,6 +1216,16 @@
   margin-top: var(--espacio-1);
 }
 
+.ayuda-parrafo {
+  margin: 0 0 var(--espacio-2);
+}
+
+.ayuda-cuerpo a {
+  color: var(--etapa-1-texto);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* --------------------------------------------- la hoja inferior (celular) -- */
 
 /* En escritorio y en tamaño medio no existe: las capas hacen su trabajo. */

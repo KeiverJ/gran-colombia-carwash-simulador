@@ -1,24 +1,56 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  ANCHO_DE_BOCA,
   AVENIDAS,
+  COLUMNAS_DEL_TECHO,
+  CURVAS_DE_ENTRADA,
+  FILA_DEL_LAVADO,
+  FRANJA_DE_ESPERA,
   LOCAL,
   MOTO,
   PASILLO,
   posicionDePlaca,
   posicionDePuesto,
+  posicionEnFila,
+  POSTE_DE_LOSA,
+  PUNTO_DE_UNION_A_LA_FILA,
+  SEPARACION_DE_CARRILES,
+  SEPARACION_EN_FILA,
   SERVIDOR,
   TOPE_DE_MOTOS_DIBUJADAS,
 } from './posiciones.js'
 import {
+  caminoDeEntrada,
+  caminoDeLlegada,
+  caminoDeSalida,
   caminoHacia,
-  conArranqueYFrenado,
+  caminoReplanificado,
+  curvaDeSalida,
+  debeEsperarParaElCorredor,
+  distanciaHastaElCorredor,
+  estaEnElCorredor,
+  factorDeRampa,
+  FACTOR_MINIMO_DE_LA_RAMPA,
+  LARGO_DE_LA_RAMPA,
+  ATRASO_MAXIMO_EN_MINUTOS,
+  margenTrasAvanzar,
+  recorridoTrasAvanzar,
+  sinRetrocesos,
+  V_BASE,
+  velocidadDeLaMoto,
   esDeLaFilaDeAtras,
   girarHacia,
   largoDelCamino,
+  MARGEN_EN_LA_CALZADA,
+  MEDIO_ANCHO_DE_MOTO,
   puntoEnElCamino,
   puntoDe,
-  SITIO_DE_SALIDA,
+  X_DE_SALIDA_POR_EL_PASILLO,
+  X_DEL_CARRIL_DE_LA_FRANJA,
+  Z_DE_ACCESO_A_PLACAS,
+  Z_DETRAS_DE_LOS_PUESTOS,
+  Z_ENTRE_LAS_FILAS,
   sitioDeEntrada,
   sitioEnFila,
   sitioEnPlaca,
@@ -88,7 +120,6 @@ const losas = losasDe(PLACAS, PUESTOS)
 describe('los sitios del lavadero', () => {
   it('cada uno está donde dice la planta', () => {
     expect(puntoDe(sitioDeEntrada('guaimaral'))).toEqual(AVENIDAS.guaimaral.posicion)
-    expect(puntoDe(SITIO_DE_SALIDA)[2]).toBe(LOCAL.zSalida)
     // Sobre una losa, la moto va encima y echada atrás para no tapar el número.
     const [, alto, z] = puntoDe(sitioEnPlaca(0, PLACAS))
     expect(alto).toBe(SERVIDOR.altoOcupado)
@@ -118,7 +149,6 @@ describe('todo camino empieza y acaba donde se pide', () => {
     [sitioEnPlaca(1, PLACAS), sitioEnFila('acabado', 0)],
     [sitioEnPlaca(4, PLACAS), sitioEnFila('acabado', 2)],
     [sitioEnFila('acabado', 0), sitioEnPuesto(2, PUESTOS)],
-    [sitioEnPuesto(1, PUESTOS), SITIO_DE_SALIDA],
     [sitioEnFila('lavado', 3), sitioEnFila('lavado', 0)],
   ]
 
@@ -178,17 +208,19 @@ describe('ningún camino pasa por encima de una losa', () => {
     }
   })
 
-  it('de cualquier puesto a la salida', () => {
-    for (let i = 0; i < PUESTOS; i += 1) {
-      const camino = caminoHacia(sitioEnPuesto(i, PUESTOS), SITIO_DE_SALIDA)
-      const pisadas = noPisaLosas(camino, { losas, suyas: [`puesto ${i + 1}`] })
-      expect(pisadas, `al salir del puesto ${i + 1}`).toEqual([])
+  it('de cualquier puesto a la salida por cada avenida', () => {
+    for (const avenida of AVENIDAS_DEL_MAPA) {
+      for (let i = 0; i < PUESTOS; i += 1) {
+        const camino = caminoDeSalida(sitioEnPuesto(i, PUESTOS), avenida)
+        const pisadas = noPisaLosas(camino, { losas, suyas: [`puesto ${i + 1}`] })
+        expect(pisadas, `${avenida}, al salir del puesto ${i + 1}`).toEqual([])
+      }
     }
   })
 
   it('de las dos entradas a cualquier sitio de la fila del lavado', () => {
     for (const avenida of ['granColombia', 'guaimaral']) {
-      for (let i = 0; i < TOPE_DE_MOTOS_DIBUJADAS; i += 1) {
+      for (let i = 0; i < TOPE_DE_MOTOS_DIBUJADAS.lavado; i += 1) {
         const camino = caminoHacia(sitioDeEntrada(avenida), sitioEnFila('lavado', i))
         expect(noPisaLosas(camino, { losas }), `${avenida}, sitio ${i + 1}`).toEqual([])
       }
@@ -208,10 +240,15 @@ describe('ningún camino pasa por encima de una losa', () => {
 })
 
 describe('rodear la fila de adelante', () => {
-  it('para entrar a una de atrás se pasa por el pasillo y por el hueco', () => {
-    const camino = caminoHacia(sitioEnFila('lavado', 0), sitioEnPlaca(4, PLACAS))
+  it('desde la avenida, para entrar a una de atrás se pasa por el pasillo y por el hueco', () => {
+    const camino = caminoHacia(sitioDeEntrada('guaimaral'), sitioEnPlaca(4, PLACAS))
     const porElPasillo = camino.some(([x]) => Math.abs(x - PASILLO.centroX) < 1e-9)
     expect(porElPasillo).toBe(true)
+  })
+
+  it('desde la cabeza de la fila, en cambio, se entra por el lado derecho y no se pasa por el pasillo', () => {
+    const camino = caminoHacia(sitioEnFila('lavado', 0), sitioEnPlaca(4, PLACAS))
+    expect(camino.some(([x]) => Math.abs(x - PASILLO.centroX) < 1e-9)).toBe(false)
   })
 
   it('para entrar a una de adelante no hace falta rodear: es más corto', () => {
@@ -227,16 +264,19 @@ describe('rodear la fila de adelante', () => {
   })
 })
 
-describe('los caminos se quedan dentro del local', () => {
+describe('los caminos se quedan dentro del local y de su franja de espera', () => {
   it('ningún punto se sale por los bordes', () => {
     const pares = [
       [sitioEnFila('lavado', 0), sitioEnPlaca(5, PLACAS)],
+      [sitioEnFila('lavado', 0), sitioEnPlaca(1, PLACAS)],
       [sitioEnPlaca(0, PLACAS), sitioEnFila('acabado', 0)],
       [sitioEnFila('acabado', 0), sitioEnPuesto(2, PUESTOS)],
     ]
+    const derecha = FRANJA_DE_ESPERA.x0 + FRANJA_DE_ESPERA.ancho
     for (const [desde, hasta] of pares) {
       for (const { punto } of muestrasDe(caminoHacia(desde, hasta), 0.25)) {
-        expect(Math.abs(punto[0])).toBeLessThanOrEqual(LOCAL.ancho / 2)
+        expect(punto[0]).toBeGreaterThanOrEqual(-LOCAL.ancho / 2)
+        expect(punto[0]).toBeLessThanOrEqual(derecha)
         expect(Math.abs(punto[2])).toBeLessThanOrEqual(LOCAL.fondo / 2)
       }
     }
@@ -245,7 +285,10 @@ describe('los caminos se quedan dentro del local', () => {
   it('avanzar un sitio en la misma fila es ir de frente, sin rodeos', () => {
     const camino = caminoHacia(sitioEnFila('lavado', 3), sitioEnFila('lavado', 2))
     expect(camino).toHaveLength(2)
-    expect(camino[0][2]).toBe(camino[1][2])
+    expect(camino[0][0]).toBe(camino[1][0]) // la fila del lavado va a lo largo de Z
+    const delAcabado = caminoHacia(sitioEnFila('acabado', 3), sitioEnFila('acabado', 2))
+    expect(delAcabado).toHaveLength(2)
+    expect(delAcabado[0][2]).toBe(delAcabado[1][2]) // y la del acabado, a lo largo de X
   })
 })
 
@@ -281,21 +324,226 @@ describe('avanzar por el camino', () => {
   })
 })
 
-describe('el arranque y el frenado', () => {
-  it('empieza en 0 y acaba en 1', () => {
-    expect(conArranqueYFrenado(0)).toBe(0)
-    expect(conArranqueYFrenado(1)).toBe(1)
+/**
+ * Cuántos segundos de reloj tarda una moto en recorrer un camino de `largo`
+ * metros, a cuadros de 1/60 s, llevando la cuenta de su margen como lo hace la escena.
+ */
+function segundosParaRecorrer(largo, velocidadDeSimulacion, { desde = 0, limite = null } = {}) {
+  let recorrido = desde
+  let margenEnMinutos = ATRASO_MAXIMO_EN_MINUTOS
+  let segundos = 0
+  while (recorrido < largo - 1e-9 && segundos < 600) {
+    recorrido = recorridoTrasAvanzar({ recorrido, largo, segundos: 1 / 60, velocidadDeSimulacion, margenEnMinutos, limite })
+    margenEnMinutos = margenTrasAvanzar(margenEnMinutos, 1 / 60, velocidadDeSimulacion)
+    segundos += 1 / 60
+  }
+  return segundos
+}
+
+describe('la velocidad de las motos', () => {
+  it('a una simulación lenta es la misma en un tramo corto que en uno largo', () => {
+    // 0,1 min/s: lo que falta nunca obliga a ir más deprisa que V_BASE.
+    for (const largo of [8, 20, 40]) {
+      expect(velocidadDeLaMoto({ recorrido: largo / 2, largo, velocidadDeSimulacion: 0.1 })).toBe(V_BASE)
+    }
   })
 
-  it('va más lento al principio y al final que por el medio', () => {
-    const velocidadEn = (p) => conArranqueYFrenado(p + 0.01) - conArranqueYFrenado(p)
-    expect(velocidadEn(0)).toBeLessThan(velocidadEn(0.5))
-    expect(velocidadEn(0.9)).toBeLessThan(velocidadEn(0.5))
+  it('el tramo largo tarda proporcionalmente más que el corto', () => {
+    const corto = segundosParaRecorrer(10, 0.1)
+    const largo = segundosParaRecorrer(40, 0.1)
+    // Salvo las dos rampas, que son iguales en los dos, el tiempo crece con la distancia.
+    expect(largo / corto).toBeGreaterThan(3.5)
+    expect(largo / corto).toBeLessThan(4.1)
   })
 
-  it('no se sale de 0 a 1 aunque se le pida de más', () => {
-    expect(conArranqueYFrenado(-1)).toBe(0)
-    expect(conArranqueYFrenado(2)).toBe(1)
+  it('arranca y frena poco a poco, pero nunca se queda quieta', () => {
+    const largo = 20
+    const al = (recorrido) => velocidadDeLaMoto({ recorrido, largo, velocidadDeSimulacion: 0.1 })
+    expect(al(0)).toBeGreaterThan(0)
+    expect(al(0)).toBeLessThan(al(LARGO_DE_LA_RAMPA / 2))
+    expect(al(LARGO_DE_LA_RAMPA / 2)).toBeLessThan(al(largo / 2))
+    expect(al(largo)).toBeGreaterThan(0)
+    expect(al(largo - LARGO_DE_LA_RAMPA / 2)).toBeLessThan(al(largo / 2))
+    expect(al(0)).toBeCloseTo(V_BASE * FACTOR_MINIMO_DE_LA_RAMPA, 10)
+  })
+
+  it('fuera de las rampas el factor es 1', () => {
+    expect(factorDeRampa(LARGO_DE_LA_RAMPA, 20)).toBe(1)
+    expect(factorDeRampa(10, 20)).toBe(1)
+    expect(factorDeRampa(20 - LARGO_DE_LA_RAMPA, 20)).toBe(1)
+  })
+
+  it('con la simulación en pausa termina el viaje a V_BASE', () => {
+    expect(velocidadDeLaMoto({ recorrido: 5, largo: 20, velocidadDeSimulacion: 0 })).toBe(V_BASE)
+    // y llega: no se queda a medio camino
+    expect(segundosParaRecorrer(20, 0)).toBeCloseTo(20 / V_BASE, 0)
+  })
+
+  it('a una simulación rápida el atraso queda acotado: llega dentro de ATRASO_MAXIMO_EN_MINUTOS', () => {
+    for (const velocidad of [10, 30, 60]) {
+      for (const largo of [10, 40, 60]) {
+        const segundos = segundosParaRecorrer(largo, velocidad)
+        const minutosSimulados = segundos * velocidad
+        // un cuadro más de margen por la rampa final y el redondeo del último paso
+        expect(minutosSimulados, `${largo} m a ${velocidad} min/s`).toBeLessThanOrEqual(
+          ATRASO_MAXIMO_EN_MINUTOS + velocidad / 30,
+        )
+      }
+    }
+  })
+
+  it('a la velocidad más alta (60 min/s) acelera mucho más que V_BASE', () => {
+    expect(velocidadDeLaMoto({ recorrido: 5, largo: 40, velocidadDeSimulacion: 60 })).toBeGreaterThan(V_BASE * 10)
+  })
+
+  it('el margen baja con el reloj simulado y no con los cuadros: en pausa no se gasta', () => {
+    expect(margenTrasAvanzar(3, 1, 0.5)).toBeCloseTo(2.5, 10)
+    expect(margenTrasAvanzar(3, 10, 0)).toBe(3)
+    expect(margenTrasAvanzar(0.1, 5, 10)).toBe(0)
+  })
+
+  it('con el plazo casi vencido va muy deprisa, así que llega: no se acerca sin llegar nunca', () => {
+    const casiVencido = velocidadDeLaMoto({ recorrido: 10, largo: 12, velocidadDeSimulacion: 10, margenEnMinutos: 0.05 })
+    const alPrincipio = velocidadDeLaMoto({ recorrido: 10, largo: 12, velocidadDeSimulacion: 10, margenEnMinutos: 3 })
+    expect(casiVencido).toBeGreaterThan(alPrincipio)
+  })
+
+  it('una moto replanificada se pone al día con lo que le queda, no con el camino entero', () => {
+    const alPrincipio = velocidadDeLaMoto({ recorrido: 1, largo: 60, velocidadDeSimulacion: 20 })
+    const alFinal = velocidadDeLaMoto({ recorrido: 50, largo: 60, velocidadDeSimulacion: 20 })
+    expect(alFinal).toBeLessThan(alPrincipio)
+  })
+
+  it('no pasa de su límite, y si ya estaba más allá se queda donde está sin retroceder', () => {
+    const espera = recorridoTrasAvanzar({ recorrido: 4, largo: 30, segundos: 5, velocidadDeSimulacion: 0.1, limite: 10 })
+    expect(espera).toBe(10)
+    const yaPasado = recorridoTrasAvanzar({ recorrido: 12, largo: 30, segundos: 1, velocidadDeSimulacion: 0.1, limite: 10 })
+    expect(yaPasado).toBe(12)
+    const sinLimite = recorridoTrasAvanzar({ recorrido: 12, largo: 30, segundos: 1, velocidadDeSimulacion: 0.1 })
+    expect(sinLimite).toBeGreaterThan(12)
+  })
+
+  it('nunca pasa del largo del camino', () => {
+    expect(recorridoTrasAvanzar({ recorrido: 19.9, largo: 20, segundos: 10, velocidadDeSimulacion: 60 })).toBe(20)
+  })
+})
+
+describe('replanificar desde donde está la moto', () => {
+  const viejo = [[0, 0, 0], [0, 0, 10], [10, 0, 10]]
+
+  it('empieza donde está, no donde empezó', () => {
+    const camino = caminoReplanificado(viejo, 4, [[10, 0, 10], [10, 0, 20]])
+    expect(camino[0]).toEqual([0, 0, 4])
+  })
+
+  it('termina lo que le quedaba y sigue por el camino nuevo', () => {
+    const camino = caminoReplanificado(viejo, 4, [[10, 0, 10], [10, 0, 20]])
+    expect(camino).toEqual([[0, 0, 4], [0, 0, 10], [10, 0, 10], [10, 0, 20]])
+  })
+
+  it('si ya había llegado, el camino nuevo sale de su sitio', () => {
+    const camino = caminoReplanificado(viejo, largoDelCamino(viejo), [[10, 0, 10], [10, 0, 20]])
+    expect(camino).toEqual([[10, 0, 10], [10, 0, 20]])
+  })
+
+  it('no se pasa para volver: avanzar un lugar en la fila cuando casi llegaba al suyo', () => {
+    // Iba a z = 4 por la franja y el motor la manda a z = 6, un lugar más adelante.
+    const camino = caminoReplanificado([[12.5, 0, -10], [12.5, 0, 4]], 10, [[12.5, 0, 4], [12.5, 0, 6]])
+    expect(camino).toEqual([[12.5, 0, 0], [12.5, 0, 6]])
+  })
+
+  it('tampoco da un rodeo si el nuevo destino está en el camino que llevaba', () => {
+    const camino = caminoReplanificado([[12.5, 0, -10], [12.5, 0, 4]], 10, [[12.5, 0, 4], [12.5, 0, 2]])
+    expect(camino).toEqual([[12.5, 0, 0], [12.5, 0, 2]])
+  })
+
+  it('conserva los giros de verdad', () => {
+    expect(sinRetrocesos([[0, 0, 0], [0, 0, 5], [5, 0, 5]])).toHaveLength(3)
+  })
+})
+
+describe('el corredor de detrás de los puestos es de un solo carril', () => {
+  it('lo que está entre la pared y los puestos es corredor; lo demás, no', () => {
+    expect(estaEnElCorredor([0, 0, Z_DETRAS_DE_LOS_PUESTOS])).toBe(true)
+    expect(estaEnElCorredor([0, 0, LOCAL.zPuestos])).toBe(false)
+    expect(estaEnElCorredor([0, 0, LOCAL.zSalida - 1])).toBe(false)
+  })
+
+  it('las dos avenidas, al llegar a la fila, pasan por el corredor', () => {
+    for (const avenida of AVENIDAS_DEL_MAPA) {
+      const camino = caminoDeLlegada(avenida, sitioEnFila('lavado', 3))
+      const hasta = distanciaHastaElCorredor(camino)
+      expect(hasta, avenida).not.toBeNull()
+      expect(estaEnElCorredor(puntoEnElCamino(camino, hasta + 0.1).punto)).toBe(true)
+      expect(estaEnElCorredor(puntoEnElCamino(camino, Math.max(0, hasta - 0.1)).punto)).toBe(false)
+    }
+  })
+
+  it('la salida de un puesto también pasa por el corredor', () => {
+    for (const avenida of AVENIDAS_DEL_MAPA) {
+      const camino = caminoDeSalida(sitioEnPuesto(1, PUESTOS), avenida)
+      expect(distanciaHastaElCorredor(camino), avenida).not.toBeNull()
+    }
+  })
+
+  it('un camino que nunca pasa por él no tiene puerta', () => {
+    expect(distanciaHastaElCorredor(caminoHacia(sitioEnFila('lavado', 0), sitioEnPlaca(1, PLACAS)))).toBeNull()
+  })
+
+  it('el que entra espera si viene uno saliendo, y el que sale espera si ya viene uno entrando', () => {
+    expect(debeEsperarParaElCorredor(false, { entrando: 0, saliendo: 1 })).toBe(true)
+    expect(debeEsperarParaElCorredor(true, { entrando: 1, saliendo: 0 })).toBe(true)
+  })
+
+  it('en el mismo sentido no esperan, y vacío tampoco', () => {
+    expect(debeEsperarParaElCorredor(false, { entrando: 2, saliendo: 0 })).toBe(false)
+    expect(debeEsperarParaElCorredor(true, { entrando: 0, saliendo: 3 })).toBe(false)
+    expect(debeEsperarParaElCorredor(false, { entrando: 0, saliendo: 0 })).toBe(false)
+  })
+
+  it.each(AVENIDAS_DEL_MAPA)('%s: la que entra y la que sale nunca están de frente dentro del corredor', (avenida) => {
+    // Las dos llegan a su puerta a la vez, que es lo peor que puede pasar.
+    const entrada = caminoDeLlegada(avenida, sitioEnFila('lavado', 3))
+    const salida = caminoDeSalida(sitioEnPuesto(1, PUESTOS), avenida)
+    const puertaE = Math.max(0, distanciaHastaElCorredor(entrada) - 0.15)
+    const puertaS = Math.max(0, distanciaHastaElCorredor(salida) - 0.15)
+    const motos = {
+      e: { camino: entrada, puerta: puertaE, saliendo: false, recorrido: Math.max(0, puertaE - 3), largo: largoDelCamino(entrada) },
+      s: { camino: salida, puerta: puertaS, saliendo: true, recorrido: Math.max(0, puertaS - 3), largo: largoDelCamino(salida) },
+    }
+    const dentro = (moto) => estaEnElCorredor(puntoEnElCamino(moto.camino, moto.recorrido).punto)
+    for (let cuadro = 0; cuadro < 60 * 120; cuadro += 1) {
+      const cuenta = { entrando: dentro(motos.e) ? 1 : 0, saliendo: dentro(motos.s) ? 1 : 0 }
+      for (const moto of [motos.e, motos.s]) {
+        const espera = !dentro(moto) && debeEsperarParaElCorredor(moto.saliendo, cuenta)
+        moto.recorrido = recorridoTrasAvanzar({
+          recorrido: moto.recorrido,
+          largo: moto.largo,
+          segundos: 1 / 60,
+          velocidadDeSimulacion: 1,
+          limite: espera ? moto.puerta : null,
+        })
+      }
+      expect(dentro(motos.e) && dentro(motos.s), `cuadro ${cuadro}`).toBe(false)
+    }
+    // y las dos terminan su viaje: nadie se queda esperando para siempre
+    expect(motos.e.recorrido).toBe(motos.e.largo)
+    expect(motos.s.recorrido).toBe(motos.s.largo)
+  })
+})
+
+describe('llegar por la avenida', () => {
+  it.each(AVENIDAS_DEL_MAPA)('%s: empieza en el borde de la calzada, pasa por la boca y llega a su sitio', (clave) => {
+    const camino = caminoDeLlegada(clave, sitioEnFila('lavado', 2))
+    expect(camino[0]).toEqual(CURVAS_DE_ENTRADA[clave][0])
+    expect(camino.some(([x, , z]) => x === AVENIDAS[clave].posicion[0] && z === AVENIDAS[clave].posicion[2])).toBe(true)
+    expect(camino.at(-1)).toEqual(posicionEnFila(2, 'lavado'))
+  })
+
+  it.each(AVENIDAS_DEL_MAPA)('%s: a una placa libre llega directo, sin pasar por la franja de la fila', (clave) => {
+    const camino = caminoDeLlegada(clave, sitioEnPlaca(2, PLACAS))
+    expect(camino.at(-1)).toEqual(puntoDe(sitioEnPlaca(2, PLACAS)))
+    expect(camino.every(([x]) => x < FRANJA_DE_ESPERA.x0)).toBe(true)
   })
 })
 
@@ -317,5 +565,334 @@ describe('girar hacia donde se avanza', () => {
 
   it('si ya mira donde debe, no gira', () => {
     expect(girarHacia(1.2, 1.2, 0.5)).toBeCloseTo(1.2, 10)
+  })
+})
+
+/* ----------------------------------------- caminos de entrada y de salida -- */
+
+const AVENIDAS_DEL_MAPA = ['granColombia', 'guaimaral']
+
+/**
+ * ¿Este punto cae sobre la calzada de la avenida? Las avenidas siguen en línea
+ * recta hasta el borde del terreno, así que solo cuenta el ancho de la calzada,
+ * no su largo.
+ */
+const enLaCalzada = ([x, , z], { clave, calle }) =>
+  clave === 'guaimaral'
+    ? Math.abs(x - calle.centro[0]) <= calle.ancho / 2 + 1e-9
+    : Math.abs(z - calle.centro[2]) <= calle.fondo / 2 + 1e-9
+
+describe('las curvas de entrada, según el mapa', () => {
+  it.each(AVENIDAS_DEL_MAPA)('%s: acaba exactamente en su boca', (clave) => {
+    expect(CURVAS_DE_ENTRADA[clave].at(-1)).toEqual(AVENIDAS[clave].posicion)
+  })
+
+  it.each(AVENIDAS_DEL_MAPA)('%s: empieza y se mueve sobre la calzada hasta llegar a la boca', (clave) => {
+    const avenida = AVENIDAS[clave]
+    const curva = CURVAS_DE_ENTRADA[clave]
+    // todos los puntos menos la boca están sobre la calzada
+    for (const punto of curva.slice(0, -1)) {
+      expect(enLaCalzada(punto, avenida), `${clave}: ${punto}`).toBe(true)
+    }
+  })
+
+  it('la de la Guaimaral sube hacia el fondo y gira hacia el local; la de la Gran Colombia se aparta hacia el fondo y vuelve', () => {
+    const guaimaral = CURVAS_DE_ENTRADA.guaimaral
+    expect(guaimaral[0][2]).toBeGreaterThan(guaimaral.at(-1)[2]) // sube (la Z decrece hacia el fondo)
+    expect(guaimaral.at(-1)[0]).toBeGreaterThan(guaimaral[0][0]) // y gira hacia el local, a la derecha
+    const gran = CURVAS_DE_ENTRADA.granColombia
+    const masAlFondo = Math.min(...gran.map(([, , z]) => z))
+    expect(masAlFondo).toBeLessThan(gran[0][2] - 1) // se aparta del local, hacia el fondo
+    expect(gran.at(-1)[2]).toBeGreaterThan(masAlFondo) // y vuelve hacia él
+    expect(gran.at(-1)[0]).toBeGreaterThan(gran[0][0]) // avanzando de izquierda a derecha
+  })
+
+  it('cada curva entra por su boca, y esta cabe en la pared o en el bordillo', () => {
+    expect(ANCHO_DE_BOCA).toBeGreaterThan(MOTO.ancho * 2)
+  })
+})
+
+describe('dónde caen las bocas, según el mapa superpuesto a la planta', () => {
+  it('la de la Guaimaral está a media altura del borde izquierdo, no cerca del frente', () => {
+    const [x, , z] = AVENIDAS.guaimaral.posicion
+    expect(x).toBe(-LOCAL.ancho / 2)
+    expect(Math.abs(z)).toBeLessThanOrEqual(LOCAL.fondo / 6)
+  })
+
+  it('la de la Gran Colombia está en la pared del fondo, a la derecha de la esquina y dentro de la pared', () => {
+    const [x, , z] = AVENIDAS.granColombia.posicion
+    expect(z).toBe(LOCAL.zSalida)
+    expect(x).toBeGreaterThan(-LOCAL.ancho / 2 + PASILLO.ancho)
+    expect(x - ANCHO_DE_BOCA / 2).toBeGreaterThan(-LOCAL.ancho / 2)
+  })
+
+  it.each(AVENIDAS_DEL_MAPA)('%s: los caminos de entrada y de salida pasan a más de 53,5 cm de cada columna', (clave) => {
+    const libre = 0.16 + MEDIO_ANCHO_DE_MOTO
+    const caminos = [caminoDeEntrada(clave), caminoDeSalida(sitioEnPuesto(0, PUESTOS), clave)]
+    for (const camino of caminos) {
+      for (const { punto } of muestrasDe(camino)) {
+        for (const [xc, , zc] of COLUMNAS_DEL_TECHO) {
+          expect(Math.hypot(punto[0] - xc, punto[2] - zc), `${clave} en (${punto[0].toFixed(2)}, ${punto[2].toFixed(2)})`).toBeGreaterThan(libre)
+        }
+      }
+    }
+  })
+
+  it.each(AVENIDAS_DEL_MAPA)('%s: dentro del lote nunca se sale del local ni cruza la pared', (clave) => {
+    const paso = caminoDeEntrada(clave).filter(([x, , z]) => x >= -LOCAL.ancho / 2 && z > LOCAL.zSalida + 0.2)
+    for (const { punto } of muestrasDe(paso, 0.1)) {
+      expect(punto[2]).toBeGreaterThan(LOCAL.zSalida + 0.2 - 1e-9)
+      expect(punto[0]).toBeGreaterThanOrEqual(-LOCAL.ancho / 2 - 1e-9)
+    }
+  })
+})
+
+describe('el camino de entrada de cada avenida', () => {
+  it.each(AVENIDAS_DEL_MAPA)('%s: empieza en la avenida, pasa por la boca y acaba donde se une a la fila', (clave) => {
+    const camino = caminoDeEntrada(clave)
+    expect(camino[0]).toEqual(CURVAS_DE_ENTRADA[clave][0])
+    expect(camino.some(([x, , z]) => x === AVENIDAS[clave].posicion[0] && z === AVENIDAS[clave].posicion[2])).toBe(true)
+    expect(camino.at(-1)).toEqual(PUNTO_DE_UNION_A_LA_FILA)
+  })
+
+  it('las dos confluyen en el mismo punto: una sola fila (cola 1)', () => {
+    expect(caminoDeEntrada('guaimaral').at(-1)).toEqual(caminoDeEntrada('granColombia').at(-1))
+  })
+
+  it.each(AVENIDAS_DEL_MAPA)('%s: ningún punto pisa una losa, con 5, 6 y 7 placas y 3, 4 y 5 puestos', (clave) => {
+    for (const [placas, puestos] of [[5, 3], [6, 4], [7, 5]]) {
+      expect(noPisaLosas(caminoDeEntrada(clave), { losas: losasDe(placas, puestos) })).toEqual([])
+    }
+  })
+
+  it('rechaza una avenida que no existe', () => {
+    expect(() => caminoDeEntrada('otra')).toThrow(RangeError)
+  })
+})
+
+/** ¿Algo del local estorba en este punto? Columnas y postes, con lo que ocupa la moto. */
+function estorbo([x, , z]) {
+  const estorbos = []
+  for (const [xc, , zc] of COLUMNAS_DEL_TECHO) {
+    if (Math.hypot(x - xc, z - zc) <= 0.16 + MEDIO_ANCHO_DE_MOTO) estorbos.push(`columna (${xc}, ${zc})`)
+  }
+  for (const losa of losasDe(7, 5)) {
+    const xp = losa.punto[0] + POSTE_DE_LOSA.x
+    const zp = losa.punto[2] + POSTE_DE_LOSA.z
+    if (Math.hypot(x - xp, z - zp) <= 0.2 + MEDIO_ANCHO_DE_MOTO) estorbos.push(`poste de la ${losa.clase}`)
+  }
+  return estorbos
+}
+
+describe('la fila del lavado: adónde va cada moto desde cada sitio', () => {
+  /** Los caminos de las motos que llegan, con y sin placa libre, y los de las que salen de la cabeza. */
+  const todosLosCaminos = () => {
+    const caminos = []
+    for (const avenida of AVENIDAS_DEL_MAPA) {
+      for (let i = 0; i < TOPE_DE_MOTOS_DIBUJADAS.lavado; i += 1) {
+        caminos.push({ nombre: `${avenida} a la fila, sitio ${i + 1}`, camino: caminoHacia(sitioDeEntrada(avenida), sitioEnFila('lavado', i)) })
+      }
+      for (const total of [5, 6, 7]) {
+        for (let i = 0; i < total; i += 1) {
+          caminos.push({ nombre: `${avenida} a la placa ${i + 1} de ${total}`, camino: caminoHacia(sitioDeEntrada(avenida), sitioEnPlaca(i, total)) })
+        }
+      }
+    }
+    for (const total of [5, 6, 7]) {
+      for (let i = 0; i < total; i += 1) {
+        caminos.push({ nombre: `de la cabeza a la placa ${i + 1} de ${total}`, camino: caminoHacia(sitioEnFila('lavado', 0), sitioEnPlaca(i, total)) })
+        caminos.push({ nombre: `del sitio 3 a la placa ${i + 1} de ${total}`, camino: caminoHacia(sitioEnFila('lavado', 2), sitioEnPlaca(i, total)) })
+      }
+    }
+    return caminos
+  }
+
+  it('ninguno pisa una losa, con 5, 6 y 7 placas y 3, 4 y 5 puestos', () => {
+    for (const { nombre, camino } of todosLosCaminos()) {
+      for (const [placas, puestos] of [[5, 3], [6, 4], [7, 5]]) {
+        const hasta = nombre.match(/placa (\d+) de (\d+)/)
+        const suyas = hasta && Number(hasta[2]) === placas ? [`placa ${hasta[1]}`] : []
+        const pisadas = noPisaLosas(camino, { losas: losasDe(placas, puestos), suyas })
+        // con otro número de placas la placa de destino no es la misma: solo se mira el caso de su total
+        if (hasta && Number(hasta[2]) !== placas) continue
+        expect(pisadas, `${nombre}, con ${placas} placas y ${puestos} puestos`).toEqual([])
+      }
+    }
+  })
+
+  it('ninguno roza una columna ni un poste', () => {
+    for (const { nombre, camino } of todosLosCaminos()) {
+      for (const { punto } of muestrasDe(camino)) {
+        expect(estorbo(punto), `${nombre}, en (${punto[0].toFixed(2)}, ${punto[2].toFixed(2)})`).toEqual([])
+      }
+    }
+  })
+
+  it('las motos que esperan llegan a la cola por fuera de las losas y la alcanzan por detrás', () => {
+    for (const avenida of AVENIDAS_DEL_MAPA) {
+      for (let i = 0; i < TOPE_DE_MOTOS_DIBUJADAS.lavado; i += 1) {
+        const [, , zDelSitio] = posicionEnFila(i, 'lavado')
+        const camino = caminoHacia(sitioDeEntrada(avenida), sitioEnFila('lavado', i))
+        for (const { punto } of muestrasDe(camino)) {
+          // Una vez en la franja, solo sube por detrás de su sitio: no atraviesa a las que esperan delante.
+          if (punto[0] > FRANJA_DE_ESPERA.x0) {
+            expect(punto[2], `${avenida}, sitio ${i + 1}`).toBeLessThanOrEqual(zDelSitio + 1e-9)
+          }
+        }
+      }
+    }
+  })
+
+  it('las dos avenidas llegan a la fila por el mismo punto, justo antes de su último lugar', () => {
+    for (const avenida of AVENIDAS_DEL_MAPA) {
+      const camino = caminoHacia(sitioDeEntrada(avenida), sitioEnFila('lavado', 0))
+      expect(camino.some(([x, , z]) => x === PUNTO_DE_UNION_A_LA_FILA[0] && z === PUNTO_DE_UNION_A_LA_FILA[2])).toBe(true)
+    }
+  })
+
+  it('la que llega con una placa libre va directa a ella, sin pasar por la franja de la fila', () => {
+    for (const avenida of AVENIDAS_DEL_MAPA) {
+      for (let i = 0; i < PLACAS; i += 1) {
+        const camino = caminoHacia(sitioDeEntrada(avenida), sitioEnPlaca(i, PLACAS))
+        expect(camino.every(([x]) => x < FRANJA_DE_ESPERA.x0), `${avenida}, placa ${i + 1}`).toBe(true)
+      }
+    }
+  })
+
+  it('de la cabeza de la fila a una placa de adelante se va de frente, por delante de las columnas', () => {
+    const camino = caminoHacia(sitioEnFila('lavado', 0), sitioEnPlaca(1, PLACAS))
+    expect(camino).toHaveLength(3)
+    expect(camino[1][2]).toBe(Z_DE_ACCESO_A_PLACAS)
+    expect(Z_DE_ACCESO_A_PLACAS).toBeGreaterThan(Math.max(...COLUMNAS_DEL_TECHO.map(([, , z]) => z)) + 1)
+  })
+
+  it('el que sale de la cabeza se aparta de la fila: no pasa por encima de las que esperan', () => {
+    for (const total of [5, 6, 7]) {
+      for (let i = 0; i < total; i += 1) {
+        const camino = caminoHacia(sitioEnFila('lavado', 0), sitioEnPlaca(i, total))
+        const [, , zCabeza] = posicionEnFila(0, 'lavado')
+        for (const { punto } of muestrasDe(camino)) {
+          if (Math.abs(punto[0] - FILA_DEL_LAVADO.x) < MOTO.ancho) {
+            expect(punto[2], `placa ${i + 1} de ${total}`).toBeGreaterThan(zCabeza - SEPARACION_EN_FILA / 2)
+          }
+        }
+      }
+    }
+  })
+
+  it('de la cabeza a una placa de atrás entra directo por el lado derecho, sin rodear el local por la izquierda', () => {
+    for (const total of [5, 6, 7]) {
+      for (let i = 0; i < total; i += 1) {
+        const camino = caminoHacia(sitioEnFila('lavado', 0), sitioEnPlaca(i, total))
+        // Nunca llega al pasillo de la izquierda: todo el viaje queda a la derecha de las losas más a la izquierda.
+        const izquierda = Math.min(...camino.map(([x]) => x))
+        expect(izquierda, `placa ${i + 1} de ${total}`).toBeGreaterThan(PASILLO.centroX + PASILLO.ancho / 2)
+        if (esDeLaFilaDeAtras(i, total)) {
+          // por el carril de la franja, y luego por el hueco entre las filas
+          expect(camino.some(([x]) => x === X_DEL_CARRIL_DE_LA_FRANJA), `placa ${i + 1} de ${total}`).toBe(true)
+          expect(camino.some(([, , z]) => z === Z_ENTRE_LAS_FILAS), `placa ${i + 1} de ${total}`).toBe(true)
+        }
+      }
+    }
+  })
+
+  it('de la cabeza a una placa de atrás, el largo ya no da la vuelta al local', () => {
+    const camino = caminoHacia(sitioEnFila('lavado', 0), sitioEnPlaca(5, PLACAS))
+    // antes eran unos 41 m, rodeando por el pasillo; de frente son los metros del local en línea casi recta
+    expect(largoDelCamino(camino)).toBeLessThan(25)
+  })
+
+  it('el carril de la franja queda libre: a más de 53,5 cm de las columnas y sin tocar la fila', () => {
+    const [xColumna] = COLUMNAS_DEL_TECHO[1]
+    expect(X_DEL_CARRIL_DE_LA_FRANJA - xColumna).toBeGreaterThan(0.16 + MEDIO_ANCHO_DE_MOTO)
+    expect(FILA_DEL_LAVADO.x - X_DEL_CARRIL_DE_LA_FRANJA).toBeGreaterThan(MOTO.ancho)
+    expect(X_DEL_CARRIL_DE_LA_FRANJA).toBeGreaterThanOrEqual(FRANJA_DE_ESPERA.x0)
+  })
+
+  it('la moto de otro sitio de la fila sube primero hasta la cabeza antes de salir', () => {
+    const camino = caminoHacia(sitioEnFila('lavado', 2), sitioEnPlaca(1, PLACAS))
+    expect(camino[1]).toEqual(posicionEnFila(0, 'lavado'))
+  })
+})
+
+describe('el camino de salida: la entrada al revés, por el otro carril', () => {
+  it.each(AVENIDAS_DEL_MAPA)('%s: sale por la misma boca y con el mismo número de puntos que la curva de entrada', (clave) => {
+    const salida = curvaDeSalida(clave)
+    expect(salida).toHaveLength(CURVAS_DE_ENTRADA[clave].length)
+    expect(salida[0]).toEqual(AVENIDAS[clave].posicion)
+  })
+
+  it.each(AVENIDAS_DEL_MAPA)('%s: acaba en la avenida, a un carril de donde empezó la entrada', (clave) => {
+    const salida = curvaDeSalida(clave)
+    const entrada = CURVAS_DE_ENTRADA[clave]
+    const fin = salida.at(-1)
+    const inicio = entrada[0]
+    expect(Math.hypot(fin[0] - inicio[0], fin[2] - inicio[2])).toBeCloseTo(SEPARACION_DE_CARRILES, 6)
+  })
+
+  it.each(AVENIDAS_DEL_MAPA)('%s: el carril de salida queda al otro lado del eje de la calle', (clave) => {
+    const { calle } = AVENIDAS[clave]
+    const eje = clave === 'guaimaral' ? calle.centro[0] : calle.centro[2]
+    const coordenada = (punto) => (clave === 'guaimaral' ? punto[0] : punto[2])
+    const entra = coordenada(CURVAS_DE_ENTRADA[clave][0]) - eje
+    const sale = coordenada(curvaDeSalida(clave).at(-1)) - eje
+    expect(Math.sign(entra)).toBe(-Math.sign(sale))
+  })
+
+  it.each(AVENIDAS_DEL_MAPA)('%s: toda la curva de salida, salvo la boca, está sobre la calzada', (clave) => {
+    for (const punto of curvaDeSalida(clave).slice(1)) {
+      expect(enLaCalzada(punto, AVENIDAS[clave]), `${clave}: ${punto}`).toBe(true)
+    }
+  })
+
+  it.each(AVENIDAS_DEL_MAPA)('%s: desde cualquier puesto sale sin pisar ninguna losa, con 3, 4 y 5 puestos', (clave) => {
+    for (const puestos of [3, 4, 5]) {
+      const todas = losasDe(PLACAS, puestos)
+      for (let i = 0; i < puestos; i += 1) {
+        const camino = caminoDeSalida(sitioEnPuesto(i, puestos), clave)
+        expect(noPisaLosas(camino, { losas: todas, suyas: [`puesto ${i + 1}`] }), `${clave}, puesto ${i + 1}`).toEqual([])
+      }
+    }
+  })
+
+  it('en el pasillo, el que sale por la Guaimaral va por otra línea que el que entra, para no cruzarse de frente', () => {
+    expect(Math.abs(X_DE_SALIDA_POR_EL_PASILLO - PASILLO.centroX)).toBeGreaterThanOrEqual(1)
+    const camino = caminoDeSalida(sitioEnPuesto(1, PUESTOS), 'guaimaral')
+    const enElPasillo = camino.filter(
+      ([x, , z]) => Math.abs(x - PASILLO.centroX) < PASILLO.ancho / 2 - 1e-9 && z > Z_DETRAS_DE_LOS_PUESTOS + 1e-9,
+    )
+    expect(enElPasillo.length).toBeGreaterThan(0)
+    for (const [x] of enElPasillo) expect(x).toBe(X_DE_SALIDA_POR_EL_PASILLO)
+  })
+
+  it('el que sale por la Gran Colombia no baja por el pasillo: va por el corredor hasta su boca', () => {
+    const camino = caminoDeSalida(sitioEnPuesto(1, PUESTOS), 'granColombia')
+    for (const [x, , z] of camino) {
+      if (z >= LOCAL.zSalida) expect(z, `en (${x}, ${z})`).toBeLessThanOrEqual(LOCAL.zPuestos)
+    }
+  })
+
+  it('empieza en el puesto y acaba en la avenida por la que entró', () => {
+    for (const clave of AVENIDAS_DEL_MAPA) {
+      const camino = caminoDeSalida(sitioEnPuesto(1, PUESTOS), clave)
+      expect(camino[0]).toEqual(puntoDe(sitioEnPuesto(1, PUESTOS)))
+      expect(camino.at(-1)).toEqual(curvaDeSalida(clave).at(-1))
+    }
+  })
+
+  it('el que entró por la Guaimaral recorre el pasillo hasta su boca, a media altura; el de la Gran Colombia sale por el fondo', () => {
+    const porGuaimaral = caminoDeSalida(sitioEnPuesto(1, PUESTOS), 'guaimaral')
+    const porGranColombia = caminoDeSalida(sitioEnPuesto(1, PUESTOS), 'granColombia')
+    expect(largoDelCamino(porGuaimaral)).toBeGreaterThan(largoDelCamino(porGranColombia))
+    expect(porGuaimaral.some(([x, , z]) => x === X_DE_SALIDA_POR_EL_PASILLO && z === AVENIDAS.guaimaral.posicion[2])).toBe(true)
+  })
+
+  it.each(AVENIDAS_DEL_MAPA)('%s: la salida, ya apartada de la entrada, no pisa el borde de la calzada', (clave) => {
+    const { calle } = AVENIDAS[clave]
+    const borde = clave === 'guaimaral' ? calle.centro[0] - calle.ancho / 2 : calle.centro[2] - calle.fondo / 2
+    for (const punto of curvaDeSalida(clave)) {
+      const coordenada = clave === 'guaimaral' ? punto[0] : punto[2]
+      expect(coordenada).toBeGreaterThanOrEqual(borde + MARGEN_EN_LA_CALZADA - 1e-9)
+    }
   })
 })

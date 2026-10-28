@@ -3,46 +3,190 @@ import { describe, expect, it } from 'vitest'
 import {
   ALTO_DEL_TECHO,
   alturaParaVerLaFilaDeAtras,
+  ASPECTO_INICIAL,
+  BOTONES_DE_VISTA,
+  CAJA_DEL_LOCAL,
   cajaDelLocalEnPantalla,
   DIAGONAL_DEL_LOCAL,
   distanciaDe,
+  ELEVACION_DE_LA_VISTA_GENERAL,
   elevacionDeVista,
   encuadreParaLasCapas,
+  esquinasDeLaCaja,
   ESQUINAS_DEL_LOCAL,
   LIMITES_DE_CAMARA,
-  medioAltoVisible,
   proyectarPunto,
   VISTA_INICIAL,
-  vistaRecentrada,
-  VISTAS,
+  vistaAcabado,
+  vistaDeLaClave,
+  vistaGeneral,
+  vistaLavado,
+  vistaPlanta,
+  ZONA_DEL_ACABADO,
+  ZONA_DEL_LAVADO,
 } from './camara.js'
-import { LOCAL } from './posiciones.js'
+import { FILA_DEL_LAVADO, FRANJA_DE_ESPERA, LOCAL } from './posiciones.js'
 
-describe('la vista inicial', () => {
-  it('mira de frente, desde el lado abierto del local', () => {
-    const [x, , z] = VISTA_INICIAL.posicion
-    expect(z).toBeGreaterThan(LOCAL.zFrente)
-    expect(x).toBe(0)
+/** Las proporciones que importan: escritorio, 1366 × 768, 1920 × 1080, celular vertical y celular girado. */
+const ASPECTOS = {
+  'escritorio 16:9': 16 / 9,
+  '1366 × 768': 1366 / 768,
+  '1920 × 1080': 1920 / 1080,
+  '390 × 844 (celular vertical)': 390 / 844,
+  '844 × 390 (celular girado)': 844 / 390,
+  'cuadrada': 1,
+}
+
+/** ¿Un punto del mundo cae dentro de la imagen de la vista? */
+const cabe = (punto, vista, aspecto) => {
+  const proyectado = proyectarPunto(punto, vista, aspecto)
+  return proyectado !== null && Math.abs(proyectado[0]) <= 1 && Math.abs(proyectado[1]) <= 1
+}
+
+describe.each(Object.entries(ASPECTOS))('la vista general con %s', (_nombre, aspecto) => {
+  const vista = vistaGeneral(aspecto)
+
+  it('muestra el local completo, de la Guaimaral a la franja de espera, a lo ancho y a lo alto', () => {
+    for (const esquina of ESQUINAS_DEL_LOCAL) {
+      expect(cabe(esquina, vista, aspecto), `esquina ${esquina}`).toBe(true)
+    }
   })
 
-  it('es baja: mira casi de canto, no desde arriba', () => {
-    const [, alto, z] = VISTA_INICIAL.posicion
-    const anguloSobreElSuelo = Math.atan2(alto, z) * (180 / Math.PI)
-    expect(anguloSobreElSuelo).toBeLessThan(25)
+  it('incluye la franja de espera completa y la fila del lavado de la cabeza al último lugar', () => {
+    const franja = FRANJA_DE_ESPERA.x0 + FRANJA_DE_ESPERA.ancho
+    for (const z of [-LOCAL.fondo / 2, LOCAL.zFrente]) {
+      for (const x of [FRANJA_DE_ESPERA.x0, franja]) {
+        expect(cabe([x, 0, z], vista, aspecto), `franja en (${x}, ${z})`).toBe(true)
+      }
+    }
+    expect(cabe([FILA_DEL_LAVADO.x, 0, FILA_DEL_LAVADO.zCabeza], vista, aspecto)).toBe(true)
+  })
+
+  it('mira de frente, desde el lado abierto del local, y baja', () => {
+    const [x, alto, z] = vista.posicion
+    const [xObjetivo] = vista.objetivo
+    expect(z).toBeGreaterThan(LOCAL.zFrente)
+    expect(x).toBeCloseTo(xObjetivo, 9)
+    expect(elevacionDeVista(vista)).toBeLessThan(25)
+    expect(elevacionDeVista(vista)).toBeGreaterThanOrEqual(ELEVACION_DE_LA_VISTA_GENERAL - 1e-9)
+    expect(alto).toBeGreaterThan(0)
   })
 
   it('pero no tanto como para que la fila de adelante tape la de atrás', () => {
-    const [, alto, z] = VISTA_INICIAL.posicion
+    const [, alto, z] = vista.posicion
     expect(alto).toBeGreaterThan(alturaParaVerLaFilaDeAtras(z))
   })
 
-  it('deja ver el local entero', () => {
-    const [, alto, z] = VISTA_INICIAL.posicion
-    expect(Math.hypot(alto, z)).toBeGreaterThan(DIAGONAL_DEL_LOCAL / 2)
+  it('queda dentro de las distancias que permite el control', () => {
+    expect(distanciaDe(vista)).toBeGreaterThanOrEqual(LIMITES_DE_CAMARA.distanciaMinima)
+    expect(distanciaDe(vista)).toBeLessThanOrEqual(LIMITES_DE_CAMARA.distanciaMaxima)
   })
 
-  it('no se mete por debajo del suelo', () => {
-    expect(VISTA_INICIAL.posicion[1]).toBeGreaterThan(0)
+  it('es la más corta que deja ver el local: un 10 % más cerca y ya no cabría', () => {
+    const [px, py, pz] = vista.posicion
+    const [ox, oy, oz] = vista.objetivo
+    const cerca = {
+      posicion: [ox + (px - ox) * 0.9, oy + (py - oy) * 0.9, oz + (pz - oz) * 0.9],
+      objetivo: vista.objetivo,
+    }
+    expect(ESQUINAS_DEL_LOCAL.every((e) => cabe(e, cerca, aspecto))).toBe(false)
+  })
+
+  it('el objetivo cae en el centro de la imagen', () => {
+    const [x, y] = proyectarPunto(vista.objetivo, vista, aspecto)
+    expect(x).toBeCloseTo(0, 9)
+    expect(y).toBeCloseTo(0, 9)
+  })
+})
+
+describe('la vista general en vertical se aleja más que en horizontal', () => {
+  it('en un celular de 390 × 844 está más lejos que en un escritorio', () => {
+    expect(distanciaDe(vistaGeneral(390 / 844))).toBeGreaterThan(distanciaDe(vistaGeneral(16 / 9)) * 1.5)
+  })
+})
+
+describe('la vista inicial', () => {
+  it('es la vista general con la proporción de arranque', () => {
+    expect(VISTA_INICIAL.posicion).toEqual(vistaGeneral(ASPECTO_INICIAL).posicion)
+    expect(VISTA_INICIAL.objetivo).toEqual(vistaGeneral(ASPECTO_INICIAL).objetivo)
+  })
+
+  it('mira al centro del local completo, no solo al de las columnas', () => {
+    expect(VISTA_INICIAL.objetivo[0]).toBeCloseTo((CAJA_DEL_LOCAL.minX + CAJA_DEL_LOCAL.maxX) / 2, 9)
+    expect(VISTA_INICIAL.objetivo[2]).toBeCloseTo((CAJA_DEL_LOCAL.minZ + CAJA_DEL_LOCAL.maxZ) / 2, 9)
+  })
+
+  it('deja ver el local entero', () => {
+    expect(distanciaDe(VISTA_INICIAL)).toBeGreaterThan(DIAGONAL_DEL_LOCAL / 2)
+  })
+})
+
+describe('los cuatro botones de vista', () => {
+  it('se llaman Vista general, Lavado, Acabado y Planta, y solo esos', () => {
+    expect(BOTONES_DE_VISTA.map((b) => b.nombre)).toEqual(['Vista general', 'Lavado', 'Acabado', 'Planta'])
+  })
+
+  it('cada clave da su vista y una clave que no existe falla en voz alta', () => {
+    for (const { clave, nombre } of BOTONES_DE_VISTA) {
+      expect(vistaDeLaClave(clave, 16 / 9).nombre).toBe(nombre)
+    }
+    expect(() => vistaDeLaClave('recentrar', 16 / 9)).toThrow(RangeError)
+  })
+})
+
+describe.each(Object.entries(ASPECTOS))('lavado y acabado con %s', (_nombre, aspecto) => {
+  it('el lavado muestra las placas y la fila de espera, de la cabeza hacia el fondo', () => {
+    const vista = vistaLavado(aspecto)
+    for (const esquina of esquinasDeLaCaja(ZONA_DEL_LAVADO)) {
+      expect(cabe(esquina, vista, aspecto), `lavado, esquina ${esquina}`).toBe(true)
+    }
+    expect(cabe([FILA_DEL_LAVADO.x, 0, FILA_DEL_LAVADO.zCabeza], vista, aspecto)).toBe(true)
+    expect(cabe([2, 0, 4], vista, aspecto)).toBe(true) // una placa de adelante
+    expect(cabe([2, 0, 0], vista, aspecto)).toBe(true) // y una de atrás
+  })
+
+  it('el acabado muestra los puestos y su fila', () => {
+    const vista = vistaAcabado(aspecto)
+    for (const esquina of esquinasDeLaCaja(ZONA_DEL_ACABADO)) {
+      expect(cabe(esquina, vista, aspecto), `acabado, esquina ${esquina}`).toBe(true)
+    }
+    expect(cabe([2, 0, LOCAL.zPuestos], vista, aspecto)).toBe(true)
+    expect(cabe([2, 0, LOCAL.zFilaAcabado], vista, aspecto)).toBe(true)
+  })
+
+  it('ninguna de las dos se sale de lo que permite el control', () => {
+    for (const vista of [vistaLavado(aspecto), vistaAcabado(aspecto)]) {
+      expect(distanciaDe(vista)).toBeGreaterThanOrEqual(LIMITES_DE_CAMARA.distanciaMinima)
+      expect(distanciaDe(vista)).toBeLessThanOrEqual(LIMITES_DE_CAMARA.distanciaMaxima)
+    }
+  })
+
+  it('y no se alejan más que la vista general (en una pantalla muy baja y ancha, la altura manda)', () => {
+    expect(distanciaDe(vistaLavado(aspecto))).toBeLessThan(distanciaDe(vistaGeneral(aspecto)) * 1.1)
+    expect(distanciaDe(vistaAcabado(aspecto))).toBeLessThan(distanciaDe(vistaGeneral(aspecto)) * 1.1)
+  })
+})
+
+it('en un escritorio de 16:9 acercan más que la vista general', () => {
+  expect(distanciaDe(vistaLavado(16 / 9))).toBeLessThan(distanciaDe(vistaGeneral(16 / 9)) * 0.95)
+  expect(distanciaDe(vistaAcabado(16 / 9))).toBeLessThan(distanciaDe(vistaGeneral(16 / 9)) * 0.95)
+})
+
+describe.each(Object.entries(ASPECTOS))('la planta con %s', (_nombre, aspecto) => {
+  const vista = vistaPlanta(aspecto)
+
+  it('mira desde arriba, casi en vertical, y muestra el local completo con la franja de espera', () => {
+    expect(elevacionDeVista(vista)).toBeGreaterThan(80)
+    const [x, , z] = vista.posicion
+    expect(Math.hypot(x - vista.objetivo[0], z - vista.objetivo[2])).toBeLessThan(distanciaDe(vista) / 10)
+    for (const esquina of ESQUINAS_DEL_LOCAL) {
+      expect(cabe([esquina[0], 0, esquina[2]], vista, aspecto), `esquina ${esquina}`).toBe(true)
+    }
+  })
+
+  it('queda dentro de las distancias que permite el control', () => {
+    expect(distanciaDe(vista)).toBeLessThanOrEqual(LIMITES_DE_CAMARA.distanciaMaxima)
+    expect(distanciaDe(vista)).toBeGreaterThanOrEqual(LIMITES_DE_CAMARA.distanciaMinima)
   })
 })
 
@@ -60,88 +204,23 @@ describe('la altura mínima para ver las dos filas', () => {
   })
 })
 
-describe('la vista de plano', () => {
-  it('mira desde arriba, casi en vertical', () => {
-    const [x, alto, z] = VISTAS.desdeArriba.posicion
-    expect(alto).toBeGreaterThan(LOCAL.fondo)
-    expect(Math.hypot(x, z)).toBeLessThan(alto / 10)
-  })
-
-  it('está lo bastante alto para que entre el local entero', () => {
-    // Lo que decide si cabe no es la diagonal, sino cuánto mundo abarca la
-    // cámara a esa altura con su ángulo de visión.
-    expect(medioAltoVisible(VISTAS.desdeArriba.posicion[1])).toBeGreaterThan(
-      LOCAL.fondo / 2,
-    )
-  })
-})
-
 describe('los límites del control', () => {
   it('el ángulo polar no llega a la horizontal, así que no se baja del piso', () => {
     expect(LIMITES_DE_CAMARA.anguloPolarMaximo).toBeLessThan(Math.PI / 2)
     expect(LIMITES_DE_CAMARA.anguloPolarMaximo).toBeGreaterThan(1)
   })
 
-  it('las dos vistas caben dentro de las distancias permitidas', () => {
-    for (const vista of Object.values(VISTAS)) {
-      const [x, alto, z] = vista.posicion
-      const [ox, oy, oz] = vista.objetivo
-      const distancia = Math.hypot(x - ox, alto - oy, z - oz)
-      expect(distancia, vista.nombre).toBeGreaterThanOrEqual(
-        LIMITES_DE_CAMARA.distanciaMinima,
-      )
-      expect(distancia, vista.nombre).toBeLessThanOrEqual(
-        LIMITES_DE_CAMARA.distanciaMaxima,
-      )
-    }
-  })
-})
-
-describe('recentrar', () => {
-  it('devuelve el objetivo al centro del local', () => {
-    const { objetivo } = vistaRecentrada([30, 2, 5])
-    expect(objetivo).toEqual(VISTA_INICIAL.objetivo)
-  })
-
-  it('conserva desde dónde se mira', () => {
-    // Mirando desde la izquierda y arriba, se sigue mirando desde ahí.
-    const desde = [-20, 12, 6]
-    const { posicion, objetivo } = vistaRecentrada(desde)
-    const direccionAntes = desde.map((c, i) => c - VISTA_INICIAL.objetivo[i])
-    const direccionDespues = posicion.map((c, i) => c - objetivo[i])
-    const largoAntes = Math.hypot(...direccionAntes)
-    const largoDespues = Math.hypot(...direccionDespues)
-    for (let i = 0; i < 3; i += 1) {
-      expect(direccionDespues[i] / largoDespues).toBeCloseTo(direccionAntes[i] / largoAntes, 10)
-    }
-  })
-
-  it('si se había acercado de más, se aleja hasta encuadrar', () => {
-    const muyCerca = [0, 2, 4]
-    const { posicion, objetivo } = vistaRecentrada(muyCerca)
-    expect(distanciaDe({ posicion, objetivo })).toBeCloseTo(distanciaDe(VISTA_INICIAL), 6)
-  })
-
-  it('si estaba lejos, no lo acerca', () => {
-    const lejos = [0, 10, 50]
-    const { posicion, objetivo } = vistaRecentrada(lejos)
-    const distancia = distanciaDe({ posicion, objetivo })
-    expect(distancia).toBeGreaterThanOrEqual(distanciaDe(VISTA_INICIAL))
-    expect(distancia).toBeCloseTo(
-      distanciaDe({ posicion: lejos, objetivo: VISTA_INICIAL.objetivo }),
-      6,
-    )
-  })
-
-  it('con la cámara justo en el objetivo no se rompe: vuelve a la vista inicial', () => {
-    const { posicion } = vistaRecentrada([...VISTA_INICIAL.objetivo])
-    expect(posicion).toEqual(VISTA_INICIAL.posicion)
+  it('la distancia máxima deja ver el local completo en un celular vertical', () => {
+    expect(distanciaDe(vistaGeneral(390 / 844))).toBeLessThan(LIMITES_DE_CAMARA.distanciaMaxima)
   })
 })
 
 describe('proyectar un punto', () => {
-  it('el objetivo de la vista cae en el centro de la imagen', () => {
-    for (const vista of Object.values(VISTAS)) {
+  const VISTA = vistaGeneral(16 / 9)
+
+  it('el objetivo de cada vista cae en el centro de la imagen', () => {
+    for (const { calcular } of BOTONES_DE_VISTA) {
+      const vista = calcular(16 / 9)
       const [x, y] = proyectarPunto(vista.objetivo, vista, 16 / 9)
       expect(x).toBeCloseTo(0, 9)
       expect(y).toBeCloseTo(0, 9)
@@ -149,20 +228,19 @@ describe('proyectar un punto', () => {
   })
 
   it('lo que está a la derecha cae a la derecha y lo que está arriba, arriba', () => {
-    const vista = VISTA_INICIAL
-    const [aLaDerecha] = proyectarPunto([5, 0.8, -2], vista, 16 / 9)
-    const [, arriba] = proyectarPunto([0, 4, -2], vista, 16 / 9)
+    const [aLaDerecha] = proyectarPunto([VISTA.objetivo[0] + 5, 0.8, VISTA.objetivo[2]], VISTA, 16 / 9)
+    const [, arriba] = proyectarPunto([VISTA.objetivo[0], 4, VISTA.objetivo[2]], VISTA, 16 / 9)
     expect(aLaDerecha).toBeGreaterThan(0)
     expect(arriba).toBeGreaterThan(0)
   })
 
   it('lo que queda detrás de la cámara no se proyecta', () => {
-    expect(proyectarPunto([0, 5, 40], VISTA_INICIAL, 16 / 9)).toBeNull()
+    expect(proyectarPunto([0, 5, 400], VISTA, 16 / 9)).toBeNull()
   })
 
   it('un aspecto más ancho reparte lo mismo en más píxeles: la x se achica', () => {
-    const [angosto] = proyectarPunto([5, 0.8, -2], VISTA_INICIAL, 1)
-    const [ancho] = proyectarPunto([5, 0.8, -2], VISTA_INICIAL, 2)
+    const [angosto] = proyectarPunto([5, 0.8, -2], VISTA, 1)
+    const [ancho] = proyectarPunto([5, 0.8, -2], VISTA, 2)
     expect(ancho).toBeCloseTo(angosto / 2, 9)
   })
 })
@@ -176,6 +254,9 @@ describe('el encuadre con las capas abiertas', () => {
     const centroDelCuadro = encuadre.fullWidth / 2 - encuadre.offsetX
     return centroDelCuadro + x * (encuadre.fullWidth / 2)
   }
+
+  const ASPECTO = LIENZO.ancho / LIENZO.alto
+  const GENERAL = vistaGeneral(ASPECTO)
 
   const extremosDelLocal = (vista, encuadre) => {
     const caja = cajaDelLocalEnPantalla(vista, LIENZO.ancho / LIENZO.alto)
@@ -197,16 +278,16 @@ describe('el encuadre con las capas abiertas', () => {
 
   it('el local de la vista inicial queda centrado en el área libre', () => {
     for (const [i, d] of [[0, 0], [360, 0], [0, 360], [360, 360], [240, 90]]) {
-      const [izquierdo, derecho] = extremosDelLocal(VISTA_INICIAL, capas(i, d))
+      const [izquierdo, derecho] = extremosDelLocal(GENERAL, capas(i, d))
       const centroLibre = i + (LIENZO.ancho - i - d) / 2
       expect((izquierdo + derecho) / 2).toBeCloseTo(centroLibre, 6)
     }
   })
 
-  it('el local cabe en el área libre, con margen, en las dos vistas con botón', () => {
+  it('el local cabe en el área libre, con margen, en la vista general y en la planta', () => {
     for (const [i, d] of [[0, 0], [360, 0], [0, 360], [360, 360]]) {
       const libre = LIENZO.ancho - i - d
-      for (const vista of Object.values(VISTAS)) {
+      for (const vista of [GENERAL, vistaPlanta(ASPECTO)]) {
         const [izquierdo, derecho] = extremosDelLocal(vista, capas(i, d))
         expect(izquierdo).toBeGreaterThan(i)
         expect(derecho).toBeLessThan(i + libre)
@@ -217,7 +298,7 @@ describe('el encuadre con las capas abiertas', () => {
 
   it('el local también cabe a lo alto', () => {
     const encuadre = capas(360, 360)
-    for (const vista of Object.values(VISTAS)) {
+    for (const vista of [GENERAL, vistaPlanta(ASPECTO)]) {
       const caja = cajaDelLocalEnPantalla(vista, LIENZO.ancho / LIENZO.alto)
       const alto = ((caja.maxY - caja.minY) / 2) * encuadre.height * encuadre.escala
       expect(alto).toBeLessThan(LIENZO.alto)
@@ -251,10 +332,12 @@ describe('el encuadre con las capas abiertas', () => {
     expect(encuadreParaLasCapas({ ancho: 1302, alto: 0, izquierda: 0, derecha: 0 })).toBeNull()
   })
 
-  it('las esquinas del local salen de las columnas del techo', () => {
-    expect(ESQUINAS_DEL_LOCAL).toHaveLength(8)
+  it('los puntos del local completo llegan a la franja de espera y al borde izquierdo', () => {
+    expect(Math.max(...ESQUINAS_DEL_LOCAL.map(([x]) => x))).toBe(FRANJA_DE_ESPERA.x0 + FRANJA_DE_ESPERA.ancho)
+    expect(Math.min(...ESQUINAS_DEL_LOCAL.map(([x]) => x))).toBe(-LOCAL.ancho / 2)
     const alturas = new Set(ESQUINAS_DEL_LOCAL.map(([, y]) => y))
-    expect([...alturas].sort((a, b) => a - b)).toEqual([0, ALTO_DEL_TECHO])
+    expect(Math.min(...alturas)).toBe(0)
+    expect(Math.max(...alturas)).toBeGreaterThanOrEqual(ALTO_DEL_TECHO)
   })
 })
 
@@ -272,10 +355,12 @@ describe('el encuadre con los controles de arriba y el panel de abajo', () => {
     return centroDelCuadro + x * (encuadre.fullWidth / 2)
   }
   const aspecto = LIENZO.ancho / LIENZO.alto
+  const GENERAL = vistaGeneral(aspecto)
+  const PLANTA = vistaPlanta(aspecto)
 
-  it('el local de la foto queda centrado a lo alto en lo que dejan libre arriba y abajo', () => {
+  it('el local de la vista general queda centrado a lo alto en lo que dejan libre arriba y abajo', () => {
     const encuadre = encuadreParaLasCapas({ ...LIENZO, izquierda: 360, arriba: ARRIBA, abajo: ABAJO })
-    const caja = cajaDelLocalEnPantalla(VISTA_INICIAL, aspecto)
+    const caja = cajaDelLocalEnPantalla(GENERAL, aspecto)
     const arribaDelLocal = filaEnElLienzo(caja.maxY, encuadre)
     const abajoDelLocal = filaEnElLienzo(caja.minY, encuadre)
     expect((arribaDelLocal + abajoDelLocal) / 2).toBeCloseTo(ARRIBA + (LIENZO.alto - ARRIBA - ABAJO) / 2, 6)
@@ -285,7 +370,7 @@ describe('el encuadre con los controles de arriba y el panel de abajo', () => {
 
   it('y también a lo ancho, junto a la capa de Ajustes', () => {
     const encuadre = encuadreParaLasCapas({ ...LIENZO, izquierda: 360, arriba: ARRIBA, abajo: ABAJO })
-    const caja = cajaDelLocalEnPantalla(VISTA_INICIAL, aspecto)
+    const caja = cajaDelLocalEnPantalla(GENERAL, aspecto)
     const izquierdo = columnaEnElLienzo(caja.minX, encuadre)
     const derecho = columnaEnElLienzo(caja.maxX, encuadre)
     expect((izquierdo + derecho) / 2).toBeCloseTo(360 + (LIENZO.ancho - 360) / 2, 6)
@@ -310,25 +395,35 @@ describe('el encuadre con los controles de arriba y el panel de abajo', () => {
 
   it('una cámara que mira desde arriba necesita más alto: la escala baja con la inclinación', () => {
     const base = { ...LIENZO, arriba: ARRIBA, abajo: ABAJO }
-    const deFrente = encuadreParaLasCapas({ ...base, elevacion: elevacionDeVista(VISTAS.comoEnLaFoto) })
+    const deFrente = encuadreParaLasCapas({ ...base, elevacion: elevacionDeVista(GENERAL) })
     const aMedias = encuadreParaLasCapas({ ...base, elevacion: 50 })
-    const deArriba = encuadreParaLasCapas({ ...base, elevacion: elevacionDeVista(VISTAS.desdeArriba) })
+    const deArriba = encuadreParaLasCapas({ ...base, elevacion: elevacionDeVista(PLANTA) })
     expect(deFrente.escala).toBeGreaterThan(aMedias.escala)
     expect(aMedias.escala).toBeGreaterThan(deArriba.escala)
   })
 
   it('la vista de plano también cabe en lo que queda libre', () => {
-    const elevacion = elevacionDeVista(VISTAS.desdeArriba)
+    const elevacion = elevacionDeVista(PLANTA)
     const encuadre = encuadreParaLasCapas({ ...LIENZO, arriba: ARRIBA, abajo: ABAJO, elevacion })
-    const caja = cajaDelLocalEnPantalla(VISTAS.desdeArriba, aspecto)
+    const caja = cajaDelLocalEnPantalla(PLANTA, aspecto)
     expect(filaEnElLienzo(caja.maxY, encuadre)).toBeGreaterThanOrEqual(ARRIBA - 1e-6)
     expect(filaEnElLienzo(caja.minY, encuadre)).toBeLessThanOrEqual(LIENZO.alto - ABAJO + 1e-6)
   })
 
-  it('las elevaciones de las dos vistas con botón son las esperadas', () => {
-    expect(elevacionDeVista(VISTAS.comoEnLaFoto)).toBeGreaterThan(5)
-    expect(elevacionDeVista(VISTAS.comoEnLaFoto)).toBeLessThan(20)
-    expect(elevacionDeVista(VISTAS.desdeArriba)).toBeGreaterThan(80)
+  it('las elevaciones de la vista general y de la planta son las esperadas', () => {
+    expect(elevacionDeVista(GENERAL)).toBeGreaterThan(5)
+    expect(elevacionDeVista(GENERAL)).toBeLessThan(20)
+    expect(elevacionDeVista(PLANTA)).toBeGreaterThan(80)
+  })
+
+  it('con una proporción de celular vertical también cabe el local completo con la capa y los paneles', () => {
+    const vertical = { ancho: 390, alto: 700 }
+    const encuadre = encuadreParaLasCapas({ ...vertical, arriba: 44, abajo: 120 })
+    const general = vistaGeneral(vertical.ancho / vertical.alto)
+    const caja = cajaDelLocalEnPantalla(general, vertical.ancho / vertical.alto)
+    const centro = encuadre.fullWidth / 2 - encuadre.offsetX
+    expect(centro + caja.minX * (encuadre.fullWidth / 2)).toBeGreaterThanOrEqual(-1e-6)
+    expect(centro + caja.maxX * (encuadre.fullWidth / 2)).toBeLessThanOrEqual(vertical.ancho + 1e-6)
   })
 
   it('acercar o alejar la cámara no cambia el encuadre: solo importa la inclinación', () => {

@@ -19,13 +19,17 @@ export const COLOR_DE_PLAN = {
 
 /**
  * Estado de una placa de lavado o de un puesto de acabado.
- * Reservados: nunca se usan como color de serie ni de plan. Y nunca van
- * solos: "libre" y "ocupada" se escriben siempre con palabras, porque los dos
- * colores son casi iguales para quien no distingue el rojo del verde.
+ *
+ * "Libre" es un gris azulado neutro: ya no hay verde ni rojo, que son casi el
+ * mismo color para quien no distingue esos dos. "Ocupado" no tiene color
+ * propio: la placa ocupada se pinta con el color de la etapa de lavado y el
+ * puesto ocupado con el de la etapa de acabado (`COLOR_DE_OCUPADO`). La señal
+ * que no depende del color es la altura de la losa, plana si está libre y
+ * elevada si está ocupada, y "libre" y "ocupado" se escriben siempre con
+ * palabras.
  */
 export const COLOR_DE_ESTADO = {
-  libre: '#4a8c5a',
-  ocupada: '#b65050',
+  libre: '#c3cfd6',
 }
 
 /**
@@ -38,6 +42,58 @@ export const COLOR_DE_SERIE = {
   colaAcabado: '#6d4fc2',
 }
 
+/** Color de una placa o un puesto ocupado: el de su etapa. */
+export const COLOR_DE_OCUPADO = {
+  lavado: COLOR_DE_SERIE.colaLavado,
+  acabado: COLOR_DE_SERIE.colaAcabado,
+}
+
+/**
+ * Colores del entorno de la escena 3D: avenidas, local, mobiliario y rótulos.
+ * Cada uno vive también en `tema.css` como `--escena-<nombre en kebab-case>`
+ * (`pinturaVial` → `--escena-pintura-vial`), y la prueba de sincronía los
+ * compara. Los componentes de `src/scene/` no escriben colores propios: los
+ * toman de aquí.
+ *
+ * El verde del letrero de calle (`#1D7348`) da 5,84 : 1 con el texto blanco,
+ * por encima del mínimo de 4,5 : 1.
+ */
+export const COLOR_DE_ESCENA = {
+  // Terreno base y su borde
+  terreno: '#dfe6ea',
+  fondo: '#e9eff3',
+  // Avenidas
+  asfalto: '#7b8890',
+  pinturaVial: '#f3f5f6',
+  bordillo: '#b3bec5',
+  acera: '#d3dbe0',
+  letreroDeCalle: '#1d7348',
+  textoDeLetrero: '#ffffff',
+  // Local
+  piso: '#e8eef1',
+  juntaDelPiso: '#d5dee3',
+  pisoMojado: '#c4dce6',
+  zonaDeAcabado: '#e3e0f1',
+  pinturaDeEspera: '#9aa7ae',
+  columna: '#9aa7ae',
+  techo: '#e6ecef',
+  pared: '#d4dde2',
+  letreroDelLocal: '#12212c',
+  // Placas y puestos
+  metal: '#6b7a82',
+  manguera: '#2d3a44',
+  bordeDeLosa: '#e8eef1',
+  mesa: '#d9dfe3',
+  // Rótulos de la escena
+  rotuloTexto: '#12212c',
+  rotuloFondo: '#ffffff',
+  rotuloBorde: '#dce3e8',
+  rotuloDeAlerta: '#c8322f',
+}
+
+/** `pinturaVial` → `pintura-vial`, el nombre de la variable CSS sin su prefijo. */
+const aKebab = (nombre) => nombre.replace(/[A-Z]/g, (letra) => `-${letra.toLowerCase()}`)
+
 /**
  * Lo mismo, aplanado con el nombre exacto de la variable CSS de `tema.css`.
  * Es lo que compara la prueba de sincronía.
@@ -47,9 +103,11 @@ export const COLORES_COMPARTIDOS = {
   'plan-2': COLOR_DE_PLAN[2],
   'plan-3': COLOR_DE_PLAN[3],
   'estado-libre': COLOR_DE_ESTADO.libre,
-  'estado-ocupada': COLOR_DE_ESTADO.ocupada,
   'serie-cola-1': COLOR_DE_SERIE.colaLavado,
   'serie-cola-2': COLOR_DE_SERIE.colaAcabado,
+  ...Object.fromEntries(
+    Object.entries(COLOR_DE_ESCENA).map(([nombre, color]) => [`escena-${aKebab(nombre)}`, color]),
+  ),
 }
 
 /**

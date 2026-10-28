@@ -1,4 +1,4 @@
-import { COLOR_DE_ESTADO, COLOR_DE_PLAN } from '../estilos/colores.js'
+import { COLOR_DE_ESTADO, COLOR_DE_OCUPADO, COLOR_DE_PLAN } from '../estilos/colores.js'
 
 /** La forma que lleva encima cada moto según su plan. */
 const FORMA_DE_PLAN = {
@@ -10,10 +10,12 @@ const FORMA_DE_PLAN = {
 /**
  * La leyenda de la escena, compacta y en una sola línea.
  *
- * Nombra el plan y dice su forma, no solo su color: el verde y el rojo de las
- * placas son casi el mismo color para quien no distingue esos dos, y los
- * planes tienen que poder leerse igual. Los nombres completos de los planes
- * están en Ajustes y en la Ayuda.
+ * Nombra el plan y dice su forma (la del marcador de encima) y, aparte, que el
+ * aro del piso lleva el color del plan. No se queda en el color: los planes
+ * tienen que poder leerse igual para quien no distingue los colores. Y una
+ * placa o un puesto libre es plano y gris, y uno ocupado está elevado y lleva
+ * el color de su etapa; la altura es la señal que no depende del color. Los
+ * nombres completos de los planes están en Ajustes y en la Ayuda.
  */
 export function LeyendaDePlanes({ vertical = false }) {
   return (
@@ -31,6 +33,18 @@ export function LeyendaDePlanes({ vertical = false }) {
         </li>
       ))}
       <li>
+        <span className="muestras-de-aro" aria-hidden="true">
+          {[1, 2, 3].map((plan) => (
+            <span
+              key={plan}
+              className="muestra muestra-aro"
+              style={{ '--color-muestra': COLOR_DE_PLAN[plan] }}
+            />
+          ))}
+        </span>
+        <span>Aro en el piso · color del plan</span>
+      </li>
+      <li>
         <span
           className="muestra muestra-losa"
           style={{ '--color-muestra': COLOR_DE_ESTADO.libre }}
@@ -39,12 +53,16 @@ export function LeyendaDePlanes({ vertical = false }) {
         <span>Libre · losa plana</span>
       </li>
       <li>
-        <span
-          className="muestra muestra-losa muestra-levantada"
-          style={{ '--color-muestra': COLOR_DE_ESTADO.ocupada }}
-          aria-hidden="true"
-        />
-        <span>Ocupado · losa elevada</span>
+        <span className="muestras-de-aro" aria-hidden="true">
+          {['lavado', 'acabado'].map((etapa) => (
+            <span
+              key={etapa}
+              className="muestra muestra-losa muestra-levantada"
+              style={{ '--color-muestra': COLOR_DE_OCUPADO[etapa] }}
+            />
+          ))}
+        </span>
+        <span>Ocupado · losa elevada, color de su etapa</span>
       </li>
     </ul>
   )

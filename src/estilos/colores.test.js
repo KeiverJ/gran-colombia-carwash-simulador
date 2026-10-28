@@ -3,7 +3,15 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
-import { COLORES_COMPARTIDOS, COLOR_DE_PLAN, COLOR_DE_SERIE, NOMBRE_DE_PLAN } from './colores.js'
+import {
+  COLORES_COMPARTIDOS,
+  COLOR_DE_ESCENA,
+  COLOR_DE_ESTADO,
+  COLOR_DE_OCUPADO,
+  COLOR_DE_PLAN,
+  COLOR_DE_SERIE,
+  NOMBRE_DE_PLAN,
+} from './colores.js'
 
 /**
  * `tema.css` y `colores.js` guardan los mismos colores porque Three.js y
@@ -41,7 +49,7 @@ describe('tema.css y colores.js dicen lo mismo', () => {
   it('tema.css no tiene colores compartidos que falten en colores.js', () => {
     // El otro sentido: añadir un plan o una serie solo al CSS también falla.
     const compartidosEnElCss = Object.keys(tema).filter((nombre) =>
-      /^(plan-\d+|estado-(libre|ocupada)|serie-[\w-]+)$/.test(nombre),
+      /^(plan-\d+|estado-libre|serie-[\w-]+|escena-[\w-]+)$/.test(nombre),
     )
     for (const nombre of compartidosEnElCss) {
       expect(
@@ -64,8 +72,82 @@ describe('tema.css y colores.js dicen lo mismo', () => {
     expect(new Set(planes).size).toBe(3)
     for (const color of planes) {
       expect(color).not.toBe(COLORES_COMPARTIDOS['estado-libre'])
-      expect(color).not.toBe(COLORES_COMPARTIDOS['estado-ocupada'])
     }
+  })
+})
+
+describe('el estado de placas y puestos no usa verde ni rojo', () => {
+  const tema = variablesDelTema()
+
+  /** Matiz en grados (0 a 360) y saturación (0 a 1) de un color `#rrggbb`. */
+  const matiz = (hex) => {
+    const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16) / 255)
+    const max = Math.max(r, g, b)
+    const min = Math.min(r, g, b)
+    if (max === min) return { grados: 0, saturacion: 0 }
+    const d = max - min
+    let grados
+    if (max === r) grados = ((g - b) / d) % 6
+    else if (max === g) grados = (b - r) / d + 2
+    else grados = (r - g) / d + 4
+    return { grados: (grados * 60 + 360) % 360, saturacion: d / (1 - Math.abs(max + min - 1)) }
+  }
+
+  it('libre es un gris azulado poco saturado, no verde', () => {
+    const { grados, saturacion } = matiz(COLOR_DE_ESTADO.libre)
+    expect(saturacion).toBeLessThan(0.25)
+    expect(grados).toBeGreaterThan(180) // azulado, no verde (80-160) ni rojo (<20)
+    expect(grados).toBeLessThan(230)
+  })
+
+  it('ocupado es el color de su etapa: el lavado con el de la fila 1 y el acabado con el de la fila 2', () => {
+    expect(COLOR_DE_OCUPADO).toEqual({ lavado: tema['etapa-1'], acabado: tema['etapa-2'] })
+  })
+
+  it('el tema ya no tiene colores de estado «ocupada»', () => {
+    expect(Object.keys(tema).filter((nombre) => nombre.startsWith('estado-'))).toEqual(['estado-libre'])
+  })
+})
+
+describe('los colores del entorno de la escena', () => {
+  const tema = variablesDelTema()
+
+  const luminancia = (hex) => {
+    const [r, g, b] = [1, 3, 5].map((i) => {
+      const v = Number.parseInt(hex.slice(i, i + 2), 16) / 255
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+    })
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+  }
+  const contraste = (a, b) => {
+    const [claro, oscuro] = [luminancia(a), luminancia(b)].sort((x, y) => y - x)
+    return (claro + 0.05) / (oscuro + 0.05)
+  }
+
+  it('todos son colores #rrggbb y están en el tema con su nombre en kebab-case', () => {
+    for (const [nombre, color] of Object.entries(COLOR_DE_ESCENA)) {
+      expect(color, nombre).toMatch(/^#[0-9a-f]{6}$/i)
+      const variable = `escena-${nombre.replace(/[A-Z]/g, (l) => `-${l.toLowerCase()}`)}`
+      expect(tema[variable], `--${variable}`).toBe(color)
+    }
+  })
+
+  it('el texto blanco sobre el letrero verde de la calle llega a 4,5 : 1', () => {
+    expect(contraste(COLOR_DE_ESCENA.textoDeLetrero, COLOR_DE_ESCENA.letreroDeCalle)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('el texto de los rótulos se lee sobre su fondo', () => {
+    expect(contraste(COLOR_DE_ESCENA.rotuloTexto, COLOR_DE_ESCENA.rotuloFondo)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('el asfalto se distingue de la acera y del piso del local', () => {
+    expect(contraste(COLOR_DE_ESCENA.asfalto, COLOR_DE_ESCENA.acera)).toBeGreaterThan(2)
+    expect(contraste(COLOR_DE_ESCENA.asfalto, COLOR_DE_ESCENA.piso)).toBeGreaterThan(2)
+  })
+
+  it('una losa libre y una ocupada se distinguen también por color, no solo por altura', () => {
+    expect(contraste(COLOR_DE_ESTADO.libre, COLOR_DE_OCUPADO.lavado)).toBeGreaterThan(2)
+    expect(contraste(COLOR_DE_ESTADO.libre, COLOR_DE_OCUPADO.acabado)).toBeGreaterThan(2)
   })
 })
 

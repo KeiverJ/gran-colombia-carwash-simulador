@@ -35,11 +35,15 @@
  *   pantalla: llevan siempre su nombre ("Etapa 2", "Plan 1") y no deben
  *   pegarse sin él.
  *
- *   Verde y rojo de estado: se separan 21,3 con visión normal pero solo 2,0
- *   con deuteranopía, es decir, quien no distingue el rojo del verde los ve
- *   casi iguales. No se arregla cambiando el tono: por eso "libre" y
- *   "ocupada" van SIEMPRE escritos con palabras, nunca solo con color. El rojo
- *   de estado y el naranja del plan 2 se separan 15,1 con visión normal.
+ *   Estado de una placa o un puesto: el verde y el rojo de antes se separaban
+ *   21,3 con visión normal pero solo 2,0 con deuteranopía, así que se
+ *   retiraron. "Libre" es un gris azulado neutro (#C3CFD6) y "ocupado" usa el
+ *   color de la etapa (#0B84AE el lavado, #6D4FC2 el acabado), que ya está
+ *   comprobado arriba. La altura de la losa (plana o elevada) es la señal que
+ *   no depende del color, y "libre" y "ocupado" van además escritos con
+ *   palabras en la leyenda.
+ *
+ *   Letrero de calle: el texto blanco sobre #1D7348 da 5,84 : 1 (mínimo 4,5).
  *
  *   Texto (contraste mínimo 4,5 a 1; sobre blanco / fondo de página /
  *   selección / fondo de escena):
@@ -109,11 +113,39 @@
   /* --- Velo de los elementos que flotan sobre la escena --- */
   --velo-escena: rgba(255, 255, 255, 0.88);
 
-  /* --- Estado de una placa o un puesto (reservados: no se usan para otra cosa) --- */
-  --estado-libre: #4a8c5a;
-  --estado-libre-fondo: rgba(74, 140, 90, 0.12);
-  --estado-ocupada: #b65050;
-  --estado-ocupada-fondo: rgba(182, 80, 80, 0.12);
+  /* --- Estado de una placa o un puesto ---
+     Libre es un gris azulado neutro. Ocupado no tiene color propio: usa el de
+     su etapa (--etapa-1 en el lavado, --etapa-2 en el acabado). */
+  --estado-libre: #c3cfd6;
+
+  /* --- Entorno de la escena 3D ---
+     Gemelos de COLOR_DE_ESCENA en colores.js. El verde del letrero de calle
+     (#1d7348) da 5,84 : 1 con el texto blanco. */
+  --escena-terreno: #dfe6ea;
+  --escena-fondo: #e9eff3;
+  --escena-asfalto: #7b8890;
+  --escena-pintura-vial: #f3f5f6;
+  --escena-bordillo: #b3bec5;
+  --escena-acera: #d3dbe0;
+  --escena-letrero-de-calle: #1d7348;
+  --escena-texto-de-letrero: #ffffff;
+  --escena-piso: #e8eef1;
+  --escena-junta-del-piso: #d5dee3;
+  --escena-piso-mojado: #c4dce6;
+  --escena-zona-de-acabado: #e3e0f1;
+  --escena-pintura-de-espera: #9aa7ae;
+  --escena-columna: #9aa7ae;
+  --escena-techo: #e6ecef;
+  --escena-pared: #d4dde2;
+  --escena-letrero-del-local: #12212c;
+  --escena-metal: #6b7a82;
+  --escena-manguera: #2d3a44;
+  --escena-borde-de-losa: #e8eef1;
+  --escena-mesa: #d9dfe3;
+  --escena-rotulo-texto: #12212c;
+  --escena-rotulo-fondo: #ffffff;
+  --escena-rotulo-borde: #dce3e8;
+  --escena-rotulo-de-alerta: #c8322f;
 
   /* --- Identidad: el plan que contrató cada moto --- */
   --plan-1: #2f6fdb;
