@@ -67,10 +67,9 @@
 /* --- Arriba: una sola fila --- */
 
 /*
- * Los botones de cámara a la izquierda, la leyenda compacta al centro y
- * "Pantalla completa", solo con ícono, a la derecha. Empieza donde termina la
- * capa de Ajustes. Si la fila no cabe completa, `FilaSuperiorDeLaEscena`
- * pliega la leyenda en un botón; y si aun así no cabe, pasa a dos líneas.
+ * Los botones de cámara a la izquierda, el botón «Leyenda» (plegada siempre)
+ * al centro y "Pantalla completa", solo con ícono, a la derecha. Empieza donde
+ * termina la capa de Ajustes. Si no cabe, pasa a dos líneas.
  */
 .flotante-superior {
   position: absolute;
@@ -89,7 +88,7 @@
   pointer-events: auto;
 }
 
-/* La leyenda, centrada en lo que queda entre los botones de cámara y el ícono. */
+/* El botón de la leyenda, centrado en lo que queda entre los botones de cámara y el ícono. */
 .flotante-centro {
   flex: none;
   margin: 0 auto;
@@ -208,19 +207,13 @@
 }
 
 .leyenda {
-  box-sizing: border-box;
   list-style: none;
   margin: 0;
-  padding: var(--espacio-1) var(--espacio-2);
+  padding: 0;
   display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--alto-control);
-  gap: var(--espacio-1) var(--espacio-3);
-  border: 1px solid var(--borde);
-  border-radius: var(--radio-control);
-  background: var(--velo-escena);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--espacio-2);
   color: var(--texto);
   font-size: var(--letra-pequena);
 }
@@ -228,17 +221,14 @@
 .leyenda li {
   display: flex;
   align-items: center;
-  gap: var(--espacio-1);
+  gap: var(--espacio-2);
   white-space: nowrap;
 }
 
-/* En el recuadro de la leyenda plegada, una debajo de otra y sin marco propio. */
-.leyenda--vertical {
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 0;
-  border: 0;
-  background: none;
+/* La muestra del aro de un plan: el mismo trazo que el aro del piso. */
+.muestra-de-aro {
+  flex: none;
+  display: block;
 }
 
 /* --- Indicadores: justo encima del panel de Resultados, centrados en el área libre --- */
@@ -416,34 +406,10 @@
   border: 1px solid var(--texto-tenue);
 }
 
-/* La forma repite la que lleva la moto en la escena. */
-.forma-esfera {
-  border-radius: 50%;
-}
-
-.forma-cubo {
-  border-radius: 2px;
-}
-
-/* El cono es un triángulo recortado del cuadrado de la muestra. */
-.forma-cono {
-  border: none;
-  background: var(--color-muestra);
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
-}
-
-/* Las tres muestras del aro, una por plan, pegadas. */
+/* Las dos muestras de losa elevada (lavado y acabado), pegadas. */
 .muestras-de-aro {
   display: flex;
   gap: 2px;
-}
-
-.muestra-aro {
-  width: 12px;
-  height: 12px;
-  border: 3px solid var(--color-muestra);
-  border-radius: 50%;
-  background: none;
 }
 
 .muestra-losa {

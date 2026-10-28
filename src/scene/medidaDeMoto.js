@@ -6,9 +6,9 @@ const PUNTO = new Vector3()
  * Lo que mide una moto dibujada con `piezas` (`{ geometry, local }`), en el
  * sitio que ocupa dentro de la moto:
  * - `centroX` y `centroZ`: el centro de su caja vista desde arriba, que es donde
- *   van el marcador del plan y el aro del piso (no el origen del modelo, que
+ *   va el aro del piso (no el origen del modelo, que
  *   puede estar en otro sitio);
- * - `alto`: su punto más alto, sobre el que se separa el marcador.
+ * - `alto`: su punto más alto.
  *
  * Se mide sobre los vértices, ya con la escala y el traslado de cada pieza.
  */

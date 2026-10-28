@@ -1,6 +1,5 @@
 import {
   BoxGeometry,
-  ConeGeometry,
   CylinderGeometry,
   Euler,
   Matrix4,
@@ -8,9 +7,9 @@ import {
   MeshStandardMaterial,
   Quaternion,
   RingGeometry,
-  SphereGeometry,
   Vector3,
 } from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 import { COLOR_DE_PLAN } from '../estilos/colores.js'
 import { medirPiezas } from './medidaDeMoto.js'
@@ -18,7 +17,7 @@ import { MOTO } from './posiciones.js'
 
 /**
  * Lo que comparten todas las motos dibujadas, creado **una sola vez**: el
- * marcador y el aro de cada plan, y la figura de respaldo (la moto armada con
+ * aro de cada plan, y la figura de respaldo (la moto armada con
  * piezas simples) que se usa si un modelo 3D no carga.
  *
  * Los modelos 3D de las motos no están aquí: los carga `cargaDeModelos.js`.
@@ -40,17 +39,29 @@ export const RADIO_DE_RUEDA = 0.28
 // que es con lo que se comprueba que no se monta sobre nada.
 export const EJE_DE_RUEDA = MOTO.largo / 2 - RADIO_DE_RUEDA
 
-/** El tamaño del marcador respecto del primero que se probó (se redujo a un 70 %). */
-const ESCALA_DE_LA_MARCA = 0.7
+/**
+ * El aro de piso: de qué radio a qué radio va, en metros. Los tres planes caben
+ * en él; lo que cambia de uno a otro es el trazo (ver `TRAZOS_DE_ARO`).
+ */
+export const ARO = { interior: 0.78, exterior: 0.95 }
 
 /**
- * Cuánto se separa la base del marcador del punto más alto de **su** moto, en
- * metros. Cada moto lleva su marcador a su propia altura (`medirPiezas`).
+ * El trazo del aro de cada plan, para que se distingan por la forma y no solo
+ * por el color (también en escala de grises y para quien no distingue colores):
+ * el plan 1 es un aro sólido, el 2 un aro en segmentos (punteado) y el 3 un aro
+ * doble, de dos anillos finos.
  */
-export const SEPARACION_DE_LA_MARCA = 0.25
+export const TRAZOS_DE_ARO = {
+  1: 'solido',
+  2: 'segmentos',
+  3: 'doble',
+}
 
-/** El aro de piso: de qué radio a qué radio va, en metros. */
-export const ARO = { interior: 0.78, exterior: 0.95 }
+/** Cuántos segmentos tiene el aro del plan 2 y qué parte del círculo ocupan. */
+export const SEGMENTOS_DEL_ARO = { cuantos: 12, relleno: 0.58 }
+
+/** El grosor de cada anillo del aro doble, en metros. */
+export const GROSOR_DE_LOS_ANILLOS = 0.06
 
 /**
  * A qué altura va el aro sobre la superficie en que se apoya la moto. Algo
@@ -72,33 +83,50 @@ function pieza(geometry, material, posicion, giro = [0, 0, 0]) {
   return { geometry, material, local }
 }
 
+/** Plano sobre el piso: `RingGeometry` nace de pie, mirando a +Z. */
+const acostada = (geometria) => geometria.rotateX(-Math.PI / 2)
+
+/** Plan 1: un aro sólido. */
+function aroSolido() {
+  return acostada(new RingGeometry(ARO.interior, ARO.exterior, 48))
+}
+
+/** Plan 2: un aro en segmentos, con huecos entre ellos. */
+function aroEnSegmentos() {
+  const { cuantos, relleno } = SEGMENTOS_DEL_ARO
+  const paso = (Math.PI * 2) / cuantos
+  const arcos = Array.from(
+    { length: cuantos },
+    (_, i) => new RingGeometry(ARO.interior, ARO.exterior, 4, 1, i * paso, paso * relleno),
+  )
+  const unido = mergeGeometries(arcos)
+  arcos.forEach((arco) => arco.dispose())
+  return acostada(unido)
+}
+
+/** Plan 3: un aro doble, dos anillos finos con un hueco en medio. */
+function aroDoble() {
+  const anillos = [
+    new RingGeometry(ARO.interior - GROSOR_DE_LOS_ANILLOS * 0.5, ARO.interior + GROSOR_DE_LOS_ANILLOS, 48),
+    new RingGeometry(ARO.exterior - GROSOR_DE_LOS_ANILLOS, ARO.exterior, 48),
+  ]
+  const unido = mergeGeometries(anillos)
+  anillos.forEach((anillo) => anillo.dispose())
+  return acostada(unido)
+}
+
 /**
  * Crea las figuras y los colores que comparten todas las motos.
  * Quien lo llame se encarga de soltarlos con `liberarRecursosDeMoto`.
  *
- * - `marcas`: la forma del plan que va encima de la moto (esfera, cubo, cono).
- * - `aro`: la forma plana del aro de piso, igual para los tres planes.
- * - `materialesDeMarca` y `materialesDeAro`: el color de cada plan, tomado de
- *   `COLOR_DE_PLAN`.
+ * - `aros`: la forma plana del aro de piso de cada plan, con su trazo.
+ * - `materialesDeAro`: el color de cada plan, tomado de `COLOR_DE_PLAN`.
  * - `respaldo`: las piezas de la moto simple, `{ geometry, material, local }`,
  *   y `medidaDelRespaldo`, su centro y su altura.
  */
 export function crearRecursosDeMoto() {
-  // Cada marcador tiene su base en y = 0: así queda a `SEPARACION_DE_LA_MARCA`
-  // sobre la moto sea cual sea su forma.
-  const marca = (geometria, alto) => geometria.translate(0, alto / 2, 0)
-  const e = ESCALA_DE_LA_MARCA
-  const marcas = {
-    1: marca(new SphereGeometry(0.22 * e, 14, 10), 0.44 * e),
-    2: marca(new BoxGeometry(0.36 * e, 0.36 * e, 0.36 * e), 0.36 * e),
-    3: marca(new ConeGeometry(0.24 * e, 0.46 * e, 14), 0.46 * e),
-  }
-  // Plano sobre el piso: `RingGeometry` nace de pie, mirando a +Z.
-  const aro = new RingGeometry(ARO.interior, ARO.exterior, 48).rotateX(-Math.PI / 2)
+  const aros = { 1: aroSolido(), 2: aroEnSegmentos(), 3: aroDoble() }
 
-  const materialesDeMarca = aPorPlan(
-    (plan) => new MeshStandardMaterial({ color: COLOR_DE_PLAN[plan] }),
-  )
   // Sin luz y sin tonos: el aro tiene que ser exactamente el color del plan.
   const materialesDeAro = aPorPlan(
     (plan) =>
@@ -133,9 +161,7 @@ export function crearRecursosDeMoto() {
   ]
 
   return {
-    marcas,
-    aro,
-    materialesDeMarca,
+    aros,
     materialesDeAro,
     respaldo,
     medidaDelRespaldo: medirPiezas(respaldo),
@@ -146,18 +172,14 @@ export function crearRecursosDeMoto() {
 
 /** Suelta lo que creó `crearRecursosDeMoto`. */
 export function liberarRecursosDeMoto({
-  marcas,
-  aro,
-  materialesDeMarca,
+  aros,
   materialesDeAro,
   geometriasDeRespaldo,
   materialesDeRespaldo,
 }) {
-  for (const geometria of Object.values(marcas)) geometria.dispose()
-  aro.dispose()
+  for (const geometria of Object.values(aros)) geometria.dispose()
   for (const geometria of Object.values(geometriasDeRespaldo)) geometria.dispose()
   for (const material of [
-    ...Object.values(materialesDeMarca),
     ...Object.values(materialesDeAro),
     ...Object.values(materialesDeRespaldo),
   ]) {

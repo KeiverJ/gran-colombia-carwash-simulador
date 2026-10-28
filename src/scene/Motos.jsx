@@ -18,7 +18,6 @@ import {
   ALTO_DEL_ARO,
   crearRecursosDeMoto,
   liberarRecursosDeMoto,
-  SEPARACION_DE_LA_MARCA,
 } from './recursosDeMoto.js'
 import { calidadActual } from './calidad.js'
 import { avanzarLasMotos, crearViajes, VELOCIDAD_DE_SIMULACION_EN_PAUSA } from './viajes.js'
@@ -78,8 +77,7 @@ function prepararMalla(nodo) {
  * cuadro.
  *
  * Se dibuja **por instancias**: una malla instanciada por cada pieza de cada
- * modelo (los seis modelos tienen una sola), una por cada marcador de plan y
- * una por cada aro de plan. Dibujar 40 motos cuesta lo mismo que dibujar 6:
+ * modelo (los seis modelos tienen una sola) y una por cada aro de plan. Dibujar 40 motos cuesta lo mismo que dibujar 6:
  * las llamadas de dibujo dependen de cuántos modelos hay, no de cuántas motos.
  *
  * El modelo de cada moto sale de su número (`modeloDeLaMoto`); si ese modelo
@@ -89,7 +87,7 @@ export function Motos() {
   /** El viaje de cada moto, por su número. Se poda al salir del local. */
   const viajes = useRef(crearViajes())
 
-  // Marcadores, aros y figura de respaldo: se crean una vez y se reparten
+  // Aros y figura de respaldo: se crean una vez y se reparten
   // entre todas las motos. Como no los crea React Three Fiber de forma
   // declarativa, hay que liberarlos a mano al desmontar.
   const recursos = useMemo(() => crearRecursosDeMoto(), [])
@@ -99,7 +97,6 @@ export function Motos() {
 
   // Las mallas instanciadas, para escribirlas cada cuadro.
   const mallasDeModelo = useRef([]) // [modelo][pieza]
-  const mallasDeMarca = useRef({}) // [plan]
   const mallasDeAro = useRef({}) // [plan]
   const mallaDeSombras = useRef(null)
 
@@ -137,7 +134,7 @@ export function Motos() {
 
   // Las piezas de un modelo: las suyas si cargó, la figura de respaldo si no.
   const piezasDe = (modelo) => modelos[modelo]?.piezas ?? recursos.respaldo
-  // Su centro visto desde arriba y su punto más alto: donde van el marcador y el aro.
+  // Su centro visto desde arriba y su punto más alto: donde va el aro.
   const medidaDe = (modelo) => modelos[modelo]?.medida ?? recursos.medidaDelRespaldo
 
   useFrame((_, delta) => {
@@ -175,19 +172,14 @@ export function Motos() {
         )
       })
 
-      // El marcador de encima y el aro del piso, con el color del plan. Van
-      // sobre el centro de la caja de **esta** moto (que se gira con ella) y el
-      // marcador a `SEPARACION_DE_LA_MARCA` de su punto más alto.
-      const { centroX, centroZ, alto } = medidaDe(modelo)
+      // El aro del piso, con el color y el trazo del plan. Va sobre el centro de la
+      // caja de **esta** moto (que se gira con ella).
+      const { centroX, centroZ } = medidaDe(modelo)
       centro.set(centroX, 0, centroZ).applyQuaternion(giro)
       const x = punto[0] + centro.x
       const z = punto[2] + centro.z
       const lugar = cuentaDePlan[plan]
       cuentaDePlan[plan] = lugar + 1
-      mallasDeMarca.current[plan]?.setMatrixAt(
-        lugar,
-        moto.compose(posicion.set(x, punto[1] + alto + SEPARACION_DE_LA_MARCA, z), giro, ESCALA_UNO),
-      )
       mallasDeAro.current[plan]?.setMatrixAt(
         lugar,
         moto.compose(posicion.set(x, punto[1] + ALTO_DEL_ARO, z), SIN_GIRO, ESCALA_UNO),
@@ -217,11 +209,10 @@ export function Motos() {
       mallaDeSombras.current.instanceMatrix.needsUpdate = true
     }
     for (const plan of PLANES) {
-      for (const malla of [mallasDeMarca.current[plan], mallasDeAro.current[plan]]) {
-        if (!malla) continue
-        malla.count = cuentaDePlan[plan]
-        malla.instanceMatrix.needsUpdate = true
-      }
+      const malla = mallasDeAro.current[plan]
+      if (!malla) continue
+      malla.count = cuentaDePlan[plan]
+      malla.instanceMatrix.needsUpdate = true
     }
   })
 
@@ -251,22 +242,12 @@ export function Motos() {
       />
       {PLANES.map((plan) => (
         <instancedMesh
-          key={`marca-${plan}`}
-          ref={(nodo) => {
-            prepararMalla(nodo)
-            if (nodo) mallasDeMarca.current[plan] = nodo
-          }}
-          args={[recursos.marcas[plan], recursos.materialesDeMarca[plan], MOTOS_DIBUJADAS_COMO_MAXIMO]}
-        />
-      ))}
-      {PLANES.map((plan) => (
-        <instancedMesh
           key={`aro-${plan}`}
           ref={(nodo) => {
             prepararMalla(nodo)
             if (nodo) mallasDeAro.current[plan] = nodo
           }}
-          args={[recursos.aro, recursos.materialesDeAro[plan], MOTOS_DIBUJADAS_COMO_MAXIMO]}
+          args={[recursos.aros[plan], recursos.materialesDeAro[plan], MOTOS_DIBUJADAS_COMO_MAXIMO]}
         />
       ))}
     </group>

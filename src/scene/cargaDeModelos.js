@@ -48,8 +48,8 @@ export function extraerPiezas(escena) {
 }
 
 /**
- * Carga un modelo. Devuelve `{ piezas, medida }` (la medida es donde van el
- * marcador y el aro: ver `medirPiezas`), o `null` si no cargó o no tiene nada
+ * Carga un modelo. Devuelve `{ piezas, medida }` (la medida es donde va el
+ * aro: ver `medirPiezas`), o `null` si no cargó o no tiene nada
  * que dibujar.
  */
 export async function cargarModelo(ruta, cargador) {

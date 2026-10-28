@@ -125,10 +125,13 @@ export function ContenidoDeLaAyuda() {
 
       <section>
         <h3>Los tres planes</h3>
+        <p className="ayuda-parrafo">
+          Cada moto lleva en el piso un aro con el color y el trazo de su plan.
+        </p>
         <ul>
-          <li>{NOMBRE_DE_PLAN[1]} (esfera sobre la moto).</li>
-          <li>{NOMBRE_DE_PLAN[2]} (cubo sobre la moto).</li>
-          <li>{NOMBRE_DE_PLAN[3]} (cono sobre la moto).</li>
+          <li>{NOMBRE_DE_PLAN[1]} (aro sólido).</li>
+          <li>{NOMBRE_DE_PLAN[2]} (aro en segmentos).</li>
+          <li>{NOMBRE_DE_PLAN[3]} (aro doble, dos anillos finos).</li>
         </ul>
       </section>
 
@@ -148,7 +151,8 @@ export function ContenidoDeLaAyuda() {
             <strong>La cámara.</strong> Arrastra para girar la vista y usa la rueda para
             acercarte. Los botones llevan a cuatro vistas: «Vista general» (el local completo,
             también sirve para volver a centrarlo), «Lavado» (las placas y su fila de espera),
-            «Acabado» (los puestos) y «Planta» (el local visto desde arriba, como un plano).
+            «Acabado» (los puestos) y «Planta» (el local visto desde arriba, como un plano). El botón «Leyenda» abre un
+            recuadro que explica los aros de los planes y las losas.
           </li>
           <li>
             <strong>Los indicadores.</strong> Placas y puestos ocupados, motos en cada fila y

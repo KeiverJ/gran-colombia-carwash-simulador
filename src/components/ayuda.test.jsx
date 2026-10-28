@@ -38,6 +38,22 @@ describe('la sección «Créditos» de la Ayuda', () => {
   })
 })
 
+describe('los planes en la Ayuda', () => {
+  it('dice que cada moto lleva en el piso un aro con el color y el trazo de su plan', () => {
+    expect(texto()).toContain('Cada moto lleva en el piso un aro con el color y el trazo de su plan.')
+  })
+
+  it('describe el trazo de cada plan y ya no habla de esfera, cubo ni cono', () => {
+    const html = texto()
+    expect(html).toContain('aro sólido')
+    expect(html).toContain('aro en segmentos')
+    expect(html).toContain('aro doble')
+    for (const figura of ['esfera', 'cubo', 'cono', 'sobre la moto']) {
+      expect(html, figura).not.toContain(figura)
+    }
+  })
+})
+
 describe('el resto de la Ayuda', () => {
   it('dice que la avenida de entrada es ilustrativa', () => {
     expect(texto()).toMatch(/ilustrativo/)

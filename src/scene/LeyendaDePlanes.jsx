@@ -1,49 +1,65 @@
 import { COLOR_DE_ESTADO, COLOR_DE_OCUPADO, COLOR_DE_PLAN } from '../estilos/colores.js'
+import { SEGMENTOS_DEL_ARO } from './recursosDeMoto.js'
 
-/** La forma que lleva encima cada moto según su plan. */
-const FORMA_DE_PLAN = {
-  1: { clase: 'forma-esfera', nombre: 'esfera' },
-  2: { clase: 'forma-cubo', nombre: 'cubo' },
-  3: { clase: 'forma-cono', nombre: 'cono' },
+/** El radio y el grosor de la muestra de un aro, en la unidad de su dibujo (18 × 18). */
+const RADIO = 7
+const GROSOR = 2.4
+const CENTRO = 9
+
+/**
+ * La muestra del aro de un plan, con el mismo trazo que el del piso: sólido el
+ * del plan 1, en segmentos el del plan 2 y doble el del plan 3. Se distingue por
+ * el trazo y no solo por el color, igual que en la escena.
+ */
+function MuestraDeAro({ plan }) {
+  const color = COLOR_DE_PLAN[plan]
+  const circunferencia = 2 * Math.PI * RADIO
+  const segmento = circunferencia / SEGMENTOS_DEL_ARO.cuantos
+  return (
+    <svg className="muestra-de-aro" viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">
+      {plan === 3 ? (
+        <>
+          <circle cx={CENTRO} cy={CENTRO} r={RADIO + 1.4} fill="none" stroke={color} strokeWidth="1.3" />
+          <circle cx={CENTRO} cy={CENTRO} r={RADIO - 1.4} fill="none" stroke={color} strokeWidth="1.3" />
+        </>
+      ) : (
+        <circle
+          cx={CENTRO}
+          cy={CENTRO}
+          r={RADIO}
+          fill="none"
+          stroke={color}
+          strokeWidth={GROSOR}
+          strokeDasharray={
+            plan === 2
+              ? `${segmento * SEGMENTOS_DEL_ARO.relleno} ${segmento * (1 - SEGMENTOS_DEL_ARO.relleno)}`
+              : undefined
+          }
+        />
+      )}
+    </svg>
+  )
 }
 
 /**
- * La leyenda de la escena, compacta y en una sola línea.
+ * La leyenda de la escena: el contenido del recuadro que abre el botón «Leyenda».
  *
- * Nombra el plan y dice su forma (la del marcador de encima) y, aparte, que el
- * aro del piso lleva el color del plan. No se queda en el color: los planes
- * tienen que poder leerse igual para quien no distingue los colores. Y una
- * placa o un puesto libre es plano y gris, y uno ocupado está elevado y lleva
- * el color de su etapa; la altura es la señal que no depende del color. Los
- * nombres completos de los planes están en Ajustes y en la Ayuda.
+ * Cada plan se reconoce por el aro que su moto lleva en el piso, con su color y
+ * su trazo; no se queda en el color, para que se lean igual quien no distingue
+ * los colores o una captura en escala de grises. Y una placa o un puesto libre
+ * es plano y gris, y uno ocupado está elevado y lleva el color de su etapa: la
+ * altura es la señal que no depende del color. Los nombres completos de los
+ * planes están en Ajustes y en la Ayuda.
  */
-export function LeyendaDePlanes({ vertical = false }) {
+export function LeyendaDePlanes() {
   return (
-    <ul className={vertical ? 'leyenda leyenda--vertical' : 'leyenda'} aria-label="Leyenda de la escena">
+    <ul className="leyenda" aria-label="Leyenda de la escena">
       {[1, 2, 3].map((plan) => (
         <li key={plan}>
-          <span
-            className={`muestra ${FORMA_DE_PLAN[plan].clase}`}
-            style={{ '--color-muestra': COLOR_DE_PLAN[plan] }}
-            aria-hidden="true"
-          />
-          <span>
-            Plan {plan} · {FORMA_DE_PLAN[plan].nombre}
-          </span>
+          <MuestraDeAro plan={plan} />
+          <span>Plan {plan}</span>
         </li>
       ))}
-      <li>
-        <span className="muestras-de-aro" aria-hidden="true">
-          {[1, 2, 3].map((plan) => (
-            <span
-              key={plan}
-              className="muestra muestra-aro"
-              style={{ '--color-muestra': COLOR_DE_PLAN[plan] }}
-            />
-          ))}
-        </span>
-        <span>Aro en el piso · color del plan</span>
-      </li>
       <li>
         <span
           className="muestra muestra-losa"

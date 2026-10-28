@@ -166,7 +166,7 @@ describe('los modelos finales de public/modelos', () => {
     const caja = new Box3().setFromObject(scene)
     expect(caja.max.z - caja.min.z).toBeCloseTo(MOTO.largo, 2)
     expect(caja.min.y).toBeCloseTo(0, 2)
-    expect(caja.max.y - caja.min.y).toBeLessThan(MOTO.alto - 0.5) // el marcador va por encima
+    expect(caja.max.y - caja.min.y).toBeLessThan(MOTO.alto - 0.5) // MOTO.alto deja margen por encima
     // la medida que usa la escena coincide con la caja real
     const medida = medirPiezas(piezas)
     expect(medida.alto).toBeCloseTo(caja.max.y, 3)

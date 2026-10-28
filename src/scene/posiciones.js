@@ -58,11 +58,10 @@ export const PASILLO = {
  * no tapa el número de su losa y a qué altura tiene que ir la cámara para que
  * la fila de adelante no tape la de atrás.
  *
- * El alto llega hasta arriba del marcador del plan, que es la pieza más alta.
- * Cada marcador va 25 cm sobre su moto: en cinco de los seis modelos queda por
- * debajo de este alto, y en la Vespa (1,24 m) llega a 1,81 m con la esfera o el
- * cono, unos 6 cm más. Se deja en 1,75 m porque la vista inicial de la cámara se
- * calcula con este número; se revisa junto con las cámaras.
+ * El alto es una referencia por encima de la moto más alta (la Vespa, de 1,24 m):
+ * de él salen la altura de las cámaras (`alturaParaVerLaFilaDeAtras`), de los
+ * rótulos y del techo. Antes llegaba hasta arriba del marcador del plan; se
+ * conserva en 1,75 m para no mover las vistas.
  */
 export const MOTO = { largo: 1.7, ancho: 0.75, alto: 1.75 }
 

@@ -6,21 +6,19 @@ import { MOTO } from './posiciones.js'
 import {
   ARO,
   crearRecursosDeMoto,
+  GROSOR_DE_LOS_ANILLOS,
   liberarRecursosDeMoto,
-  SEPARACION_DE_LA_MARCA,
+  SEGMENTOS_DEL_ARO,
+  TRAZOS_DE_ARO,
 } from './recursosDeMoto.js'
 
 const hexDe = (material) => `#${material.color.getHexString()}`
 
 describe('recursos compartidos de las motos', () => {
-  it('el marcador de cada plan tiene su forma y el color de su plan', () => {
+  it('ya no hay figuras flotantes de plan: ni marcadores ni sus materiales', () => {
     const recursos = crearRecursosDeMoto()
-    expect(recursos.marcas[1].type).toBe('SphereGeometry')
-    expect(recursos.marcas[2].type).toBe('BoxGeometry')
-    expect(recursos.marcas[3].type).toBe('ConeGeometry')
-    for (const plan of [1, 2, 3]) {
-      expect(hexDe(recursos.materialesDeMarca[plan])).toBe(COLOR_DE_PLAN[plan])
-    }
+    expect(recursos.marcas).toBeUndefined()
+    expect(recursos.materialesDeMarca).toBeUndefined()
     liberarRecursosDeMoto(recursos)
   })
 
@@ -35,44 +33,111 @@ describe('recursos compartidos de las motos', () => {
     liberarRecursosDeMoto(recursos)
   })
 
-  it('el aro es plano (acostado sobre el piso) y cabe bajo la moto y su vecina de la fila', () => {
-    const recursos = crearRecursosDeMoto()
-    const normales = recursos.aro.attributes.normal
-    for (let i = 0; i < normales.count; i += 1) {
-      expect(normales.getY(i)).toBeCloseTo(1, 5)
+  /** Las zonas de radio (distancia al centro) que cubren los triángulos de una geometría. */
+  const radiosDe = (geometria) => {
+    const posiciones = geometria.attributes.position
+    const radios = []
+    for (let i = 0; i < posiciones.count; i += 1) radios.push(Math.hypot(posiciones.getX(i), posiciones.getZ(i)))
+    return radios
+  }
+
+  /** ¿Cubre la geometría el punto del piso (x, z)? Recorre sus triángulos. */
+  const cubre = (geometria, x, z) => {
+    const p = geometria.attributes.position
+    const indice = geometria.index
+    for (let t = 0; t < indice.count; t += 3) {
+      const [a, b, c] = [indice.getX(t), indice.getX(t + 1), indice.getX(t + 2)]
+      const lados = [
+        [p.getX(a), p.getZ(a), p.getX(b), p.getZ(b)],
+        [p.getX(b), p.getZ(b), p.getX(c), p.getZ(c)],
+        [p.getX(c), p.getZ(c), p.getX(a), p.getZ(a)],
+      ].map(([x1, z1, x2, z2]) => (x - x2) * (z1 - z2) - (x1 - x2) * (z - z2))
+      const todosPositivos = lados.every((v) => v >= -1e-9)
+      const todosNegativos = lados.every((v) => v <= 1e-9)
+      if (todosPositivos || todosNegativos) return true
     }
-    recursos.aro.computeBoundingBox()
-    const { min, max } = recursos.aro.boundingBox
-    expect(max.y - min.y).toBeCloseTo(0, 5)
-    expect(max.x).toBeCloseTo(ARO.exterior, 2)
+    return false
+  }
+
+  /** Qué parte de la circunferencia de radio `r` cubre el aro (de 0 a 1), muestreando 360 puntos. */
+  const cobertura = (geometria, r) => {
+    let dentro = 0
+    for (let i = 0; i < 360; i += 1) {
+      const ang = (i / 360) * Math.PI * 2
+      if (cubre(geometria, Math.cos(ang) * r, Math.sin(ang) * r)) dentro += 1
+    }
+    return dentro / 360
+  }
+
+  it('cada aro es plano (acostado sobre el piso) y cabe bajo la moto y su vecina de la fila', () => {
+    const recursos = crearRecursosDeMoto()
+    for (const plan of [1, 2, 3]) {
+      const aro = recursos.aros[plan]
+      const normales = aro.attributes.normal
+      for (let i = 0; i < normales.count; i += 1) {
+        expect(normales.getY(i), `plan ${plan}`).toBeCloseTo(1, 5)
+      }
+      aro.computeBoundingBox()
+      const { min, max } = aro.boundingBox
+      expect(max.y - min.y).toBeCloseTo(0, 5)
+      expect(Math.max(...radiosDe(aro)), `plan ${plan}`).toBeCloseTo(ARO.exterior, 2)
+      expect(Math.min(...radiosDe(aro)), `plan ${plan}`).toBeGreaterThan(ARO.interior - GROSOR_DE_LOS_ANILLOS)
+    }
     // el aro cubre el largo de la moto y no pasa del ancho de una losa
     expect(ARO.exterior * 2).toBeGreaterThanOrEqual(MOTO.largo)
     liberarRecursosDeMoto(recursos)
   })
 
-  it('cada marcador nace con la base en y = 0 y mide el 70 % de lo que medía', () => {
+  it('los tres planes tienen un trazo distinto: sólido, en segmentos y doble', () => {
+    expect(TRAZOS_DE_ARO).toEqual({ 1: 'solido', 2: 'segmentos', 3: 'doble' })
+    expect(new Set(Object.values(TRAZOS_DE_ARO)).size).toBe(3)
+  })
+
+  it('plan 1: un aro sólido, que cubre toda la circunferencia entre sus dos radios', () => {
     const recursos = crearRecursosDeMoto()
-    const alturas = { 1: 0.44, 2: 0.36, 3: 0.46 }
-    for (const plan of [1, 2, 3]) {
-      recursos.marcas[plan].computeBoundingBox()
-      const { min, max } = recursos.marcas[plan].boundingBox
-      expect(min.y).toBeCloseTo(0, 5)
-      expect(max.y).toBeCloseTo(alturas[plan] * 0.7, 5)
-      // centrado sobre su moto: ni a un lado ni adelante ni atrás
-      expect((min.x + max.x) / 2).toBeCloseTo(0, 5)
-      expect((min.z + max.z) / 2).toBeCloseTo(0, 5)
-    }
+    const medio = (ARO.interior + ARO.exterior) / 2
+    expect(cobertura(recursos.aros[1], medio)).toBeCloseTo(1, 2)
     liberarRecursosDeMoto(recursos)
   })
 
-  it('el marcador a 25 cm de la moto más alta (la Vespa, de 1,24 m) pasa de MOTO.alto por 7 cm como mucho', () => {
+  it('plan 2: un aro en segmentos, con huecos: cubre solo una parte de la circunferencia', () => {
     const recursos = crearRecursosDeMoto()
-    expect(SEPARACION_DE_LA_MARCA).toBe(0.25)
-    for (const plan of [1, 2, 3]) {
-      recursos.marcas[plan].computeBoundingBox()
-      const techo = 1.241 + SEPARACION_DE_LA_MARCA + recursos.marcas[plan].boundingBox.max.y
-      expect(techo).toBeLessThanOrEqual(MOTO.alto + 0.07)
+    const medio = (ARO.interior + ARO.exterior) / 2
+    const parte = cobertura(recursos.aros[2], medio)
+    expect(parte).toBeCloseTo(SEGMENTOS_DEL_ARO.relleno, 1)
+    expect(parte).toBeLessThan(0.75)
+    expect(parte).toBeGreaterThan(0.4)
+    // y tiene tantos segmentos como se dice: cuenta los cambios de «cubierto» a «hueco»
+    let cambios = 0
+    let antes = cubre(recursos.aros[2], medio, 0)
+    for (let i = 1; i <= 720; i += 1) {
+      const ang = (i / 720) * Math.PI * 2
+      const ahora = cubre(recursos.aros[2], Math.cos(ang) * medio, Math.sin(ang) * medio)
+      if (ahora && !antes) cambios += 1
+      antes = ahora
     }
+    expect(cambios).toBe(SEGMENTOS_DEL_ARO.cuantos)
+    liberarRecursosDeMoto(recursos)
+  })
+
+  it('plan 3: un aro doble, dos anillos finos con un hueco en medio', () => {
+    const recursos = crearRecursosDeMoto()
+    const aro = recursos.aros[3]
+    const medio = (ARO.interior + ARO.exterior) / 2
+    expect(cobertura(aro, medio)).toBe(0) // el hueco
+    expect(cobertura(aro, ARO.interior + GROSOR_DE_LOS_ANILLOS / 4)).toBeCloseTo(1, 2) // el anillo de adentro
+    expect(cobertura(aro, ARO.exterior - GROSOR_DE_LOS_ANILLOS / 2)).toBeCloseTo(1, 2) // el de afuera
+    liberarRecursosDeMoto(recursos)
+  })
+
+  it('los tres trazos son distintos entre sí, también sin color: cubren cosas distintas del círculo', () => {
+    const recursos = crearRecursosDeMoto()
+    const medio = (ARO.interior + ARO.exterior) / 2
+    const huellas = [1, 2, 3].map((plan) => [
+      cobertura(recursos.aros[plan], medio).toFixed(2),
+      cobertura(recursos.aros[plan], ARO.exterior - GROSOR_DE_LOS_ANILLOS / 2).toFixed(2),
+    ].join('/'))
+    expect(new Set(huellas).size).toBe(3)
     liberarRecursosDeMoto(recursos)
   })
 
@@ -105,12 +170,10 @@ describe('liberarRecursosDeMoto', () => {
   it('suelta todas las formas y todos los materiales que creó, y ninguno más de una vez por forma o material distintos', () => {
     const recursos = crearRecursosDeMoto()
     const geometrias = new Set([
-      ...Object.values(recursos.marcas),
-      recursos.aro,
+      ...Object.values(recursos.aros),
       ...Object.values(recursos.geometriasDeRespaldo),
     ])
     const materiales = new Set([
-      ...Object.values(recursos.materialesDeMarca),
       ...Object.values(recursos.materialesDeAro),
       ...Object.values(recursos.materialesDeRespaldo),
     ])

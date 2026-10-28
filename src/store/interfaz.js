@@ -222,6 +222,10 @@ export const useInterfaz = create((set, get) => ({
   arrastrandoElPanel: false,
   ajustesDelPanel: 0,
   ayudaAbierta: false,
+  // El recuadro de la leyenda de la escena: cerrado al empezar, y lo que la
+  // persona haga se recuerda mientras dure la sesión (aunque la fila de arriba
+  // se vuelva a dibujar al cambiar de modo).
+  leyendaAbierta: false,
   hoja: 'recogida',
   pestanaHoja: 'ajustes',
 
@@ -260,6 +264,7 @@ export const useInterfaz = create((set, get) => ({
       ajustesDelPanel: estado.ajustesDelPanel + 1,
     })),
 
+  cambiarLeyenda: (abierta) => set({ leyendaAbierta: Boolean(abierta) }),
   abrirAyuda: () => set({ ayudaAbierta: true }),
   cerrarAyuda: () => set({ ayudaAbierta: false }),
 
