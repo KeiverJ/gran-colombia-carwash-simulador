@@ -5,6 +5,8 @@ import Aviso from '../components/Aviso.jsx'
 import IndicadoresDeLaEscena from '../components/IndicadoresDeLaEscena.jsx'
 import MandosMinimos from '../components/MandosMinimos.jsx'
 import AjusteALasCapas from './AjusteALasCapas.jsx'
+import CalidadAdaptable from './CalidadAdaptable.jsx'
+import { useCalidad, NIVELES_DE_CALIDAD } from './calidad.js'
 import { CAMPO_DE_VISION, VISTA_INICIAL } from './camara.js'
 import { ControlDeCamara } from './ControlesDeCamara.jsx'
 import FilaSuperiorDeLaEscena from './FilaSuperiorDeLaEscena.jsx'
@@ -41,6 +43,20 @@ function hayWebGL() {
 /** Lo que se lee del lienzo 3D: no tiene texto, así que se dice qué se ve en él. */
 const DESCRIPCION_DE_LA_ESCENA =
   'Escena 3D del lavadero: placas de lavado, fila de espera y puestos de acabado'
+
+/**
+ * Lo que se puede apagar si la escena va lenta (ver `calidad.js`): las gotas de
+ * agua y las sombras suaves de contacto de lo fijo.
+ */
+function EfectosQueSePuedenApagar({ placas, puestos }) {
+  const { particulas, sombras } = useCalidad((estado) => NIVELES_DE_CALIDAD[estado.nivel])
+  return (
+    <>
+      {particulas && <Particulas placas={placas} />}
+      {sombras && <Sombras placas={placas} puestos={puestos} />}
+    </>
+  )
+}
 
 /** Los rótulos de "+X motos más", con el mismo freno que el resumen. */
 function RotulosDeSobrantes() {
@@ -114,12 +130,12 @@ export function EscenaDelLavadero() {
           <Local />
           <Avenidas />
           <Servidores placas={placas} puestos={puestos} />
-          <Particulas placas={placas} />
           <Motos />
-          <Sombras placas={placas} puestos={puestos} />
+          <EfectosQueSePuedenApagar placas={placas} puestos={puestos} />
           <RotulosDeSobrantes />
           <ControlDeCamara tomarOrden={tomarOrden} />
           <AjusteALasCapas />
+          <CalidadAdaptable />
         </Canvas>
 
         {/* Todo lo que flota sobre la escena va en una fila arriba y un panel

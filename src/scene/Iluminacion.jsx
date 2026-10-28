@@ -1,6 +1,7 @@
 import { Environment, Lightformer } from '@react-three/drei'
 
 import { COLOR_DE_ESCENA } from '../estilos/colores.js'
+import { NIVELES_DE_CALIDAD, useCalidad } from './calidad.js'
 
 /**
  * La luz de la escena.
@@ -16,17 +17,21 @@ import { COLOR_DE_ESCENA } from '../estilos/colores.js'
  * y una detrás de la cámara que rellena de frente.
  */
 export function Iluminacion() {
+  // Con la escena lenta se apaga el entorno de reflejos; las luces directas se quedan.
+  const { ambiente } = useCalidad((estado) => NIVELES_DE_CALIDAD[estado.nivel])
   return (
     <>
       <ambientLight intensity={0.3} />
       <directionalLight position={[8, 14, 6]} intensity={0.9} />
-      <Environment frames={1} resolution={256} environmentIntensity={0.6}>
-        <Lightformer form="rect" intensity={2.2} color={COLOR_DE_ESCENA.pinturaVial} position={[0, 9, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[22, 22, 1]} />
-        <Lightformer form="rect" intensity={1.6} color={COLOR_DE_ESCENA.pinturaVial} position={[-12, 4, 2]} rotation={[0, Math.PI / 2, 0]} scale={[16, 5, 1]} />
-        <Lightformer form="rect" intensity={1.6} color={COLOR_DE_ESCENA.pinturaVial} position={[12, 4, 2]} rotation={[0, -Math.PI / 2, 0]} scale={[16, 5, 1]} />
-        <Lightformer form="rect" intensity={1.2} color={COLOR_DE_ESCENA.pisoMojado} position={[0, 4, 14]} rotation={[0, Math.PI, 0]} scale={[22, 5, 1]} />
-        <Lightformer form="rect" intensity={0.8} color={COLOR_DE_ESCENA.pisoMojado} position={[0, 4, -14]} scale={[22, 5, 1]} />
-      </Environment>
+      {ambiente && (
+        <Environment frames={1} resolution={256} environmentIntensity={0.6}>
+          <Lightformer form="rect" intensity={2.2} color={COLOR_DE_ESCENA.pinturaVial} position={[0, 9, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[22, 22, 1]} />
+          <Lightformer form="rect" intensity={1.6} color={COLOR_DE_ESCENA.pinturaVial} position={[-12, 4, 2]} rotation={[0, Math.PI / 2, 0]} scale={[16, 5, 1]} />
+          <Lightformer form="rect" intensity={1.6} color={COLOR_DE_ESCENA.pinturaVial} position={[12, 4, 2]} rotation={[0, -Math.PI / 2, 0]} scale={[16, 5, 1]} />
+          <Lightformer form="rect" intensity={1.2} color={COLOR_DE_ESCENA.pisoMojado} position={[0, 4, 14]} rotation={[0, Math.PI, 0]} scale={[22, 5, 1]} />
+          <Lightformer form="rect" intensity={0.8} color={COLOR_DE_ESCENA.pisoMojado} position={[0, 4, -14]} scale={[22, 5, 1]} />
+        </Environment>
+      )}
     </>
   )
 }

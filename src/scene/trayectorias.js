@@ -29,6 +29,7 @@ import {
   repartoDePlacas,
   SEPARACION_DE_CARRILES,
   SERVIDOR,
+  X_DEL_CARRIL_DE_LA_FRANJA,
   Z_DETRAS_DE_LOS_PUESTOS,
 } from './posiciones.js'
 
@@ -47,6 +48,13 @@ export const Z_DE_ACCESO_A_PLACAS = COLUMNAS_DEL_TECHO[0][2] + 1.5
 
 /** El hueco entre las dos filas de placas, por donde se llega a la de atrás. */
 export const Z_ENTRE_LAS_FILAS = (LOCAL.zPlacasAdelante + LOCAL.zPlacasAtras) / 2
+
+/**
+ * Carril por el que se llega a la fila del acabado desde las placas de atrás:
+ * a medio camino entre su borde y la fila, a metro y medio de las dos.
+ */
+export const Z_CARRIL_A_LA_FILA_DEL_ACABADO =
+  (LOCAL.zPlacasAtras - SERVIDOR.fondo / 2 + LOCAL.zFilaAcabado) / 2
 
 /** Carril de acceso a los puestos, entre la fila del acabado y las losas. */
 export const Z_DE_ACCESO_A_PUESTOS =
@@ -110,7 +118,7 @@ export function caminoHacia(desde, hasta) {
 function pasosIntermedios(desde, hasta) {
   switch (hasta.zona) {
     case 'fila':
-      return hasta.etapa === 'lavado' ? haciaLaFilaDelLavado(desde) : haciaLaFilaDelAcabado(desde)
+      return hasta.etapa === 'lavado' ? haciaLaFilaDelLavado(desde, hasta) : haciaLaFilaDelAcabado(desde, hasta)
     case 'placa':
       return haciaUnaPlaca(desde, hasta)
     case 'puesto':
@@ -127,17 +135,25 @@ function pasosIntermedios(desde, hasta) {
  * de detrás de los puestos, hasta la franja del lado derecho, y por ella hasta
  * el sitio que le toca en la fila.
  */
-function haciaLaFilaDelLavado(desde) {
+function haciaLaFilaDelLavado(desde, hasta) {
   if (desde.zona === 'fila' && desde.etapa === 'lavado') {
     return [] // avanzar un puesto en la misma fila es ir de frente
   }
-  if (desde.zona === 'entrada') {
-    return pasoALaCola(desde.avenida)
-  }
+  const alaUnion =
+    desde.zona === 'entrada'
+      ? pasoALaCola(desde.avenida)
+      : [
+          [X_DEL_PASILLO, 0, alturaZDe(desde)],
+          [X_DEL_PASILLO, 0, Z_DETRAS_DE_LOS_PUESTOS],
+          ...pasoALaCola('granColombia').slice(1),
+        ]
+  // De la unión al lugar se sube por el carril libre de al lado de la fila y se entra
+  // de costado: así la que llega tarde a un lugar de más adelante no pasa por encima
+  // de las que ya esperan.
+  const [, , zDelLugar] = puntoDe(hasta)
   return [
-    [X_DEL_PASILLO, 0, alturaZDe(desde)],
-    [X_DEL_PASILLO, 0, Z_DETRAS_DE_LOS_PUESTOS],
-    ...pasoALaCola('granColombia').slice(1),
+    ...alaUnion,
+    [X_DEL_CARRIL_DE_LA_FRANJA, 0, zDelLugar],
   ]
 }
 
@@ -169,13 +185,7 @@ function haciaUnaPlaca(desde, hasta) {
   return alCarril
 }
 
-/**
- * El carril libre de la franja de espera, a un lado de la fila: entre ella y las
- * columnas del techo, a media distancia de cada una. Por aquí sale de la cabeza
- * la moto que va a una placa de atrás, sin pasar por encima de las que esperan.
- */
-export const X_DEL_CARRIL_DE_LA_FRANJA =
-  (COLUMNAS_DEL_TECHO[1][0] + 0.16 + MOTO.ancho / 2 + FILA_DEL_LAVADO.x - MOTO.ancho) / 2
+export { X_DEL_CARRIL_DE_LA_FRANJA }
 
 /** De la cabeza al hueco entre las filas por el carril de la franja, y por el hueco hasta su placa. */
 function porLaFranjaAlHueco(xPlaca) {
@@ -197,22 +207,62 @@ function saliendoDeLaFila(desde) {
  * Desde la fila de atrás se sale recto hacia el fondo. Desde la de adelante
  * hay que rodear otra vez, que si no se pasaría por encima de la de atrás.
  */
-function haciaLaFilaDelAcabado(desde) {
+function haciaLaFilaDelAcabado(desde, hasta = null) {
   if (desde.zona === 'fila' && desde.etapa === 'acabado') {
     return []
   }
+  // A una fila se llega por un carril al lado de ella y se entra a su lugar de
+  // costado: seguir por la fila misma sería pasar por en medio de las motos que
+  // esperan, y la moto que llega tarde a un lugar de más adelante las atravesaría.
+  const alLugar = hasta?.zona === 'fila' ? [[puntoDe(hasta)[0], 0, Z_CARRIL_A_LA_FILA_DEL_ACABADO]] : []
+  const alCarril = (x) => (hasta?.zona === 'fila' ? [[x, 0, Z_CARRIL_A_LA_FILA_DEL_ACABADO]] : [[x, 0, LOCAL.zFilaAcabado]])
+
   if (desde.zona !== 'placa') {
-    return [[X_DEL_PASILLO, 0, alturaZDe(desde)], [X_DEL_PASILLO, 0, LOCAL.zFilaAcabado]]
+    return [[X_DEL_PASILLO, 0, alturaZDe(desde)], ...alCarril(X_DEL_PASILLO), ...alLugar]
   }
   const [xPlaca] = puntoDe(desde)
   if (esDeLaFilaDeAtras(desde.indice, desde.total)) {
-    return [[xPlaca, 0, LOCAL.zFilaAcabado]]
+    return [...alCarril(xPlaca), ...alLugar]
   }
   return [
     [xPlaca, 0, Z_ENTRE_LAS_FILAS],
     [X_DEL_PASILLO, 0, Z_ENTRE_LAS_FILAS],
-    [X_DEL_PASILLO, 0, LOCAL.zFilaAcabado],
+    ...alCarril(X_DEL_PASILLO),
+    ...alLugar,
   ]
+}
+
+/**
+ * ¿Está el punto en la franja de acceso a una fila: en el carril de al lado de
+ * ella, o entre el carril y la fila (entrando a su lugar de costado)? Una moto
+ * que ya está sobre la fila, aunque se esté moviendo en ella, no cuenta: avanza
+ * por la fila misma.
+ */
+export function enLaBandaDeAcceso([x, , z], etapa) {
+  const sobreLaFila = 0.45
+  if (etapa === 'lavado') {
+    return x >= X_DEL_CARRIL_DE_LA_FRANJA - 0.05 && x <= FILA_DEL_LAVADO.x - sobreLaFila && z > Z_DETRAS_DE_LOS_PUESTOS
+  }
+  return z <= Z_CARRIL_A_LA_FILA_DEL_ACABADO + 0.05 && z >= LOCAL.zFilaAcabado + sobreLaFila
+}
+
+/**
+ * El camino de una moto que ya va entrando a su fila por el carril de al lado y
+ * a la que el motor cambia de lugar: vuelve al carril, avanza por él hasta el
+ * lugar nuevo y entra de costado. Seguir hasta el lugar que llevaba y deslizarse
+ * por la fila sería pasar por encima de las motos que ya esperan ahí.
+ */
+export function caminoDeAjusteEnLaFila(punto, hasta) {
+  const lugar = puntoDe(hasta)
+  const alCarril =
+    hasta.etapa === 'lavado'
+      ? [X_DEL_CARRIL_DE_LA_FRANJA, 0, punto[2]]
+      : [punto[0], 0, Z_CARRIL_A_LA_FILA_DEL_ACABADO]
+  const alLugarPorElCarril =
+    hasta.etapa === 'lavado'
+      ? [X_DEL_CARRIL_DE_LA_FRANJA, 0, lugar[2]]
+      : [lugar[0], 0, Z_CARRIL_A_LA_FILA_DEL_ACABADO]
+  return sinRepetidos([[...punto], alCarril, alLugarPorElCarril, lugar])
 }
 
 /** Entrar a un puesto: desde su carril de acceso, de frente. */

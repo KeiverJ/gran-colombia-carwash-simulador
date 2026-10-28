@@ -113,7 +113,7 @@ export const Z_DETRAS_DE_LOS_PUESTOS = LOCAL.zSalida + 0.8
  * columnas del techo: ahí espera la fila del lavado. Es del mismo concreto que
  * el piso y no lleva techo.
  */
-export const FRANJA_DE_ESPERA = { x0: LOCAL.ancho / 2, ancho: 3 }
+export const FRANJA_DE_ESPERA = { x0: LOCAL.ancho / 2, ancho: 3.5 }
 
 /**
  * La fila del lavado (cola 1): las motos que llegan y no encuentran placa libre
@@ -125,9 +125,22 @@ export const FRANJA_DE_ESPERA = { x0: LOCAL.ancho / 2, ancho: 3 }
  * por donde pasa la moto que llega con una placa libre y va derecha a ella.
  */
 export const FILA_DEL_LAVADO = {
-  x: FRANJA_DE_ESPERA.x0 + FRANJA_DE_ESPERA.ancho / 2,
+  // A dos metros del borde del local: deja un carril libre de metro y medio entre la
+  // fila y las columnas, por donde pasa la moto que sale de la cabeza o que viene a
+  // ponerse al día, y más de cuatro metros y medio entre la cabeza y la columna de la esquina.
+  x: FRANJA_DE_ESPERA.x0 + 2,
   zCabeza: LOCAL.zFrente - MOTO.largo / 2 - 0.65,
 }
+
+/**
+ * El carril libre de la franja de espera, a un lado de la fila: entre ella y las
+ * columnas del techo, a media distancia de cada una. Por aquí sube la moto que
+ * llega a ponerse en su lugar de la fila (y entra de costado), y por aquí sale de
+ * la cabeza la que va a una placa de atrás, sin pasar por encima de las que
+ * esperan.
+ */
+export const X_DEL_CARRIL_DE_LA_FRANJA =
+  (LOCAL.ancho / 2 - 0.5 + 0.16 + MOTO.ancho / 2 + FILA_DEL_LAVADO.x - MOTO.ancho) / 2
 
 /**
  * Cuántas motos de una fila se dibujan como mucho.
@@ -310,15 +323,15 @@ export const PASO_POR_EL_LOTE = {
  *
  * El corredor pasa a 70 cm de las columnas, igual que el recorrido de salida.
  */
-const X_DEL_CORREDOR_AL_FINAL = FILA_DEL_LAVADO.x - 2.2
+const X_DEL_CORREDOR_AL_FINAL = X_DEL_CARRIL_DE_LA_FRANJA - 2.2
 const POR_EL_CORREDOR = [
   [X_DEL_CORREDOR_AL_FINAL, 0, Z_DETRAS_DE_LOS_PUESTOS],
-  [FILA_DEL_LAVADO.x - 1, 0, Z_DETRAS_DE_LOS_PUESTOS + 0.2],
-  [FILA_DEL_LAVADO.x - 0.25, 0, Z_DETRAS_DE_LOS_PUESTOS + 0.8],
+  [X_DEL_CARRIL_DE_LA_FRANJA - 0.6, 0, Z_DETRAS_DE_LOS_PUESTOS],
+  [X_DEL_CARRIL_DE_LA_FRANJA, 0, Z_DETRAS_DE_LOS_PUESTOS + 0.6],
 ]
 
-/** Donde las dos entradas se juntan: en la fila, justo antes de su último lugar dibujado. */
-export const PUNTO_DE_UNION_A_LA_FILA = [FILA_DEL_LAVADO.x, 0, Z_DETRAS_DE_LOS_PUESTOS + 1.4]
+/** Donde las dos entradas se juntan: en el carril de la franja, un poco antes del último lugar dibujado de la fila. */
+export const PUNTO_DE_UNION_A_LA_FILA = [X_DEL_CARRIL_DE_LA_FRANJA, 0, Z_DETRAS_DE_LOS_PUESTOS + 1.4]
 
 export const PASO_A_LA_COLA = {
   guaimaral: [
@@ -481,6 +494,23 @@ function exigirEtapa(etapa) {
   if (etapa !== 'lavado' && etapa !== 'acabado') {
     throw new RangeError(`La etapa debe ser "lavado" o "acabado"; se recibió ${etapa}.`)
   }
+}
+
+/**
+ * Alto del rótulo de «+N motos más», en píxeles de la pantalla: siempre el
+ * mismo, esté la cámara cerca o lejos.
+ */
+export const ALTO_DEL_ROTULO_DE_SOBRANTES_EN_PANTALLA = 26
+
+/**
+ * Qué punto del rótulo cae sobre el final de su fila (0 = izquierda, 1 = derecha):
+ * el rótulo se extiende hacia afuera de la fila, nunca sobre las motos que
+ * siguen dibujadas. El del lavado queda a la derecha del final de su fila (fuera
+ * del local) y el del acabado a la izquierda del suyo (hacia el pasillo).
+ */
+export const ANCLA_DEL_ROTULO_DE_SOBRANTES = {
+  lavado: [0, 0.5],
+  acabado: [1, 0.5],
 }
 
 /**

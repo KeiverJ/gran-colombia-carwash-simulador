@@ -222,7 +222,7 @@ const ALTO_DEL_OBJETIVO = 0.8
  * @param {number} medidas.elevacion grados sobre el suelo (90 es desde arriba)
  * @param {number} [medidas.azimut] grados hacia la derecha: 0 mira de frente
  */
-export function vistaQueEncuadra(que, { aspecto, elevacion, azimut = 0 }) {
+export function vistaQueEncuadra(que, { aspecto, elevacion, azimut = 0, margen = MARGEN_DE_LA_VISTA }) {
   const esquinas = Array.isArray(que) ? que : esquinasDeLaCaja(que)
   const el = (elevacion * Math.PI) / 180
   const az = (azimut * Math.PI) / 180
@@ -238,7 +238,7 @@ export function vistaQueEncuadra(que, { aspecto, elevacion, azimut = 0 }) {
     const vista = { posicion: objetivo.map((c, i) => c + hacia[i] * distancia), objetivo }
     return esquinas.every((esquina) => {
       const punto = proyectarPunto(esquina, vista, aspecto)
-      return punto && Math.abs(punto[0]) <= 1 - MARGEN_DE_LA_VISTA && Math.abs(punto[1]) <= 1 - MARGEN_DE_LA_VISTA
+      return punto && Math.abs(punto[0]) <= 1 - margen && Math.abs(punto[1]) <= 1 - margen
     })
   }
   let corta = 1
@@ -258,10 +258,42 @@ export function vistaQueEncuadra(que, { aspecto, elevacion, azimut = 0 }) {
  */
 export const ELEVACION_DE_LA_VISTA_GENERAL = 12
 
+/**
+ * En una pantalla estrecha (un celular en vertical) la vista de frente deja el
+ * local pequeño y lejos, con mucho cielo: el ancho del lienzo lo manda la esquina
+ * más cercana a la cámara y el alto sobra. Por eso, a medida que el lienzo se
+ * hace más alto que ancho, la cámara sube —hasta `ELEVACION_EN_VERTICAL`— y se
+ * acerca: desde más arriba hay menos diferencia entre lo cercano y lo lejano, y
+ * el local y la franja de espera llenan el ancho.
+ */
+export const ELEVACION_EN_VERTICAL = 55
+
+/** A partir de qué proporción (ancho / alto) la vista general empieza a subir, y en cuál llega al máximo. */
+const ASPECTO_DONDE_EMPIEZA_A_SUBIR = 0.9
+const ASPECTO_DONDE_LLEGA_AL_MAXIMO = 0.5
+
+/** Cuánto aire se deja en los bordes en una pantalla estrecha: ahí cada píxel de ancho cuenta. */
+const MARGEN_EN_VERTICAL = 0.03
+
+function pesoEnVertical(aspecto) {
+  const peso = (ASPECTO_DONDE_EMPIEZA_A_SUBIR - aspecto) / (ASPECTO_DONDE_EMPIEZA_A_SUBIR - ASPECTO_DONDE_LLEGA_AL_MAXIMO)
+  return Math.min(1, Math.max(0, peso))
+}
+
+/** La elevación de la vista general para un lienzo de la proporción dada. */
+export function elevacionDeLaVistaGeneral(aspecto) {
+  return ELEVACION_DE_LA_VISTA_GENERAL + (ELEVACION_EN_VERTICAL - ELEVACION_DE_LA_VISTA_GENERAL) * pesoEnVertical(aspecto)
+}
+
 export function vistaGeneral(aspecto) {
+  const peso = pesoEnVertical(aspecto)
   return {
     nombre: 'Vista general',
-    ...vistaQueEncuadra(ESQUINAS_DEL_LOCAL, { aspecto, elevacion: ELEVACION_DE_LA_VISTA_GENERAL }),
+    ...vistaQueEncuadra(ESQUINAS_DEL_LOCAL, {
+      aspecto,
+      elevacion: elevacionDeLaVistaGeneral(aspecto),
+      margen: MARGEN_DE_LA_VISTA + (MARGEN_EN_VERTICAL - MARGEN_DE_LA_VISTA) * peso,
+    }),
   }
 }
 

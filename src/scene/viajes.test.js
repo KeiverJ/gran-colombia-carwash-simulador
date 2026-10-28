@@ -10,7 +10,7 @@ import {
   largoDelCamino,
   sitioEnPuesto,
 } from './trayectorias.js'
-import { avanzarLasMotos, crearViajes, sitiosDeLasMotos } from './viajes.js'
+import { avanzarLasMotos, crearViajes, enLaLineaDeLaFila, sitiosDeLasMotos } from './viajes.js'
 
 const estado = () => useSimulacion.getState()
 const inicial = useSimulacion.getState()
@@ -194,5 +194,51 @@ describe('adónde va cada moto', () => {
       Math.min(foto.colaLavado.length, 11) +
       Math.min(foto.colaAcabado.length, 8)
     expect(destinos.size).toBe(enLaFoto)
+  })
+})
+
+describe('las motos de una misma fila no se montan unas sobre otras', () => {
+  /** La menor distancia, en metros, entre dos motos que están sobre la línea de una misma fila, y quiénes eran. */
+  function distanciaMinimaEnFila(velocidad, { minutos = 480, llegadasPorHora = 45 } = {}) {
+    prepararCorrida({ velocidad, llegadasPorHora })
+    let minima = Infinity
+    let quienes = null
+    let cuadrosConFila = 0
+    correr({
+      minutos,
+      alCuadro: ({ motos, viajes }) => {
+        const porFila = { lavado: [], acabado: [] }
+        for (const { n, punto } of motos) {
+          const sitio = viajes.porMoto.get(n)?.sitio
+          if (sitio?.zona === 'fila' && enLaLineaDeLaFila(punto, sitio.etapa)) {
+            porFila[sitio.etapa].push({ n, punto, indice: sitio.indice })
+          }
+        }
+        for (const lista of Object.values(porFila)) {
+          if (lista.length > 1) cuadrosConFila += 1
+          for (let i = 0; i < lista.length; i += 1) {
+            for (let j = i + 1; j < lista.length; j += 1) {
+              const d = Math.hypot(lista[i].punto[0] - lista[j].punto[0], lista[i].punto[2] - lista[j].punto[2])
+              if (d < minima) {
+                minima = d
+                quienes = [lista[i], lista[j]].map(({ n, indice }) => ({ n, indice }))
+              }
+            }
+          }
+        }
+      },
+    })
+    return { minima, quienes, cuadrosConFila }
+  }
+
+  it.each([1, 10, 60])('a %s min/s dos motos sobre la línea de una fila nunca están a menos de casi un largo', (velocidad) => {
+    const { minima, quienes, cuadrosConFila } = distanciaMinimaEnFila(velocidad)
+    expect(cuadrosConFila, 'había filas con varias motos').toBeGreaterThan(100)
+    expect(minima, JSON.stringify(quienes)).toBeGreaterThanOrEqual(MOTO.largo * 0.95)
+  })
+
+  it('con pocas placas y mucha gente (las filas se llenan antes) tampoco', () => {
+    const { minima, quienes } = distanciaMinimaEnFila(10, { minutos: 300, llegadasPorHora: 60 })
+    expect(minima, JSON.stringify(quienes)).toBeGreaterThanOrEqual(MOTO.largo * 0.95)
   })
 })

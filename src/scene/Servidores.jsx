@@ -14,6 +14,8 @@ import Rotulo from './Rotulo.jsx'
 import { useSimulacion } from '../store/simulacion.js'
 import {
   posicionDePlaca,
+  ANCLA_DEL_ROTULO_DE_SOBRANTES,
+  ALTO_DEL_ROTULO_DE_SOBRANTES_EN_PANTALLA,
   posicionDelRotuloDeSobrantes,
   posicionDePuesto,
   POSTE_DE_LOSA,
@@ -208,9 +210,10 @@ export function Sobrantes({ cuantas, etapa }) {
   return (
     <Rotulo
       position={posicionDelRotuloDeSobrantes(etapa)}
-      alto={1.2}
-      color={COLOR_DE_ESCENA.rotuloDeAlerta}
-      borde={COLOR_DE_ESCENA.rotuloDeAlerta}
+      pixeles={ALTO_DEL_ROTULO_DE_SOBRANTES_EN_PANTALLA}
+      encima
+      sinSalirse
+      ancla={ANCLA_DEL_ROTULO_DE_SOBRANTES[etapa]}
     >
       +{cuantas.toLocaleString('es-CO')} motos más
     </Rotulo>

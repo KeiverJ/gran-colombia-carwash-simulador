@@ -10,6 +10,8 @@ import {
   DIAGONAL_DEL_LOCAL,
   distanciaDe,
   ELEVACION_DE_LA_VISTA_GENERAL,
+  elevacionDeLaVistaGeneral,
+  ELEVACION_EN_VERTICAL,
   elevacionDeVista,
   encuadreParaLasCapas,
   esquinasDeLaCaja,
@@ -62,14 +64,21 @@ describe.each(Object.entries(ASPECTOS))('la vista general con %s', (_nombre, asp
     expect(cabe([FILA_DEL_LAVADO.x, 0, FILA_DEL_LAVADO.zCabeza], vista, aspecto)).toBe(true)
   })
 
-  it('mira de frente, desde el lado abierto del local, y baja', () => {
+  it('mira de frente, desde el lado abierto del local', () => {
     const [x, alto, z] = vista.posicion
     const [xObjetivo] = vista.objetivo
     expect(z).toBeGreaterThan(LOCAL.zFrente)
     expect(x).toBeCloseTo(xObjetivo, 9)
-    expect(elevacionDeVista(vista)).toBeLessThan(25)
-    expect(elevacionDeVista(vista)).toBeGreaterThanOrEqual(ELEVACION_DE_LA_VISTA_GENERAL - 1e-9)
     expect(alto).toBeGreaterThan(0)
+  })
+
+  it('es baja si el lienzo es ancho y sube (poco a poco) si es estrecho', () => {
+    const elevacion = elevacionDeVista(vista)
+    expect(elevacion).toBeCloseTo(elevacionDeLaVistaGeneral(aspecto), 6)
+    expect(elevacion).toBeGreaterThanOrEqual(ELEVACION_DE_LA_VISTA_GENERAL - 1e-9)
+    if (aspecto >= 0.9) expect(elevacion).toBeCloseTo(ELEVACION_DE_LA_VISTA_GENERAL, 6)
+    if (aspecto >= 1) expect(elevacion).toBeLessThan(25)
+    if (aspecto <= 0.5) expect(elevacion).toBeCloseTo(ELEVACION_EN_VERTICAL, 6)
   })
 
   it('pero no tanto como para que la fila de adelante tape la de atrás', () => {
@@ -96,6 +105,34 @@ describe.each(Object.entries(ASPECTOS))('la vista general con %s', (_nombre, asp
     const [x, y] = proyectarPunto(vista.objetivo, vista, aspecto)
     expect(x).toBeCloseTo(0, 9)
     expect(y).toBeCloseTo(0, 9)
+  })
+})
+
+describe('la vista general llena el ancho del lienzo', () => {
+  /** Qué parte del ancho del lienzo ocupa lo que tiene que verse (de 0 a 1). */
+  const anchoOcupado = (aspecto) => {
+    const vista = vistaGeneral(aspecto)
+    const xs = ESQUINAS_DEL_LOCAL.map((esquina) => proyectarPunto(esquina, vista, aspecto)[0])
+    return (Math.max(...xs) - Math.min(...xs)) / 2
+  }
+
+  it('en un celular vertical de 390 × 844, el local y la franja de espera ocupan más del 90 % del ancho', () => {
+    expect(anchoOcupado(390 / 844)).toBeGreaterThan(0.9)
+  })
+
+  it('en un celular más ancho (0,6) también, y nunca menos que con la cámara baja', () => {
+    expect(anchoOcupado(0.6)).toBeGreaterThan(0.88)
+  })
+
+  it('en un escritorio de 16:9 ocupa lo que dejan los controles del encuadre', () => {
+    expect(anchoOcupado(16 / 9)).toBeGreaterThan(0.75)
+  })
+
+  it('en 390 × 844 mira desde bastante arriba, sin dejar mucho cielo: el horizonte queda fuera o en el borde', () => {
+    // un punto muy lejano al fondo del local cae en la mitad de arriba, no en el centro
+    const vista = vistaGeneral(390 / 844)
+    const [, y] = proyectarPunto([vista.objetivo[0], 0, -300], vista, 390 / 844) ?? [0, 1]
+    expect(y).toBeGreaterThan(0.9)
   })
 })
 

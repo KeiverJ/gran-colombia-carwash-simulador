@@ -20,6 +20,7 @@ import {
   liberarRecursosDeMoto,
   SEPARACION_DE_LA_MARCA,
 } from './recursosDeMoto.js'
+import { calidadActual } from './calidad.js'
 import { avanzarLasMotos, crearViajes, VELOCIDAD_DE_SIMULACION_EN_PAUSA } from './viajes.js'
 import { crearTexturaDeSombra } from './texturaDeSombra.js'
 import { useModelosDeMoto } from './useModelosDeMoto.js'
@@ -211,7 +212,8 @@ export function Motos() {
       }
     })
     if (mallaDeSombras.current) {
-      mallaDeSombras.current.count = dibujadas
+      // Con la escena lenta no se dibujan las sombras de las motos.
+      mallaDeSombras.current.count = calidadActual().sombras ? dibujadas : 0
       mallaDeSombras.current.instanceMatrix.needsUpdate = true
     }
     for (const plan of PLANES) {

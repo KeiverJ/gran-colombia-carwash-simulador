@@ -28,6 +28,7 @@ import {
   sobrantesDe,
   TECHO,
   TOPE_DE_MOTOS_DIBUJADAS,
+  X_DEL_CARRIL_DE_LA_FRANJA,
   X_CABEZA_DE_FILA,
   TERRENO,
   ZONA_DE_SERVIDORES,
@@ -327,10 +328,10 @@ describe('la fila del lavado, en el lado derecho', () => {
     expect(TOPE_DE_MOTOS_DIBUJADAS.lavado).toBeGreaterThanOrEqual(10)
   })
 
-  it('el punto donde las dos entradas se juntan queda justo antes del último sitio de la fila', () => {
+  it('el punto donde las dos entradas se juntan queda en el carril libre, justo antes del último sitio de la fila', () => {
     const [x, , z] = PUNTO_DE_UNION_A_LA_FILA
     const ultima = posicionEnFila(TOPE_DE_MOTOS_DIBUJADAS.lavado - 1, 'lavado')
-    expect(x).toBe(FILA_DEL_LAVADO.x)
+    expect(x).toBe(X_DEL_CARRIL_DE_LA_FRANJA)
     expect(z).toBeLessThanOrEqual(ultima[2])
     expect(ultima[2] - z).toBeLessThan(MOTO.largo)
     expect(z).toBeGreaterThan(Z_DETRAS_DE_LOS_PUESTOS)
@@ -509,7 +510,9 @@ describe('las dos avenidas', () => {
     for (const camino of Object.values(PASO_A_LA_COLA)) {
       expect(camino.at(-1)).toEqual(PUNTO_DE_UNION_A_LA_FILA)
     }
-    expect(PUNTO_DE_UNION_A_LA_FILA[0]).toBe(posicionEnFila(0, 'lavado')[0])
+    // y por el carril libre de al lado de la fila, no por encima de las motos que esperan
+    expect(PUNTO_DE_UNION_A_LA_FILA[0]).toBe(X_DEL_CARRIL_DE_LA_FRANJA)
+    expect(posicionEnFila(0, 'lavado')[0] - PUNTO_DE_UNION_A_LA_FILA[0]).toBeGreaterThan(MOTO.ancho)
   })
 })
 

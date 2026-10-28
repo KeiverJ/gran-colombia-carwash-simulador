@@ -5,9 +5,10 @@ import { COLUMNAS_DEL_TECHO, TECHO } from './posiciones.js'
 import { elevacionSobreElSuelo, ELEVACION_DEL_TECHO, medidasDelTecho, opacidadDelTecho } from './techo.js'
 
 describe('el techo según la cámara', () => {
-  it('con la vista general, de frente y baja, se ve entero, también en un celular vertical', () => {
+  it('con la vista general, de frente y baja, se ve entero (en un celular vertical, que sube, se aparta)', () => {
     expect(opacidadDelTecho(vistaGeneral(16 / 9).posicion)).toBe(1)
-    expect(opacidadDelTecho(vistaGeneral(390 / 844).posicion)).toBe(1)
+    // en un celular vertical la cámara sube y el techo se aparta del todo: se ve lo de adentro
+    expect(opacidadDelTecho(vistaGeneral(390 / 844).posicion)).toBe(0)
   })
 
   it('en el lavado y el acabado, que miran de cerca desde arriba, se aparta del todo', () => {
