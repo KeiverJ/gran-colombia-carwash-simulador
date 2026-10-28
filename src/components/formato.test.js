@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { LLEGADAS_POR_HORA } from '../data/parametros.js'
-import { comoHoraDeLaTarde, comoNumero, comoPorcentaje, comoReloj } from './formato.js'
+import {
+  comoHoraDeLaTarde,
+  comoNumero,
+  comoPorcentaje,
+  comoReloj,
+  HORAS_PARA_MOSTRAR_SOLO_HORAS,
+} from './formato.js'
 
 describe('comoNumero', () => {
   it('usa coma decimal, como se escribe en Colombia', () => {
@@ -42,6 +48,23 @@ describe('comoReloj', () => {
     expect(comoReloj(65)).toBe('1 h 5 min')
     expect(comoReloj(125)).toBe('2 h 5 min')
     expect(comoReloj(600)).toBe('10 h 0 min')
+  })
+
+  it('hasta 99 horas muestra horas y minutos', () => {
+    expect(comoReloj(99 * 60 + 59)).toBe('99\u00a0h 59\u00a0min')
+  })
+
+  it('desde 100 horas muestra solo las horas', () => {
+    expect(HORAS_PARA_MOSTRAR_SOLO_HORAS).toBe(100)
+    expect(comoReloj(100 * 60)).toBe('100\u00a0h')
+    expect(comoReloj(100 * 60 + 59)).toBe('100\u00a0h')
+    expect(comoReloj(1000 * 60 + 2)).toBe('1000\u00a0h')
+    expect(comoReloj(10000 * 60 + 59.9)).toBe('10000\u00a0h')
+  })
+
+  it('la corrida larga (mil horas) cabe en la barra del celular', () => {
+    // 1000 h 2 min era la forma que no cabía a 360 px: ahora son solo las horas.
+    expect(comoReloj(1000 * 60 + 2).length).toBeLessThanOrEqual(7)
   })
 
   it('no retrocede con valores imposibles', () => {

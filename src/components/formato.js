@@ -36,9 +36,16 @@ export function comoPorcentaje(proporcion, decimales = 1) {
   return `${comoNumero(proporcion * 100, decimales)} %`
 }
 
+/** Desde cuántas horas simuladas el reloj deja de mostrar los minutos. */
+export const HORAS_PARA_MOSTRAR_SOLO_HORAS = 100
+
 /**
  * El reloj de la simulación, en horas y minutos.
  * Los segundos no se muestran: el lavadero se mide en minutos.
+ *
+ * Desde 100 horas simuladas (por ejemplo, tras una corrida larga) muestra solo
+ * las horas, "1000 h": con cifras tan grandes los minutos ya no aportan y la
+ * barra del celular no cabría en una línea.
  *
  * @param {number} minutos
  * @returns {string}
@@ -52,6 +59,9 @@ export function comoReloj(minutos) {
   const resto = totalMinutos % 60
   if (horas === 0) {
     return `${resto} min`
+  }
+  if (horas >= HORAS_PARA_MOSTRAR_SOLO_HORAS) {
+    return `${horas} h`
   }
   return `${horas} h ${resto} min`
 }
