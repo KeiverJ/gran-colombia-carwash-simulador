@@ -1301,9 +1301,31 @@
  * capas. Los controles miden 44 px de alto (ver la variable de arriba).
  */
 @media (max-width: 767px) {
+  /*
+   * La página no tiene desplazamiento propio: la aplicación mide exactamente el
+   * alto visible (100dvh; 100svh donde no existe) y lo único que se desplaza es
+   * el contenido de la hoja inferior. Los textos que solo leen las ayudas
+   * técnicas, los encabezados escondidos de las tablas y todo lo demás
+   * quedan dentro de sus contenedores (`position: relative`).
+   */
+  html,
+  body {
+    overflow: hidden;
+  }
+
+  #root {
+    height: 100svh;
+    height: 100dvh;
+    min-height: 0;
+  }
+
   .app {
     display: flex;
     flex-direction: column;
+    height: 100svh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .barra-lateral,
@@ -1325,14 +1347,25 @@
     display: inline-flex;
   }
 
-  /* Una sola fila: modo, hora, reiniciar, iniciar o pausar y ayuda. */
+  /* Una sola fila, siempre: modo, hora, reiniciar, iniciar o pausar y ayuda. */
   .barra-superior {
+    box-sizing: border-box;
     flex: none;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: space-between;
     gap: var(--espacio-1);
-    min-height: var(--alto-barra);
-    padding: var(--espacio-1);
+    height: var(--alto-barra);
+    min-height: 0;
+    padding: 0 var(--espacio-1);
+  }
+
+  .barra-derecha {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .reloj-de-la-barra {
+    white-space: nowrap;
   }
 
   .barra-derecha {
@@ -1342,7 +1375,7 @@
 
   .barra-derecha .boton-principal {
     min-width: 0;
-    padding: 0 var(--espacio-2);
+    padding: 0 var(--espacio-1);
   }
 
   .reloj-de-la-barra {
@@ -1350,7 +1383,7 @@
   }
 
   .modo {
-    padding: 0 var(--espacio-2);
+    padding: 0 var(--espacio-1);
     font-size: var(--letra-secundaria);
   }
 
@@ -1394,6 +1427,15 @@
     transition: transform var(--duracion-media) var(--curva-entrada);
   }
 
+  /* Para que lo escondido (absoluto) de adentro no agrande la página. */
+  .hoja {
+    position: relative;
+  }
+
+  .hoja .pestanas-panel {
+    position: relative;
+  }
+
   /* La altura base de cada escalón; si no cabe, la hoja se encoge. */
   .hoja[data-altura='media'] {
     flex-basis: 38svh;
@@ -1401,6 +1443,7 @@
 
   .hoja[data-altura='alta'] {
     flex-basis: 100svh;
+    flex-basis: 100dvh;
   }
 
   .hoja .pestanas {

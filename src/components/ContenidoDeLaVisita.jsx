@@ -9,7 +9,7 @@ export function ContenidoDeLaVisita({ enPanel = false }) {
   const metricas = useSimulacion((estado) => estado.metricas)
   return (
     <div className={enPanel ? 'metricas metricas--panel' : 'metricas metricas--capa'}>
-      <BloquesDeLaVisita metricas={metricas} />
+      <BloquesDeLaVisita metricas={metricas} unida={!enPanel} />
     </div>
   )
 }
