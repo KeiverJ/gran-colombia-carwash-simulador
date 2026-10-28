@@ -94,15 +94,15 @@ function BotonConRecuadro({
 /**
  * La fila de controles de arriba de la escena.
  *
- * En escritorio: los botones de cámara a la izquierda, el botón «Leyenda» al
- * centro y «Pantalla completa», solo con ícono, a la derecha. La leyenda va
- * siempre plegada: su contenido sale en un recuadro debajo de la fila (no tapa
- * los botones de cámara) que se abre y se cierra con el mismo botón, con Escape
+ * En escritorio: los botones de cámara a la izquierda y, a la derecha, el botón
+ * «Leyenda» junto a «Pantalla completa» (solo con ícono), con la misma separación
+ * que hay entre los botones de cámara. La leyenda va
+ * siempre plegada: su contenido sale en un recuadro debajo del botón, alineado
+ * a su borde derecho (no tapa los botones de cámara) que se abre y se cierra con el mismo botón, con Escape
  * o con un clic fuera, y cuyo estado se recuerda durante la sesión.
  *
  * En un celular (menos de 768 px) todo cabe en una sola fila: un botón «Vista»
- * que abre el menú con las vistas, el botón «Leyenda» y, a la derecha,
- * «Pantalla completa».
+ * que abre el menú con las vistas y, a la derecha, «Leyenda» y «Pantalla completa».
  */
 export function FilaSuperiorDeLaEscena({ alPedirVista, contenedor, expandida, alExpandir }) {
   const ancho = useInterfaz((estado) => estado.ancho)
@@ -119,17 +119,17 @@ export function FilaSuperiorDeLaEscena({ alPedirVista, contenedor, expandida, al
       ) : (
         <BotonesDeCamara alPedirVista={alPedirVista} />
       )}
-      <div className="flotante-centro">
+      <div className="flotante-derecha">
         <BotonConRecuadro
           texto="Leyenda"
-          alineacion={enCelular ? 'izquierda' : 'centro'}
+          alineacion="derecha"
           abierto={leyendaAbierta}
           alCambiar={cambiarLeyenda}
         >
           <LeyendaDePlanes />
         </BotonConRecuadro>
+        <BotonDePantallaCompleta contenedor={contenedor} expandida={expandida} alExpandir={alExpandir} />
       </div>
-      <BotonDePantallaCompleta contenedor={contenedor} expandida={expandida} alExpandir={alExpandir} />
     </div>
   )
 }

@@ -67,8 +67,8 @@
 /* --- Arriba: una sola fila --- */
 
 /*
- * Los botones de cámara a la izquierda, el botón «Leyenda» (plegada siempre)
- * al centro y "Pantalla completa", solo con ícono, a la derecha. Empieza donde
+ * Los botones de cámara a la izquierda y, a la derecha, el botón «Leyenda»
+ * (plegada siempre) junto a "Pantalla completa", solo con ícono. Empieza donde
  * termina la capa de Ajustes. Si no cabe, pasa a dos líneas.
  */
 .flotante-superior {
@@ -88,10 +88,16 @@
   pointer-events: auto;
 }
 
-/* El botón de la leyenda, centrado en lo que queda entre los botones de cámara y el ícono. */
-.flotante-centro {
+/*
+ * «Leyenda» y «Pantalla completa», pegados al borde derecho, con la misma
+ * separación que hay entre los botones de cámara.
+ */
+.flotante-derecha {
   flex: none;
-  margin: 0 auto;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-1);
 }
 
 .mandos-de-camara {
@@ -191,6 +197,10 @@
 
 .recuadro-flotante--izquierda {
   left: 0;
+}
+
+.recuadro-flotante--derecha {
+  right: 0;
 }
 
 /* El menú de vistas dentro del recuadro: una debajo de otra, sin el velo de la escena. */
@@ -435,12 +445,7 @@
     gap: var(--espacio-2);
   }
 
-  .flotante-centro {
-    margin: 0;
-  }
-
   .boton-pantalla-completa {
-    margin-left: auto;
     width: var(--alto-control);
   }
 
