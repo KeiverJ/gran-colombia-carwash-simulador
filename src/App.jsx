@@ -2,6 +2,7 @@ import './estilos/tema.css'
 import './components/interfaz.css'
 import './components/paneles.css'
 import './components/metricas.css'
+import './components/graficas.css'
 import './components/visita.css'
 import './scene/escena.css'
 

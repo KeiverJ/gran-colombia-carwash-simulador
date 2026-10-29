@@ -924,9 +924,7 @@
 }
 
 /* Las métricas y las gráficas dentro de una capa no llevan marco de tarjeta. */
-.metricas.metricas--capa,
-.metricas--capa .grafica,
-.metricas--panel .grafica {
+.metricas.metricas--capa {
   padding: 0;
   border: 0;
   border-radius: 0;

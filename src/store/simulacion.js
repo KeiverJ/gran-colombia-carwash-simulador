@@ -21,12 +21,12 @@ import { crearSimulador, MODO_POR_PLAN } from '../engine/simulador.js'
 import { crearReproductor } from '../visita/reproductor.js'
 import {
   horasDeLaCamaraRapida,
+  marcasQueCruza,
   progreso,
-  PUNTOS_DE_LA_CAMARA_RAPIDA,
   siguienteTrozoHoras,
 } from './corridaLarga.js'
 import { pasoSimuladoMin } from './paso.js'
-import { agregarPunto, tocaAnotar } from './puntos.js'
+import { agregarPunto, intervaloDeMuestreoMin, tocaAnotar } from './puntos.js'
 
 /** Los dos modos de la aplicación: la simulación al azar y la tarde de la visita. */
 export const MODO_ALEATORIO = 'aleatorio'
@@ -363,8 +363,9 @@ export const useSimulacion = create((set, get) => ({
 
     // Freno 2: la gráfica, por tiempo simulado, e independiente del anterior.
     // Si dependiera del reloj real, a velocidad alta la gráfica se quedaría
-    // con cuatro puntos por segundo y perdería la forma de las colas.
-    if (tocaAnotar(foto.relojMin, ultimoPuntoMin)) {
+    // con cuatro puntos por segundo y perdería la forma de las colas. El
+    // intervalo crece con lo que ya cubre la gráfica, para que siga entera.
+    if (tocaAnotar(foto.relojMin, ultimoPuntoMin, intervaloDeMuestreoMin(puntos))) {
       cambios.puntos = agregarPunto(puntos, {
         minuto: foto.relojMin,
         colaLavado: foto.colaLavado.length,
@@ -456,13 +457,39 @@ export const useSimulacion = create((set, get) => ({
       horasDelTrozoAnterior: corridaLarga.horasDelTrozoAnterior,
       msDelTrozoAnterior: corridaLarga.msDelTrozoAnterior,
     })
-    const empezo = Date.now()
-    motor.correrHoras(trozo)
-    const tardo = Date.now() - empezo
-
     const horasHechas = corridaLarga.horasHechas + trozo
     const terminoElTrabajo = horasHechas >= corridaLarga.horasTotales
-    const foto = motor.estado()
+
+    // El trozo se parte en las marcas de la gráfica que cruza: en cada una el
+    // motor se detiene, se lee su estado y se anota el punto. Correr por partes
+    // da exactamente lo mismo que correr de golpe, así que los resultados no
+    // cambian; y la gráfica queda con ~200 puntos sea cual sea el tamaño del
+    // trozo, con cámara rápida o sin ella.
+    const empezo = Date.now()
+    let puntos = get().puntos
+    let horasCorridas = corridaLarga.horasHechas
+    let foto = null
+    const marcas = marcasQueCruza({
+      horasAntes: corridaLarga.horasHechas,
+      horasDespues: horasHechas,
+      horasTotales: corridaLarga.horasTotales,
+    })
+    for (const marca of marcas) {
+      motor.correrHoras(marca - horasCorridas)
+      horasCorridas = marca
+      foto = motor.estado()
+      puntos = agregarPunto(puntos, {
+        minuto: foto.relojMin,
+        colaLavado: foto.colaLavado.length,
+        colaAcabado: foto.colaAcabado.length,
+      })
+    }
+    if (horasCorridas < horasHechas) {
+      motor.correrHoras(horasHechas - horasCorridas)
+      foto = motor.estado()
+    }
+    const tardo = Date.now() - empezo
+
     const cambios = {
       foto,
       resumen: resumenDe(foto),
@@ -475,19 +502,10 @@ export const useSimulacion = create((set, get) => ({
         porcentaje: progreso(horasHechas, corridaLarga.horasTotales),
       },
     }
-    // Un punto por trozo: si no, tras mil horas la gráfica quedaría vacía
-    // justo cuando más hay que enseñar, que es cómo crece la fila del acabado.
-    // En cámara rápida los trozos son uno por cuadro: se anotan unos 200 puntos en total.
-    const cadaCuantasHoras = corridaLarga.horasTotales / PUNTOS_DE_LA_CAMARA_RAPIDA
-    const cruzaUnaMarca =
-      Math.floor(horasHechas / cadaCuantasHoras) > Math.floor(corridaLarga.horasHechas / cadaCuantasHoras)
-    if (!corridaLarga.camaraRapida || cruzaUnaMarca || terminoElTrabajo) {
-      cambios.puntos = agregarPunto(get().puntos, {
-        minuto: foto.relojMin,
-        colaLavado: foto.colaLavado.length,
-        colaAcabado: foto.colaAcabado.length,
-      })
-      cambios.ultimoPuntoMin = foto.relojMin
+    // La última marca cae en el final de la corrida: el último punto se anota al terminar.
+    if (marcas.length > 0) {
+      cambios.puntos = puntos
+      cambios.ultimoPuntoMin = puntos.at(-1).minuto
     }
     // La tabla de métricas, como en la marcha normal, cuatro veces por segundo; y al final siempre.
     if (!corridaLarga.camaraRapida || terminoElTrabajo || Date.now() - get().ultimasMetricasMs >= INTERVALO_DE_METRICAS_MS) {

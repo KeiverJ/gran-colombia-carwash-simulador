@@ -263,9 +263,15 @@ describe('las métricas y los puntos de la gráfica', () => {
     expect(estado().puntos[0]).toHaveProperty('colaAcabado')
   })
 
-  it('los puntos no pasan del tope', () => {
-    animarUnRato(1000)
-    expect(estado().puntos.length).toBeLessThanOrEqual(MAXIMO_DE_PUNTOS)
+  it('los puntos no pasan del tope y siguen cubriendo desde el minuto 0', () => {
+    animarUnRato(3000)
+    const { puntos, foto } = estado()
+    expect(puntos.length).toBeLessThanOrEqual(MAXIMO_DE_PUNTOS)
+    // Al pasar el tope se aclara el arreglo, no se tiran los más viejos.
+    // El primer punto es el del primer cuadro (6 min a 60 min/s), no uno de después.
+    expect(puntos[0].minuto).toBeLessThanOrEqual(6)
+    expect(foto.relojMin).toBeGreaterThan(MAXIMO_DE_PUNTOS)
+    expect(foto.relojMin - puntos.at(-1).minuto).toBeLessThan(foto.relojMin / 100 + 2)
   })
 
   it('la gráfica se vacía al reiniciar y al cambiar un parámetro', () => {
@@ -327,5 +333,91 @@ describe('la corrida larga', () => {
 
   it('sin corrida en marcha no hace nada', () => {
     expect(estado().avanzarCorridaLarga()).toBe(false)
+  })
+})
+
+describe('la corrida larga llena la gráfica y las barras de cada servidor', () => {
+  /** Corre las 1000 horas por el camino de la cámara rápida (con un reloj falso) o sin ella. */
+  const correrMil = (camaraRapida) => {
+    estado().empezarCorridaLarga(1000, { camaraRapida })
+    let instante = 0
+    let cuadros = 0
+    while (estado().avanzarCorridaLarga(instante)) {
+      instante += 50
+      cuadros += 1
+      expect(cuadros).toBeLessThan(5000)
+    }
+  }
+
+  const deUnaVez = () => {
+    const { parametros } = estado()
+    const motor = crearSimulador({
+      semilla: estado().semilla,
+      llegadasPorHora: parametros.llegadasPorHora,
+      lavadoMin: parametros.lavadoMin,
+      acabadoPlanMin: parametros.acabadoPlanMin,
+      acabadoPromedioMin: acabadoPromedioDe(parametros),
+      proporcionPlan: parametros.proporcionPlan,
+      placas: parametros.placas,
+      puestos: parametros.puestos,
+      modoAcabado: parametros.modoAcabado,
+    })
+    motor.correrHoras(1000)
+    return motor
+  }
+
+  for (const [nombre, camaraRapida] of [
+    ['sin cámara (menos movimiento)', false],
+    ['en cámara rápida', true],
+  ]) {
+    it(`${nombre}: deja unos 200 puntos que cubren de 0 a 1000 horas`, () => {
+      correrMil(camaraRapida)
+      const { puntos } = estado()
+      expect(puntos.length).toBeGreaterThanOrEqual(190)
+      expect(puntos.length).toBeLessThanOrEqual(MAXIMO_DE_PUNTOS)
+      expect(puntos[0].minuto).toBeCloseTo(5 * 60, 6) // la primera marca, a las 5 h
+      expect(puntos.at(-1).minuto).toBeCloseTo(1000 * 60, 6)
+      const minutos = puntos.map((p) => p.minuto)
+      expect(minutos).toEqual([...minutos].sort((a, b) => a - b))
+      expect(estado().ultimoPuntoMin).toBe(puntos.at(-1).minuto)
+    })
+
+    it(`${nombre}: las métricas finales son las de correr las 1000 horas de una vez`, () => {
+      correrMil(camaraRapida)
+      expect(estado().metricas).toEqual(deUnaVez().metricas())
+    })
+
+    it(`${nombre}: la ocupación de cada servidor llega al terminar`, () => {
+      correrMil(camaraRapida)
+      const { lavado, acabado } = estado().metricas
+      expect(lavado.ocupacionPorServidor).toHaveLength(estado().parametros.placas)
+      expect(acabado.ocupacionPorServidor).toHaveLength(estado().parametros.puestos)
+      // La asignación es al primer servidor libre: la placa 1 trabaja más que la última.
+      expect(lavado.ocupacionPorServidor[0]).toBeGreaterThan(lavado.ocupacionPorServidor.at(-1))
+    })
+  }
+
+  it('reiniciar y elegir escenario vacían los puntos de la corrida larga', () => {
+    correrMil(false)
+    expect(estado().puntos.length).toBeGreaterThan(0)
+    estado().reiniciar()
+    expect(estado().puntos).toEqual([])
+
+    correrMil(false)
+    estado().elegirEscenario('cinco-puestos')
+    expect(estado().puntos).toEqual([])
+  })
+
+  it('tras la corrida larga, seguir simulando anota puntos tan espaciados como los que hay', () => {
+    correrMil(false)
+    const antes = estado().puntos.length
+    estado().iniciar()
+    estado().cambiarVelocidad(60)
+    for (let i = 0; i < 100; i += 1) {
+      estado().avanzarCuadro(100)
+    }
+    // 100 cuadros de 100 ms a 60 min/s son 10 min simulados: no alcanza para un punto
+    // más (el intervalo ya es de varias horas) y la gráfica no se llena de puntos pegados.
+    expect(estado().puntos.length).toBeLessThanOrEqual(antes + 1)
   })
 })

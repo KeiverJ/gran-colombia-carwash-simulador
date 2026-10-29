@@ -11,9 +11,9 @@ import {
 } from '../store/interfaz.js'
 import { MODO_VISITA, useSimulacion } from '../store/simulacion.js'
 import ContenidoDeLaVisita from './ContenidoDeLaVisita.jsx'
-import GraficaDeColas from './GraficaDeColas.jsx'
 import { IconoDeFlecha } from './iconos.jsx'
 import { ListaDePestanas, PanelDeLaPestana } from './Pestanas.jsx'
+import PestanaDeGraficas from './PestanaDeGraficas.jsx'
 import { ContenidoDeMetricas } from './TablaDeMetricas.jsx'
 import { usePresencia } from './usePresencia.js'
 
@@ -34,11 +34,7 @@ export function ContenidoDeResultados({ pestana, enPanel = false }) {
     return <ContenidoDeLaVisita enPanel={enPanel} />
   }
   if (pestana === 'graficas') {
-    return (
-      <div className={enPanel ? 'metricas metricas--panel metricas--grafica' : 'metricas metricas--capa'}>
-        <GraficaDeColas alto={enPanel ? '100%' : 260} conTitulo={!enPanel} />
-      </div>
-    )
+    return <PestanaDeGraficas />
   }
   return <ContenidoDeMetricas enPanel={enPanel} />
 }

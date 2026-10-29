@@ -1,6 +1,5 @@
 /*
- * Las tablas de métricas, la gráfica de las filas y el botón de la corrida
- * larga. Viven dentro de las capas y de la hoja inferior, así que no llevan
+ * Las tablas de métricas y el botón de la corrida larga. Viven dentro de las capas y de la hoja inferior, así que no llevan
  * marco de tarjeta. Solo variables del tema.
  *
  * Con menos de 768 px (un celular) cada tabla pasa a tarjetas: cada fila es una
@@ -8,8 +7,7 @@
  * marcado.
  */
 
-.metricas,
-.grafica {
+.metricas {
   text-align: left;
 }
 
@@ -25,15 +23,6 @@
 
 .metricas h3:first-child {
   margin-top: 0;
-}
-
-.grafica h2 {
-  margin: 0 0 var(--espacio-2);
-  font-size: var(--letra-seccion);
-  font-weight: 600;
-  letter-spacing: var(--espaciado-de-seccion);
-  text-transform: uppercase;
-  color: var(--texto-tenue);
 }
 
 .metricas table {
@@ -78,8 +67,7 @@
   font-style: italic;
 }
 
-.metricas .nota,
-.grafica .nota {
+.metricas .nota {
   margin: var(--espacio-2) 0;
   font-size: var(--letra-pequena);
   color: var(--texto-secundario);
@@ -131,10 +119,6 @@
   margin: var(--espacio-2) 0 0;
   font-size: var(--letra-secundaria);
   color: var(--texto);
-}
-
-.grafica .lienzo {
-  margin-top: var(--espacio-2);
 }
 
 /*
@@ -320,27 +304,4 @@
 
 .nota-visita {
   margin-top: var(--espacio-3);
-}
-
-/* La gráfica a todo el ancho y a todo el alto del panel. */
-.metricas--grafica {
-  height: 100%;
-}
-
-.metricas--grafica .grafica {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.metricas--grafica .grafica .lienzo {
-  flex: 1;
-  min-height: 0;
-  margin: 0;
-}
-
-/* Con el dibujo a la vista la nota de arriba sobra; sin datos, es el aviso de una línea. */
-.metricas--grafica .grafica .lienzo ~ .nota,
-.metricas--grafica .grafica > .nota:not(:only-child) {
-  display: none;
 }

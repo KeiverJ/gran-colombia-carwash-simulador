@@ -10,8 +10,8 @@ import {
 } from 'recharts'
 
 import { COLOR_DE_SERIE } from '../estilos/colores.js'
-import { useSimulacion } from '../store/simulacion.js'
 import { comoNumero } from './formato.js'
+import MarcoDeGrafica from './MarcoDeGrafica.jsx'
 
 /* Numeradas por etapa: así la leyenda sale en el orden en que la moto las
    recorre, y no en el alfabético, que pondría el acabado primero. */
@@ -20,90 +20,84 @@ const NOMBRE_DE_SERIE = {
   colaAcabado: '2. Fila del acabado',
 }
 
-/** Las horas del eje, a partir de los minutos simulados. */
-const comoHoras = (minutos) => comoNumero(minutos / 60, 1)
+/** Desde cuántas horas simuladas el eje deja los decimales: con cifras grandes estorban. */
+const HORAS_SIN_DECIMALES = 100
+
+/** Las horas del eje y del tooltip, a partir de los minutos simulados. */
+const comoHoras = (minutos) => {
+  const horas = minutos / 60
+  return comoNumero(horas, horas > HORAS_SIN_DECIMALES ? 0 : 1)
+}
+
+const TEXTO_DEL_EJE = { fontSize: 12, fill: 'var(--texto-secundario)' }
 
 /**
- * La gráfica de las dos filas a lo largo del tiempo simulado. Se usa en la
- * franja de debajo de la escena (más baja, sin título) y en la pestaña Gráficas.
+ * La gráfica de las dos filas a lo largo del tiempo simulado.
  *
  * @param {object} props
- * @param {number|string} [props.alto] alto del dibujo: píxeles, o '100%' para llenar su contenedor
- * @param {boolean} [props.conTitulo]
+ * @param {object} props.modelo el de `modelosDeLasGraficas` con id «filas»
  */
-export function GraficaDeColas({ alto = 260, conTitulo = true }) {
-  const puntos = useSimulacion((estado) => estado.puntos)
-
-  if (puntos.length < 2) {
-    return (
-      <section className="grafica">
-        {conTitulo ? <h2>Las dos filas en el tiempo</h2> : null}
-        <p className="nota">
-          Los datos aparecerán cuando la simulación avance.
-        </p>
-      </section>
-    )
-  }
-
+export function GraficaDeColas({ modelo }) {
   return (
-    <section className="grafica">
-      {conTitulo ? <h2>Las dos filas en el tiempo</h2> : null}
-      <p className="nota">
-        Motos esperando en cada fila, según avanza el tiempo simulado.
-      </p>
-      <div className="lienzo">
-        <ResponsiveContainer width="100%" height={alto}>
-          <LineChart data={puntos} margin={{ top: 8, right: 16, bottom: 24, left: 0 }}>
-            <CartesianGrid stroke="var(--borde)" strokeDasharray="3 3" vertical={false} />
-            {/* El eje tiene que ser numérico: por defecto Recharts reparte los
-                puntos a distancias iguales como si fueran categorías, y
-                entonces 25 h y 875 h quedarían a un paso, igual que 1.000,2 y
-                1.000,5. El eje estaría mintiendo sobre el tiempo. */}
-            <XAxis
-              dataKey="minuto"
-              type="number"
-              domain={['dataMin', 'dataMax']}
-              tickFormatter={comoHoras}
-              stroke="var(--texto-secundario)"
-              tick={{ fontSize: 12 }}
-              label={{ value: 'horas simuladas', position: 'insideBottom', offset: -12 }}
-            />
-            <YAxis
-              stroke="var(--texto-secundario)"
-              tick={{ fontSize: 12 }}
-              allowDecimals={false}
-              label={{ value: 'motos', angle: -90, position: 'insideLeft' }}
-            />
-            <Tooltip
-              formatter={(valor, nombre) => [`${valor} motos`, nombre]}
-              labelFormatter={(minuto) => `${comoHoras(minuto)} h simuladas`}
-            />
-            <Legend verticalAlign="top" height={28} />
-            {/* La animación de Recharts pelea con una serie que cambia cuatro
-                veces por segundo: se ve como un temblor. */}
-            <Line
-              type="monotone"
-              dataKey="colaLavado"
-              name={NOMBRE_DE_SERIE.colaLavado}
-              stroke={COLOR_DE_SERIE.colaLavado}
-              strokeWidth={2}
-              dot={false}
-              isAnimationActive={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="colaAcabado"
-              name={NOMBRE_DE_SERIE.colaAcabado}
-              stroke={COLOR_DE_SERIE.colaAcabado}
-              strokeWidth={3}
-              strokeDasharray="6 3"
-              dot={false}
-              isAnimationActive={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </section>
+    <MarcoDeGrafica
+      titulo={modelo.titulo}
+      vacia={modelo.vacia}
+      mensajeVacio={modelo.mensajeVacio}
+      descripcion={modelo.descripcion}
+      notas={['Motos esperando en cada fila, según avanza el tiempo simulado.']}
+      tabla={modelo.tabla}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={modelo.puntos} margin={{ top: 8, right: 16, bottom: 24, left: 0 }}>
+          <CartesianGrid stroke="var(--borde)" strokeDasharray="3 3" vertical={false} />
+          {/* El eje tiene que ser numérico: por defecto Recharts reparte los
+              puntos a distancias iguales como si fueran categorías, y
+              entonces 25 h y 875 h quedarían a un paso, igual que 1.000,2 y
+              1.000,5. El eje estaría mintiendo sobre el tiempo. */}
+          <XAxis
+            dataKey="minuto"
+            type="number"
+            domain={['dataMin', 'dataMax']}
+            tickFormatter={comoHoras}
+            stroke="var(--texto-secundario)"
+            tick={TEXTO_DEL_EJE}
+            label={{ value: 'horas simuladas', position: 'insideBottom', offset: -12, ...TEXTO_DEL_EJE }}
+          />
+          <YAxis
+            stroke="var(--texto-secundario)"
+            tick={TEXTO_DEL_EJE}
+            allowDecimals={false}
+            label={{ value: 'motos', angle: -90, position: 'insideLeft', ...TEXTO_DEL_EJE }}
+          />
+          <Tooltip
+            formatter={(valor, nombre) => [`${comoNumero(valor, 0)} motos`, nombre]}
+            labelFormatter={(minuto) => `${comoHoras(minuto)} h simuladas`}
+          />
+          <Legend verticalAlign="top" height={28} />
+          {/* La animación de Recharts pelea con una serie que se renueva cuatro
+              veces por segundo: se ve como un temblor. */}
+          <Line
+            type="monotone"
+            dataKey="colaLavado"
+            name={NOMBRE_DE_SERIE.colaLavado}
+            stroke={COLOR_DE_SERIE.colaLavado}
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="colaAcabado"
+            name={NOMBRE_DE_SERIE.colaAcabado}
+            stroke={COLOR_DE_SERIE.colaAcabado}
+            strokeWidth={3}
+            strokeDasharray="6 3"
+            dot={false}
+            isAnimationActive={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </MarcoDeGrafica>
   )
 }
 

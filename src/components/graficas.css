@@ -1,0 +1,161 @@
+/*
+ * La pestaña Gráficas: la cuadrícula de tarjetas, el marco común de cada
+ * gráfica (título, dibujo, notas y tabla de datos) y su leyenda. Solo variables
+ * del tema.
+ *
+ * La cuadrícula decide sus columnas según el ancho de su propio contenedor y no
+ * el de la pantalla: el panel de Resultados cambia de ancho cuando se abre la
+ * capa de Ajustes, y una consulta de pantalla no lo notaría.
+ */
+
+.pestana-de-graficas {
+  container-type: inline-size;
+  text-align: left;
+}
+
+.graficas-cuadricula {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--espacio-4);
+  align-items: start;
+}
+
+@container (min-width: 44rem) {
+  .graficas-cuadricula {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.grafica-marco {
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 0;
+  padding: var(--espacio-3);
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+}
+
+.grafica-marco--ancha {
+  grid-column: 1 / -1;
+}
+
+.grafica-marco h3 {
+  margin: 0 0 var(--espacio-2);
+  font-size: var(--letra-seccion);
+  font-weight: 600;
+  letter-spacing: var(--espaciado-de-seccion);
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+/* El dibujo mide un alto fijo, así las tarjetas de una fila quedan parejas. */
+.grafica-dibujo {
+  width: 100%;
+  height: var(--alto-de-grafica);
+}
+
+.grafica-dibujo--libre {
+  height: auto;
+}
+
+.grafica-vacia {
+  margin: 0;
+  font-size: var(--letra-secundaria);
+  color: var(--texto-secundario);
+}
+
+.grafica-marco .nota {
+  margin: var(--espacio-2) 0 0;
+  font-size: var(--letra-pequena);
+  color: var(--texto-secundario);
+}
+
+/* La leyenda: una lista de muestras con su nombre, siempre escrito. */
+.grafica-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-1) var(--espacio-3);
+  margin: var(--espacio-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--letra-pequena);
+  color: var(--texto-secundario);
+}
+
+.grafica-leyenda li {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-1);
+}
+
+.grafica-muestra {
+  flex: none;
+  width: 1rem;
+  height: 0.75rem;
+  border: 1px solid var(--borde-campo);
+}
+
+/* Las definiciones de las tramas (patrones SVG) no ocupan sitio. */
+.grafica-tramas {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Los dos bloques de la ocupación (placas y puestos), uno encima del otro. */
+.grafica-bloque + .grafica-bloque {
+  margin-top: var(--espacio-3);
+}
+
+.grafica-bloque h4 {
+  margin: 0 0 var(--espacio-1);
+  font-size: var(--letra-secundaria);
+  font-weight: 600;
+  color: var(--texto-secundario);
+}
+
+/* La tabla de datos que se despliega bajo la gráfica. */
+.grafica-datos {
+  margin-top: var(--espacio-2);
+  font-size: var(--letra-secundaria);
+  /* Una tabla ancha se desplaza dentro de su tarjeta y no ensancha la página. */
+  overflow-x: auto;
+}
+
+.grafica-datos summary {
+  cursor: pointer;
+  color: var(--etapa-1-texto);
+}
+
+.grafica-datos summary:hover {
+  color: var(--texto);
+  text-decoration: underline;
+}
+
+.grafica-datos table {
+  width: 100%;
+  margin-top: var(--espacio-2);
+  border-collapse: collapse;
+  font-size: var(--letra-pequena);
+}
+
+.grafica-datos th,
+.grafica-datos td {
+  padding: var(--espacio-1) var(--espacio-2);
+  border-bottom: 1px solid var(--borde);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.grafica-datos th:first-child,
+.grafica-datos td:first-child {
+  text-align: left;
+}
+
+.grafica-datos thead th {
+  font-weight: 600;
+  color: var(--texto-secundario);
+  border-bottom-color: var(--borde-campo);
+}

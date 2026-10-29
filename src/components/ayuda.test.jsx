@@ -100,3 +100,14 @@ describe('abrir y cerrar la Ayuda no toca la simulación', () => {
     useSimulacion.getState().pausar()
   })
 })
+
+describe('la línea de la Ayuda sobre las gráficas', () => {
+  it('dice qué muestra cada gráfica y que los puestos de la visita son aproximados', () => {
+    const html = texto()
+    expect(html).toContain('Las gráficas.')
+    expect(html).toContain('Las dos filas a lo largo del tiempo')
+    expect(html).toContain('cada placa y cada puesto')
+    expect(html).toContain('los puestos son aproximados')
+    expect(html).toContain('como tabla')
+  })
+})

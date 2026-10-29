@@ -169,8 +169,15 @@ export function ContenidoDeLaAyuda() {
             contratan las motos y semilla.
           </li>
           <li>
-            <strong>Resultados.</strong> Métricas (simulado contra calculado), Gráficas de las
-            dos filas y, en la visita, lo observado aquel día.
+            <strong>Resultados.</strong> Métricas (simulado contra calculado), Gráficas y, en la
+            visita, lo observado aquel día.
+          </li>
+          <li>
+            <strong>Las gráficas.</strong> Las dos filas a lo largo del tiempo, cuánto estuvo
+            ocupada cada placa y cada puesto, y en qué se va el tiempo de una moto entre
+            esperas y atenciones. En la visita se suma el tiempo de cada una de las 23 motos, y
+            allí los puestos son aproximados porque la tabla no dice qué puesto usó cada moto.
+            Cada gráfica se puede ver también como tabla.
           </li>
         </ul>
       </section>

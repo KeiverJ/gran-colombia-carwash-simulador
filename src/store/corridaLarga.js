@@ -73,6 +73,46 @@ export const DURACION_MINIMA_DE_LA_CAMARA_RAPIDA_MS = 4000
 export const PUNTOS_DE_LA_CAMARA_RAPIDA = 200
 
 /**
+ * Las marcas (horas simuladas, de la corrida entera) en que toca anotar un punto
+ * de la gráfica y que cruza un trozo que va de `horasAntes` a `horasDespues`.
+ *
+ * Hay `puntos` marcas repartidas parejo, una cada `horasTotales / puntos`, y la
+ * última cae justo en `horasTotales`. Un trozo puede cruzar varias: el que
+ * corre el motor las usa para detenerse en cada una y anotar el estado de ese
+ * instante, así la gráfica sale igual con trozos grandes que con trozos chicos,
+ * con cámara rápida o sin ella.
+ *
+ * @param {object} opciones
+ * @param {number} opciones.horasAntes horas ya simuladas antes del trozo
+ * @param {number} opciones.horasDespues horas simuladas al terminar el trozo
+ * @param {number} opciones.horasTotales
+ * @param {number} [opciones.puntos]
+ * @returns {number[]} horas, en orden creciente, entre `horasAntes` (sin incluir) y `horasDespues`
+ */
+export function marcasQueCruza({
+  horasAntes,
+  horasDespues,
+  horasTotales,
+  puntos = PUNTOS_DE_LA_CAMARA_RAPIDA,
+}) {
+  if (!(horasTotales > 0) || horasDespues <= horasAntes) {
+    return []
+  }
+  const cadaCuantasHoras = horasTotales / puntos
+  // El margen evita que un 2,9999999999999996 de coma flotante pierda una marca.
+  const margen = 1e-9
+  const marcaAntes = Math.floor(horasAntes / cadaCuantasHoras + margen)
+  const marcaDespues =
+    horasDespues >= horasTotales ? puntos : Math.floor(horasDespues / cadaCuantasHoras + margen)
+
+  const marcas = []
+  for (let k = marcaAntes + 1; k <= marcaDespues; k += 1) {
+    marcas.push(k === puntos ? horasTotales : Math.min(horasTotales, k * cadaCuantasHoras))
+  }
+  return marcas
+}
+
+/**
  * Cuántas horas enteras debería llevar simuladas la cámara rápida a los `ms`
  * de haber empezado: arranca despacio, va rápido en el medio y frena al final
  * (curva suave de 0 a todas las horas en `duracionMs`).

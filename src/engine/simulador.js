@@ -187,6 +187,10 @@ export function crearSimulador(opciones = {}) {
 
   const lavado = crearAcumulador()
   const acabado = crearAcumulador()
+  // Minutos que estuvo ocupada cada placa y cada puesto, con el mismo recorte
+  // del calentamiento que las áreas de la etapa.
+  const areaOcupadaPorPlaca = new Array(placas).fill(0)
+  const areaOcupadaPorPuesto = new Array(puestos).fill(0)
   const total = { sumaEstanciaMin: 0, areaEnSistema: 0, motosContadas: 0 }
 
   let proximaLlegada = fuentesEnUso.tiempoEntreLlegadas()
@@ -278,6 +282,17 @@ export function crearSimulador(opciones = {}) {
     acabado.areaEnCola += colaAcabado.length * dt
     acabado.areaOcupados += ocupadosAcabado * dt
     acabado.areaEnEtapa += (colaAcabado.length + ocupadosAcabado) * dt
+
+    for (let i = 0; i < enLavado.length; i += 1) {
+      if (enLavado[i] !== null) {
+        areaOcupadaPorPlaca[i] += dt
+      }
+    }
+    for (let i = 0; i < enAcabado.length; i += 1) {
+      if (enAcabado[i] !== null) {
+        areaOcupadaPorPuesto[i] += dt
+      }
+    }
 
     total.areaEnSistema +=
       (colaLavado.length + ocupadasLavado + colaAcabado.length + ocupadosAcabado) * dt
@@ -442,6 +457,13 @@ export function crearSimulador(opciones = {}) {
     motosContadas: acumulador.motosContadas,
   })
 
+  /**
+   * Qué parte del tiempo observado estuvo ocupado cada servidor (de 0 a 1), con
+   * el mismo esquema que `promedioEnTiempo`. Su promedio es el ρ de la etapa.
+   */
+  const ocupacionPorServidor = (areas, servidores) =>
+    areas.map((area, i) => promedioEnTiempo(area, servidores[i] !== null ? 1 : 0))
+
   return {
     /** Avanza un intervalo de tiempo simulado, en minutos (para animar). */
     avanzar(minutos) {
@@ -489,8 +511,14 @@ export function crearSimulador(opciones = {}) {
       const ocupadasLavado = enLavado.filter((m) => m !== null).length
       const ocupadosAcabado = enAcabado.filter((m) => m !== null).length
       return {
-        lavado: metricasDeEtapa(lavado, placas, colaLavado.length, ocupadasLavado),
-        acabado: metricasDeEtapa(acabado, puestos, colaAcabado.length, ocupadosAcabado),
+        lavado: {
+          ...metricasDeEtapa(lavado, placas, colaLavado.length, ocupadasLavado),
+          ocupacionPorServidor: ocupacionPorServidor(areaOcupadaPorPlaca, enLavado),
+        },
+        acabado: {
+          ...metricasDeEtapa(acabado, puestos, colaAcabado.length, ocupadosAcabado),
+          ocupacionPorServidor: ocupacionPorServidor(areaOcupadaPorPuesto, enAcabado),
+        },
         total: {
           l: promedioEnTiempo(
             total.areaEnSistema,

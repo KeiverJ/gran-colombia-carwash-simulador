@@ -4,7 +4,9 @@ import {
   CRECIMIENTO_MAXIMO,
   DURACION_MINIMA_DE_LA_CAMARA_RAPIDA_MS,
   horasDeLaCamaraRapida,
+  marcasQueCruza,
   PRESUPUESTO_POR_CUADRO_MS,
+  PUNTOS_DE_LA_CAMARA_RAPIDA,
   progreso,
   siguienteTrozoHoras,
   TROZO_INICIAL_HORAS,
@@ -136,5 +138,52 @@ describe('el ritmo de la cámara rápida', () => {
   it('con otra duración o menos horas, igual', () => {
     expect(horas(500, { duracionMs: 1000 })).toBe(500)
     expect(horasDeLaCamaraRapida({ msTranscurridos: 9999, horasTotales: 50 })).toBe(50)
+  })
+})
+
+describe('las marcas de la gráfica que cruza un trozo', () => {
+  it('un trozo de 25 horas en 1000 cruza cinco marcas, una cada 5 horas', () => {
+    expect(marcasQueCruza({ horasAntes: 0, horasDespues: 25, horasTotales: 1000 })).toEqual([
+      5, 10, 15, 20, 25,
+    ])
+  })
+
+  it('un trozo más corto que la separación entre marcas puede no cruzar ninguna', () => {
+    expect(marcasQueCruza({ horasAntes: 6, horasDespues: 9, horasTotales: 1000 })).toEqual([])
+  })
+
+  it('una marca justo en el borde del trozo cuenta en un solo trozo', () => {
+    const primero = marcasQueCruza({ horasAntes: 0, horasDespues: 10, horasTotales: 1000 })
+    const segundo = marcasQueCruza({ horasAntes: 10, horasDespues: 20, horasTotales: 1000 })
+    expect(primero).toEqual([5, 10])
+    expect(segundo).toEqual([15, 20])
+  })
+
+  it('la última marca cae exactamente en el final', () => {
+    const marcas = marcasQueCruza({ horasAntes: 990, horasDespues: 1000, horasTotales: 1000 })
+    expect(marcas).toEqual([995, 1000])
+  })
+
+  it('con cualquier reparto en trozos salen todas las marcas, sin repetir ni saltar', () => {
+    for (const horasTotales of [100, 333, 1000, 777]) {
+      const todas = []
+      let horas = 0
+      let trozo = 1
+      while (horas < horasTotales) {
+        const siguiente = Math.min(horasTotales, horas + trozo)
+        todas.push(...marcasQueCruza({ horasAntes: horas, horasDespues: siguiente, horasTotales }))
+        horas = siguiente
+        trozo = (trozo % 61) + 7
+      }
+      expect(todas).toHaveLength(PUNTOS_DE_LA_CAMARA_RAPIDA)
+      expect(todas.at(-1)).toBe(horasTotales)
+      expect([...todas].sort((a, b) => a - b)).toEqual(todas)
+      expect(new Set(todas).size).toBe(todas.length)
+    }
+  })
+
+  it('sin horas que simular no hay marcas', () => {
+    expect(marcasQueCruza({ horasAntes: 10, horasDespues: 10, horasTotales: 1000 })).toEqual([])
+    expect(marcasQueCruza({ horasAntes: 0, horasDespues: 0, horasTotales: 0 })).toEqual([])
   })
 })
