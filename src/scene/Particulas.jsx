@@ -4,6 +4,7 @@ import { DynamicDrawUsage } from 'three'
 
 import { COLOR_DE_OCUPADO } from '../estilos/colores.js'
 import { useSimulacion } from '../store/simulacion.js'
+import { estadoDeLasLosas } from './losasPublicadas.js'
 import { avanceDelReloj, crearMemoriaDelReloj, pasoDeLaAnimacion } from './relojDeLaEscena.js'
 import { GOTAS_POR_PLACA, PLACAS_COMO_MAXIMO, posicionDeLaGota } from './gotas.js'
 import { posicionDePlaca, SERVIDOR } from './posiciones.js'
@@ -25,6 +26,8 @@ export function Particulas({ placas }) {
   useFrame((_, delta) => {
     const { foto, generacion } = useSimulacion.getState()
     if (!foto || !puntos.current) return
+    // Solo caen con la moto encima de la placa (ni reservada ni ya bajada), como la losa.
+    const estados = estadoDeLasLosas({ foto, generacion })
     // Las gotas caen con el reloj simulado: en pausa no se mueven, y a menos de 1 min/s
     // van más despacio, como la simulación.
     const { minutos } = avanceDelReloj(reloj.current, { relojMin: foto.relojMin, generacion, segundosReales: delta })
@@ -35,7 +38,7 @@ export function Particulas({ placas }) {
     let n = 0
     for (let i = 0; i < Math.min(placas, PLACAS_COMO_MAXIMO); i += 1) {
       const [px, , pz] = posicionDePlaca(i, placas)
-      const ocupada = foto.placas[i] && !foto.placas[i].libre
+      const ocupada = estados[i] === 'ocupada'
       for (let k = 0; k < GOTAS_POR_PLACA; k += 1) {
         const [x, y, z] = ocupada
           ? posicionDeLaGota(k, tiempo.current, SERVIDOR.altoOcupado)

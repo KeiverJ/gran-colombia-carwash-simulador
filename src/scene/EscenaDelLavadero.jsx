@@ -129,8 +129,9 @@ export function EscenaDelLavadero() {
           <Terreno />
           <Local />
           <Avenidas />
-          <Servidores placas={placas} puestos={puestos} />
+          {/* Primero las motos: las losas y las gotas siguen a lo que ellas hacen en este cuadro. */}
           <Motos />
+          <Servidores placas={placas} puestos={puestos} />
           <EfectosQueSePuedenApagar placas={placas} puestos={puestos} />
           <RotulosDeSobrantes />
           <ControlDeCamara tomarOrden={tomarOrden} />

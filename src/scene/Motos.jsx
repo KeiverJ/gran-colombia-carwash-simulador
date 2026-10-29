@@ -20,6 +20,7 @@ import {
   liberarRecursosDeMoto,
 } from './recursosDeMoto.js'
 import { calidadActual } from './calidad.js'
+import { publicarLasLosas } from './losasPublicadas.js'
 import { animarLaEscena, crearViajes } from './viajes.js'
 import { crearTexturaDeSombra } from './texturaDeSombra.js'
 import { useModelosDeMoto } from './useModelosDeMoto.js'
@@ -148,6 +149,8 @@ export function Motos() {
     // mueve nada, y si el motor se reemplazó (otra generación) se recoloca. Mientras
     // corre la corrida larga no hay nada que animar ni dibujar.
     const motosDelCuadro = animarLaEscena(viajes.current, useSimulacion.getState(), delta)
+    // Las losas y las gotas de agua siguen a las motos de la escena, no al motor.
+    publicarLasLosas(viajes.current.losas)
     if (motosDelCuadro === null) {
       vaciar()
       return

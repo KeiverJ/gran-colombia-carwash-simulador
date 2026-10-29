@@ -1,4 +1,4 @@
-import { COLOR_DE_ESTADO, COLOR_DE_OCUPADO, COLOR_DE_PLAN } from '../estilos/colores.js'
+import { COLOR_DE_ESTADO, COLOR_DE_OCUPADO, COLOR_DE_PLAN, COLOR_DE_RESERVADO } from '../estilos/colores.js'
 import { SEGMENTOS_DEL_ARO } from './recursosDeMoto.js'
 
 /** El radio y el grosor de la muestra de un aro, en la unidad de su dibujo (18 × 18). */
@@ -47,8 +47,10 @@ function MuestraDeAro({ plan }) {
  * Cada plan se reconoce por el aro que su moto lleva en el piso, con su color y
  * su trazo; no se queda en el color, para que se lean igual quien no distingue
  * los colores o una captura en escala de grises. Y una placa o un puesto libre
- * es plano y gris, y uno ocupado está elevado y lleva el color de su etapa: la
- * altura es la señal que no depende del color. Los nombres completos de los
+ * es plana y gris; una reservada (el motor le asignó una moto que todavía va en
+ * camino) sigue plana, con un tono suave del color de su etapa; y una ocupada está
+ * elevada y lleva el color de su etapa: la altura es la señal que no depende del
+ * color. Los nombres completos de los
  * planes están en Ajustes y en la Ayuda.
  */
 export function LeyendaDePlanes() {
@@ -67,6 +69,18 @@ export function LeyendaDePlanes() {
           aria-hidden="true"
         />
         <span>Libre · losa plana</span>
+      </li>
+      <li>
+        <span className="muestras-de-aro" aria-hidden="true">
+          {['lavado', 'acabado'].map((etapa) => (
+            <span
+              key={etapa}
+              className="muestra muestra-losa"
+              style={{ '--color-muestra': COLOR_DE_RESERVADO[etapa] }}
+            />
+          ))}
+        </span>
+        <span>Reservada · moto en camino</span>
       </li>
       <li>
         <span className="muestras-de-aro" aria-hidden="true">

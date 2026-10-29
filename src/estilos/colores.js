@@ -49,6 +49,17 @@ export const COLOR_DE_OCUPADO = {
 }
 
 /**
+ * Color de una placa o un puesto **reservado**: el motor le asignó una moto que
+ * todavía va en camino. Sigue plano, con un tono suave del color de su etapa (el
+ * 45 % de él sobre el gris de «libre»), para que se vea que viene alguien sin
+ * levantarse antes de tiempo.
+ */
+export const COLOR_DE_RESERVADO = {
+  lavado: '#70adc4',
+  acabado: '#9c95cd',
+}
+
+/**
  * Colores del entorno de la escena 3D: avenidas, local, mobiliario y rótulos.
  * Cada uno vive también en `tema.css` como `--escena-<nombre en kebab-case>`
  * (`pinturaVial` → `--escena-pintura-vial`), y la prueba de sincronía los
@@ -103,6 +114,8 @@ export const COLORES_COMPARTIDOS = {
   'plan-2': COLOR_DE_PLAN[2],
   'plan-3': COLOR_DE_PLAN[3],
   'estado-libre': COLOR_DE_ESTADO.libre,
+  'estado-reservada-lavado': COLOR_DE_RESERVADO.lavado,
+  'estado-reservada-acabado': COLOR_DE_RESERVADO.acabado,
   'serie-cola-1': COLOR_DE_SERIE.colaLavado,
   'serie-cola-2': COLOR_DE_SERIE.colaAcabado,
   ...Object.fromEntries(

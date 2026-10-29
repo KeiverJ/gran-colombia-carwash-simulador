@@ -8,6 +8,7 @@ import {
   COLOR_DE_ESCENA,
   COLOR_DE_ESTADO,
   COLOR_DE_OCUPADO,
+  COLOR_DE_RESERVADO,
   COLOR_DE_PLAN,
   COLOR_DE_SERIE,
   NOMBRE_DE_PLAN,
@@ -49,7 +50,7 @@ describe('tema.css y colores.js dicen lo mismo', () => {
   it('tema.css no tiene colores compartidos que falten en colores.js', () => {
     // El otro sentido: añadir un plan o una serie solo al CSS también falla.
     const compartidosEnElCss = Object.keys(tema).filter((nombre) =>
-      /^(plan-\d+|estado-libre|serie-[\w-]+|escena-[\w-]+)$/.test(nombre),
+      /^(plan-\d+|estado-libre|estado-reservada-[\w-]+|serie-[\w-]+|escena-[\w-]+)$/.test(nombre),
     )
     for (const nombre of compartidosEnElCss) {
       expect(
@@ -104,9 +105,28 @@ describe('el estado de placas y puestos no usa verde ni rojo', () => {
     expect(COLOR_DE_OCUPADO).toEqual({ lavado: tema['etapa-1'], acabado: tema['etapa-2'] })
   })
 
-  it('el tema ya no tiene colores de estado «ocupada»', () => {
-    expect(Object.keys(tema).filter((nombre) => nombre.startsWith('estado-'))).toEqual(['estado-libre'])
+  it('el tema ya no tiene colores de estado «ocupada»: solo libre y los dos tonos de reservada', () => {
+    expect(Object.keys(tema).filter((nombre) => nombre.startsWith('estado-'))).toEqual([
+      'estado-libre',
+      'estado-reservada-lavado',
+      'estado-reservada-acabado',
+    ])
   })
+
+  it('reservada es un tono suave del color de su etapa: el 45 % de él sobre el gris de «libre»', () => {
+    const mezcla = (a, b, t) =>
+      '#' +
+      [1, 3, 5]
+        .map((i) => {
+          const x = parseInt(a.slice(i, i + 2), 16)
+          const y = parseInt(b.slice(i, i + 2), 16)
+          return Math.round(x + (y - x) * t).toString(16).padStart(2, '0')
+        })
+        .join('')
+    expect(COLOR_DE_RESERVADO.lavado).toBe(mezcla(COLOR_DE_ESTADO.libre, COLOR_DE_OCUPADO.lavado, 0.45))
+    expect(COLOR_DE_RESERVADO.acabado).toBe(mezcla(COLOR_DE_ESTADO.libre, COLOR_DE_OCUPADO.acabado, 0.45))
+  })
+
 })
 
 describe('los colores del entorno de la escena', () => {
@@ -143,6 +163,15 @@ describe('los colores del entorno de la escena', () => {
   it('el asfalto se distingue de la acera y del piso del local', () => {
     expect(contraste(COLOR_DE_ESCENA.asfalto, COLOR_DE_ESCENA.acera)).toBeGreaterThan(2)
     expect(contraste(COLOR_DE_ESCENA.asfalto, COLOR_DE_ESCENA.piso)).toBeGreaterThan(2)
+  })
+
+  it('una losa reservada se distingue de una libre y de una ocupada por color', () => {
+    for (const etapa of ['lavado', 'acabado']) {
+      expect(COLOR_DE_RESERVADO[etapa]).not.toBe(COLOR_DE_ESTADO.libre)
+      expect(COLOR_DE_RESERVADO[etapa]).not.toBe(COLOR_DE_OCUPADO[etapa])
+      expect(contraste(COLOR_DE_RESERVADO[etapa], COLOR_DE_ESTADO.libre)).toBeGreaterThan(1.2)
+      expect(contraste(COLOR_DE_RESERVADO[etapa], COLOR_DE_OCUPADO[etapa])).toBeGreaterThan(1.2)
+    }
   })
 
   it('una losa libre y una ocupada se distinguen también por color, no solo por altura', () => {

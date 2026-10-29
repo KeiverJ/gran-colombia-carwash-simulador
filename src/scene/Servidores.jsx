@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import { MeshStandardMaterial } from 'three'
 
-import { COLOR_DE_ESCENA, COLOR_DE_ESTADO, COLOR_DE_OCUPADO } from '../estilos/colores.js'
+import { COLOR_DE_ESCENA, COLOR_DE_ESTADO, COLOR_DE_OCUPADO, COLOR_DE_RESERVADO } from '../estilos/colores.js'
 import {
   marcoDeLosa,
   posteConManguera,
@@ -12,6 +12,7 @@ import {
 } from './geometriasDelEntorno.js'
 import Rotulo from './Rotulo.jsx'
 import { useSimulacion } from '../store/simulacion.js'
+import { estadoDeLasLosas } from './losasPublicadas.js'
 import { avanceDelReloj, crearMemoriaDelReloj, pasoDeLaAnimacion } from './relojDeLaEscena.js'
 import {
   posicionDePlaca,
@@ -54,6 +55,8 @@ function useMaterialesDeLosas() {
   const materiales = useMemo(
     () => ({
       libre: new MeshStandardMaterial({ color: COLOR_DE_ESTADO.libre, roughness: 0.85 }),
+      reservadaLavado: new MeshStandardMaterial({ color: COLOR_DE_RESERVADO.lavado, roughness: 0.8 }),
+      reservadaAcabado: new MeshStandardMaterial({ color: COLOR_DE_RESERVADO.acabado, roughness: 0.8 }),
       lavado: new MeshStandardMaterial({ color: COLOR_DE_OCUPADO.lavado, roughness: 0.7 }),
       acabado: new MeshStandardMaterial({ color: COLOR_DE_OCUPADO.acabado, roughness: 0.7 }),
       borde: new MeshStandardMaterial({ color: COLOR_DE_ESCENA.bordeDeLosa, roughness: 0.8 }),
@@ -106,11 +109,13 @@ export function Servidores({ placas, puestos }) {
     // Qué parte del camino que le falta recorre la losa en este cuadro. Se calcula
     // con el tiempo del cuadro para que suba igual a 30 que a 60 cuadros.
     const acercamiento = recolocar ? 1 : 1 - Math.exp(-VELOCIDAD_DE_LA_LOSA * pasoDeLaAnimacion(delta, minutos))
-    const servidores = [...foto.placas, ...foto.puestos]
-    servidores.forEach((servidor, i) => {
+    // Lo que se ve de cada losa sale de dónde están las motos en la escena, no del motor:
+    // no se levanta antes de que llegue la moto ni baja antes de que salga.
+    const estados = estadoDeLasLosas({ foto, generacion })
+    estados.forEach((estadoVisual, i) => {
       const losa = losas.current[i]
       if (!losa) return
-      const destino = servidor.libre ? SERVIDOR.altoLibre : SERVIDOR.altoOcupado
+      const destino = estadoVisual === 'ocupada' ? SERVIDOR.altoOcupado : SERVIDOR.altoLibre
       // Se levanta poco a poco en vez de dar un salto. El alto de verdad se
       // guarda en la propia losa, no en React: cambiarlo sesenta veces por
       // segundo a través del estado provocaría un render por cuadro.
@@ -121,7 +126,12 @@ export function Servidores({ placas, puestos }) {
       losa.scale.y = alto / SERVIDOR.altoOcupado
       losa.position.y = alto / 2
       const etapa = i < foto.placas.length ? 'lavado' : 'acabado'
-      losa.material = servidor.libre ? materiales.libre : materiales[etapa]
+      losa.material =
+        estadoVisual === 'ocupada'
+          ? materiales[etapa]
+          : estadoVisual === 'reservada'
+            ? materiales[etapa === 'lavado' ? 'reservadaLavado' : 'reservadaAcabado']
+            : materiales.libre
       // El marco, la rejilla y el tablero van sobre la cara de arriba: suben y
       // bajan con ella.
       const sobre = encima.current[i]

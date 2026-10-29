@@ -26,6 +26,7 @@ import {
   SEPARACION_EN_FILA,
   TOPE_DE_MOTOS_DIBUJADAS,
 } from './posiciones.js'
+import { estadoVisualDeLasLosas } from './losasVisuales.js'
 import { avanceDelReloj, crearMemoriaDelReloj } from './relojDeLaEscena.js'
 import {
   caminoDeAjusteEnLaFila,
@@ -142,9 +143,19 @@ const MARGEN_ANTES_DEL_CORREDOR = 1.5
  *   más larga que su tope), con la etapa de esa fila: se cuentan en «+N motos más»
  *   y nunca se dibujan apiladas en una avenida ni en una boca;
  * - `memoria`: el último reloj simulado y la última generación que vio (ver
- *   `relojDeLaEscena.js`).
+ *   `relojDeLaEscena.js`);
+ * - `levantadas`: qué placas y puestos estaban levantados en el cuadro anterior;
+ * - `losas`: el estado visual de cada placa y de cada puesto en el último cuadro
+ *   (ver `losasVisuales.js`), con la generación y el reloj a los que corresponde;
+ *   `null` si la escena no se animó (corrida larga).
  */
-export const crearViajes = () => ({ porMoto: new Map(), ocultas: new Map(), memoria: crearMemoriaDelReloj() })
+export const crearViajes = () => ({
+  porMoto: new Map(),
+  ocultas: new Map(),
+  memoria: crearMemoriaDelReloj(),
+  levantadas: { placas: [], puestos: [] },
+  losas: null,
+})
 
 /**
  * Lo que hace la escena en cada cuadro con el estado del store: nada mientras
@@ -160,6 +171,7 @@ export function animarLaEscena(viajes, { foto, corridaLarga, generacion }, segun
   if (!foto || corridaLarga) {
     // Lo que se recordaba ya no vale: al terminar se recoloca con el estado final.
     viajes.memoria.generacion = null
+    viajes.losas = null
     return null
   }
   return avanzarLasMotos(viajes, foto, { generacion, segundosReales })
@@ -191,7 +203,9 @@ export function avanzarLasMotos(viajes, foto, { generacion = 0, segundosReales =
   const { porMoto, ocultas, memoria } = viajes
   const { minutos, recolocar } = avanceDelReloj(memoria, { relojMin: foto.relojMin, generacion, segundosReales })
   if (recolocar || porMoto.size > LIMITE_DE_VIAJES) {
-    return recolocarLasMotos(viajes, foto)
+    const colocadas = recolocarLasMotos(viajes, foto)
+    calcularLasLosas(viajes, foto)
+    return colocadas
   }
 
   const reloj = foto.relojMin
@@ -367,7 +381,22 @@ export function avanzarLasMotos(viajes, foto, { generacion = 0, segundosReales =
     }
     motos.push({ n, plan: viaje.plan, punto, rumbo: viaje.rumbo, saliendo: viaje.saliendo })
   }
+  calcularLasLosas(viajes, foto)
   return motos
+}
+
+/** Pone en `viajes.losas` el estado visual de cada losa, según dónde están las motos ahora. */
+function calcularLasLosas(viajes, foto) {
+  const { porMoto, memoria } = viajes
+  const motos = []
+  for (const [n, viaje] of porMoto) {
+    motos.push({ n, punto: puntoEnElCamino(viaje.camino, viaje.recorrido).punto, rumbo: viaje.rumbo })
+  }
+  viajes.losas = {
+    generacion: memoria.generacion,
+    relojMin: foto.relojMin,
+    ...estadoVisualDeLasLosas({ foto, motos, viajes: porMoto, levantadas: viajes.levantadas }),
+  }
 }
 
 /**
@@ -380,6 +409,7 @@ function recolocarLasMotos(viajes, foto) {
   const { porMoto, ocultas } = viajes
   porMoto.clear()
   ocultas.clear()
+  viajes.levantadas = { placas: [], puestos: [] }
   const motos = []
   for (const [n, { sitio, plan }] of sitiosDeLasMotos(foto)) {
     const llegada = caminoDeLlegada(entradaDeLaMoto(n).clave, sitio)

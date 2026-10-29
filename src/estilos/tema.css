@@ -117,6 +117,8 @@
      Libre es un gris azulado neutro. Ocupado no tiene color propio: usa el de
      su etapa (--etapa-1 en el lavado, --etapa-2 en el acabado). */
   --estado-libre: #c3cfd6;
+  --estado-reservada-lavado: #70adc4;
+  --estado-reservada-acabado: #9c95cd;
 
   /* --- Entorno de la escena 3D ---
      Gemelos de COLOR_DE_ESCENA en colores.js. El verde del letrero de calle

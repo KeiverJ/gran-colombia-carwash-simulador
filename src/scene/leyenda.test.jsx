@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { COLOR_DE_PLAN } from '../estilos/colores.js'
+import { COLOR_DE_PLAN, COLOR_DE_RESERVADO } from '../estilos/colores.js'
 import { useInterfaz } from '../store/interfaz.js'
 import LeyendaDePlanes from './LeyendaDePlanes.jsx'
 import { SEGMENTOS_DEL_ARO } from './recursosDeMoto.js'
@@ -45,9 +45,13 @@ describe('la leyenda de la escena', () => {
     expect(raya / (raya + hueco)).toBeCloseTo(SEGMENTOS_DEL_ARO.relleno, 5)
   })
 
-  it('sigue explicando las losas: libre plana y ocupada elevada', () => {
+  it('explica las tres losas: libre plana, reservada con la moto en camino y ocupada elevada', () => {
     const texto = html()
     expect(texto).toContain('Libre · losa plana')
+    expect(texto).toContain('Reservada · moto en camino')
+    // la muestra de reservada lleva el tono suave de cada etapa
+    expect(texto).toContain(COLOR_DE_RESERVADO.lavado)
+    expect(texto).toContain(COLOR_DE_RESERVADO.acabado)
     expect(texto).toContain('Ocupado · losa elevada, color de su etapa')
   })
 })

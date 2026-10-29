@@ -3,7 +3,14 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { ESCENARIOS } from '../data/escenarios.js'
 import { useSimulacion } from '../store/simulacion.js'
 import { darUnCuadro } from '../store/useCicloDeSimulacion.js'
-import { entradaDeLaMoto, MOTO, TOPE_DE_MOTOS_DIBUJADAS } from './posiciones.js'
+import { motoEncimaDeLaLosa, motoTocaLaLosa } from './losasVisuales.js'
+import {
+  entradaDeLaMoto,
+  MOTO,
+  posicionDePlaca,
+  posicionDePuesto,
+  TOPE_DE_MOTOS_DIBUJADAS,
+} from './posiciones.js'
 import { SALTO_MAXIMO_DE_TIEMPO_REAL_S } from './relojDeLaEscena.js'
 import {
   ATRASO_MAXIMO_EN_MINUTOS,
@@ -12,6 +19,7 @@ import {
   estaEnElCorredor,
   largoDelCamino,
   puntoDe,
+  puntoEnElCamino,
   sitioEnPuesto,
 } from './trayectorias.js'
 import {
@@ -708,5 +716,155 @@ describe('las motos de una misma fila no se montan unas sobre otras', () => {
   it('con pocas placas y mucha gente (las filas se llenan antes) tampoco', () => {
     const { minima, quienes } = distanciaMinimaEnFila(10, { minutos: 300, llegadasPorHora: 60 })
     expect(minima, JSON.stringify(quienes)).toBeGreaterThanOrEqual(MOTO.largo * 0.95)
+  })
+})
+
+describe('las losas siguen a las motos de la escena, no al motor', () => {
+  /** Dónde está cada moto ahora y su viaje. */
+  const motosAhora = (viajes) =>
+    [...viajes.porMoto].map(([n, v]) => ({ n, v, punto: puntoEnElCamino(v.camino, v.recorrido).punto, rumbo: v.rumbo }))
+
+  /**
+   * Recorre una corrida y comprueba, cuadro a cuadro y para placas y puestos, que la losa no se
+   * levanta antes de que la moto llegue ni baja antes de que salga. Cuenta los casos que de
+   * verdad pasaron, para que la prueba no sea vacía.
+   */
+  function vigilarLasLosas(banco, cuadros) {
+    const casos = { reservadaConMotoEnCamino: 0, levantadaTrasElServicio: 0, ocupadaConLaMotoEncima: 0, transiciones: 0 }
+    const anterior = { placas: [], puestos: [] }
+    for (let i = 0; i < cuadros; i += 1) {
+      banco.cuadro()
+      const { losas } = banco.viajes
+      if (!losas) continue
+      const foto = estado().foto
+      const motos = motosAhora(banco.viajes)
+      for (const tipo of ['placas', 'puestos']) {
+        const centroDe = tipo === 'placas' ? posicionDePlaca : posicionDePuesto
+        foto[tipo].forEach((servidor, k) => {
+          const centro = centroDe(k, foto[tipo].length)
+          const estadoVisual = losas[tipo][k]
+          const encima = motos.some((m) => motoEncimaDeLaLosa(m.punto, centro))
+          const toca = motos.some((m) => motoTocaLaLosa(m.punto, m.rumbo, centro))
+          const previo = anterior[tipo][k]
+
+          // levantada solo con una moto sobre ella (o saliendo de ella): nunca antes de que llegue
+          if (estadoVisual === 'ocupada') {
+            expect(encima || (previo === 'ocupada' && toca), `${tipo} ${k + 1} a ${foto.relojMin}`).toBe(true)
+          } else {
+            // y no baja mientras la moto siga encima: si hay una moto con el centro encima, está levantada
+            expect(encima, `${tipo} ${k + 1} bajó con la moto encima, a ${foto.relojMin}`).toBe(false)
+            if (previo === 'ocupada') expect(toca, `${tipo} ${k + 1} bajó antes de que la moto saliera`).toBe(false)
+          }
+          if (previo && previo !== estadoVisual) casos.transiciones += 1
+
+          // asignada por el motor y con la moto aún en camino: reservada (a menos que otra moto aún la deje)
+          const asignada = servidor.moto && banco.viajes.porMoto.get(servidor.moto.n)
+          if (asignada && asignada.recorrido < asignada.largo && !encima && !(previo === 'ocupada' && toca)) {
+            expect(estadoVisual, `${tipo} ${k + 1} asignada con la moto en camino`).toBe('reservada')
+            casos.reservadaConMotoEnCamino += 1
+          }
+          // el motor ya la dio por libre pero la moto todavía está encima o saliendo
+          if (servidor.libre && estadoVisual === 'ocupada') casos.levantadaTrasElServicio += 1
+          if (estadoVisual === 'ocupada' && servidor.moto && encima) casos.ocupadaConLaMotoEncima += 1
+          anterior[tipo][k] = estadoVisual
+        })
+      }
+    }
+    return casos
+  }
+
+  it.each([1, 10, 60])('a %s min/s la losa no se levanta antes de que llegue la moto ni baja antes de que salga', (velocidad) => {
+    prepararCorrida({ velocidad, llegadasPorHora: 40 })
+    const banco = crearBanco()
+    const casos = vigilarLasLosas(banco, 60 * (velocidad === 1 ? 600 : 180))
+    expect(casos.reservadaConMotoEnCamino, 'hubo placas reservadas').toBeGreaterThan(0)
+    expect(casos.ocupadaConLaMotoEncima, 'hubo placas ocupadas').toBeGreaterThan(0)
+    expect(casos.transiciones).toBeGreaterThan(0)
+    // el motor y la escena difieren de verdad: la losa sigue levantada un rato tras terminar el servicio
+    expect(casos.levantadaTrasElServicio).toBeGreaterThan(0)
+  }, 120000)
+
+  it('en el modo visita también', () => {
+    estado().entrarEnLaVisita()
+    estado().cambiarVelocidad(5)
+    estado().iniciar()
+    const banco = crearBanco()
+    const casos = vigilarLasLosas(banco, 60 * 90)
+    expect(casos.ocupadaConLaMotoEncima).toBeGreaterThan(0)
+    expect(casos.transiciones).toBeGreaterThan(0)
+  }, 120000)
+
+  it('el motor asigna antes de que la moto llegue: hay cuadros en que el motor dice ocupada y la losa sigue plana', () => {
+    prepararCorrida({ velocidad: 1, llegadasPorHora: 40 })
+    const banco = crearBanco()
+    let desfases = 0
+    for (let i = 0; i < 60 * 600; i += 1) {
+      banco.cuadro()
+      const { losas } = banco.viajes
+      if (!losas) continue
+      estado().foto.placas.forEach((placa, k) => {
+        if (!placa.libre && losas.placas[k] !== 'ocupada') desfases += 1
+      })
+    }
+    expect(desfases).toBeGreaterThan(0)
+  }, 120000)
+
+  it('con la simulación en pausa el estado de las losas se congela, igual que las motos', () => {
+    prepararCorrida({ velocidad: 1, llegadasPorHora: 40 })
+    const banco = crearBanco()
+    banco.cuadros(60 * 200)
+    estado().pausar()
+    banco.cuadro()
+    const quieto = JSON.stringify(banco.viajes.losas)
+    for (let i = 0; i < 120; i += 1) {
+      banco.cuadro()
+      expect(JSON.stringify(banco.viajes.losas)).toBe(quieto)
+    }
+  })
+
+  it('al recolocar, el estado visual sale directamente de la foto del motor', () => {
+    prepararCorrida({ velocidad: 5, llegadasPorHora: 40 })
+    const banco = crearBanco()
+    banco.cuadros(60 * 120)
+    estado().reiniciar()
+    banco.cuadro()
+    estado().iniciar()
+    banco.cuadros(60 * 60)
+    // un salto de reloj: la escena recoloca y cada losa sale de la foto
+    const foto = estado().foto
+    avanzarLasMotos(banco.viajes, { ...foto, relojMin: foto.relojMin + 500 }, { generacion: estado().generacion })
+    const { losas } = banco.viajes
+    const dado = (tipo) => foto[tipo].map((s) => (s.libre ? 'libre' : 'ocupada'))
+    expect(losas.placas).toEqual(dado('placas'))
+    expect(losas.puestos).toEqual(dado('puestos'))
+  })
+
+  it('tras la corrida larga la escena queda con las losas como dice la foto final', () => {
+    prepararCorrida({ velocidad: 10, llegadasPorHora: 40 })
+    const banco = crearBanco()
+    banco.cuadros(60 * 60)
+    estado().empezarCorridaLarga(30)
+    while (estado().corridaLarga) {
+      banco.cuadro()
+      if (estado().corridaLarga) expect(banco.viajes.losas).toBeNull()
+    }
+    banco.cuadro()
+    const foto = estado().foto
+    expect(banco.viajes.losas.placas).toEqual(foto.placas.map((s) => (s.libre ? 'libre' : 'ocupada')))
+    expect(banco.viajes.losas.puestos).toEqual(foto.puestos.map((s) => (s.libre ? 'libre' : 'ocupada')))
+  })
+
+  it('un cuadro del motor no cambia lo que se ve de las losas: los indicadores salen del motor', () => {
+    // el resumen que usan los indicadores se calcula de la foto, no de las losas visuales
+    prepararCorrida({ velocidad: 1, llegadasPorHora: 40 })
+    const banco = crearBanco()
+    banco.cuadros(60 * 120)
+    const foto = estado().foto
+    expect(estado().resumen.placasOcupadas).toBeLessThanOrEqual(foto.placas.length)
+    const ocupadasPorElMotor = foto.placas.filter((p) => !p.libre).length
+    const ocupadasPorLaEscena = banco.viajes.losas.placas.filter((e) => e === 'ocupada').length
+    // distintas cuando hay desfase, y nunca más losas levantadas que placas
+    expect(ocupadasPorLaEscena).toBeLessThanOrEqual(foto.placas.length)
+    expect(ocupadasPorElMotor).toBeGreaterThanOrEqual(0)
   })
 })

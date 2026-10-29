@@ -54,6 +54,15 @@ describe('los planes en la Ayuda', () => {
   })
 })
 
+describe('las losas en la Ayuda', () => {
+  it('explica libre, reservada (moto en camino) y ocupada', () => {
+    const html = texto()
+    expect(html).toContain('reservada')
+    expect(html).toContain('moto en camino')
+    expect(html).toContain('ocupada')
+  })
+})
+
 describe('el resto de la Ayuda', () => {
   it('dice que la avenida de entrada es ilustrativa', () => {
     expect(texto()).toMatch(/ilustrativo/)

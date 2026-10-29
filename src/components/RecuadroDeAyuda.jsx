@@ -143,8 +143,9 @@ export function ContenidoDeLaAyuda() {
             Guaimaral. Si hay una placa libre van directo a ella; si no, hacen fila en el lado
             derecho del local, afuera de las columnas, hasta que se libere una. Después del
             lavado esperan, si hace falta, en otra fila en los puestos del fondo para el
-            acabado, y salen por la avenida por la que entraron. Una losa plana es una placa o
-            un puesto libre; una losa elevada, uno ocupado. Por qué avenida entra cada moto es
+            acabado, y salen por la avenida por la que entraron. Una losa plana y gris es una placa o
+            un puesto libre; una plana con un tono suave del color de su etapa está reservada
+            (hay una moto en camino hacia ella); una elevada está ocupada, con la moto encima. Por qué avenida entra cada moto es
             solo ilustrativo: la visita no registró por dónde llegaba cada una.
           </li>
           <li>
