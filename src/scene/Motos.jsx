@@ -20,7 +20,7 @@ import {
   liberarRecursosDeMoto,
 } from './recursosDeMoto.js'
 import { calidadActual } from './calidad.js'
-import { avanzarLasMotos, crearViajes, VELOCIDAD_DE_SIMULACION_EN_PAUSA } from './viajes.js'
+import { animarLaEscena, crearViajes } from './viajes.js'
 import { crearTexturaDeSombra } from './texturaDeSombra.js'
 import { useModelosDeMoto } from './useModelosDeMoto.js'
 
@@ -127,27 +127,31 @@ export function Motos() {
     [sombra],
   )
 
-  // Al reiniciar la simulación, el reloj vuelve a 0 y los números de moto se
-  // reutilizan: si no se olvidara lo anterior, la nueva moto 1 aparecería
-  // viniendo de donde estaba la vieja.
-  const relojAnterior = useRef(0)
-
   // Las piezas de un modelo: las suyas si cargó, la figura de respaldo si no.
   const piezasDe = (modelo) => modelos[modelo]?.piezas ?? recursos.respaldo
   // Su centro visto desde arriba y su punto más alto: donde va el aro.
   const medidaDe = (modelo) => modelos[modelo]?.medida ?? recursos.medidaDelRespaldo
 
-  useFrame((_, delta) => {
-    const { foto, corriendo, velocidadMinPorSegundo } = useSimulacion.getState()
-    if (!foto) return
-
-    if (foto.relojMin < relojAnterior.current) {
-      viajes.current.clear()
+  /** No dibuja ninguna moto: deja en cero las instancias de cada malla. */
+  const vaciar = () => {
+    for (const piezas of mallasDeModelo.current) {
+      for (const malla of piezas ?? []) if (malla) malla.count = 0
     }
-    relojAnterior.current = foto.relojMin
+    if (mallaDeSombras.current) mallaDeSombras.current.count = 0
+    for (const plan of PLANES) {
+      if (mallasDeAro.current[plan]) mallasDeAro.current[plan].count = 0
+    }
+  }
 
-    const velocidadDeSimulacion = corriendo ? velocidadMinPorSegundo : VELOCIDAD_DE_SIMULACION_EN_PAUSA
-    const motosDelCuadro = avanzarLasMotos(viajes.current, foto, { segundos: delta, velocidadDeSimulacion })
+  useFrame((_, delta) => {
+    // Todo se anima con el reloj simulado de la foto, no con el real: en pausa no se
+    // mueve nada, y si el motor se reemplazó (otra generación) se recoloca. Mientras
+    // corre la corrida larga no hay nada que animar ni dibujar.
+    const motosDelCuadro = animarLaEscena(viajes.current, useSimulacion.getState(), delta)
+    if (motosDelCuadro === null) {
+      vaciar()
+      return
+    }
 
     const { posicion, centro, giro, moto, pieza, cuentaDeModelo, cuentaDePlan } = AUXILIARES
     cuentaDeModelo.fill(0)

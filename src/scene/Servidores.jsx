@@ -12,6 +12,7 @@ import {
 } from './geometriasDelEntorno.js'
 import Rotulo from './Rotulo.jsx'
 import { useSimulacion } from '../store/simulacion.js'
+import { avanceDelReloj, crearMemoriaDelReloj, pasoDeLaAnimacion } from './relojDeLaEscena.js'
 import {
   posicionDePlaca,
   ANCLA_DEL_ROTULO_DE_SOBRANTES,
@@ -85,16 +86,26 @@ export function Servidores({ placas, puestos }) {
   const encima = useRef([])
   /** El alto al que va cada losa ahora mismo, mientras sube o baja. */
   const altos = useRef([])
+  /** Lo último que vio del reloj simulado, para animar solo lo que avanza. */
+  const reloj = useRef(crearMemoriaDelReloj())
 
   const formas = useFormasDeLosas()
   const materiales = useMaterialesDeLosas()
 
   useFrame((_, delta) => {
-    const { foto } = useSimulacion.getState()
+    const { foto, generacion, corridaLarga } = useSimulacion.getState()
     if (!foto) return
-    // Qué parte del camino que le falta recorre la losa en este cuadro. Se
-    // calcula con el tiempo real para que suba igual a 30 que a 60 cuadros.
-    const acercamiento = 1 - Math.exp(-VELOCIDAD_DE_LA_LOSA * delta)
+    // Las losas suben con el reloj simulado: en pausa no se mueven. Y si el motor se
+    // reemplazó o el estado saltó (otra generación), toman su alto de golpe.
+    const { minutos, recolocar } = avanceDelReloj(reloj.current, {
+      relojMin: foto.relojMin,
+      generacion,
+      segundosReales: delta,
+    })
+    if (corridaLarga) reloj.current.generacion = null
+    // Qué parte del camino que le falta recorre la losa en este cuadro. Se calcula
+    // con el tiempo del cuadro para que suba igual a 30 que a 60 cuadros.
+    const acercamiento = recolocar ? 1 : 1 - Math.exp(-VELOCIDAD_DE_LA_LOSA * pasoDeLaAnimacion(delta, minutos))
     const servidores = [...foto.placas, ...foto.puestos]
     servidores.forEach((servidor, i) => {
       const losa = losas.current[i]

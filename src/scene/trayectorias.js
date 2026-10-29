@@ -462,100 +462,100 @@ export function puntoEnElCamino(camino, distancia) {
   return { punto: [...fin], rumbo: null }
 }
 
-/* --------------------------------------------------------------- velocidad -- */
+/* ------------------------------------------------------ velocidad y tiempo -- */
 
 /**
- * La velocidad con la que se ve una moto cuando la simulación va despacio, en
- * metros por segundo (unos 14 km/h, lo que se anda dentro de un lote). Es
- * constante a lo largo de todo el camino: un tramo largo tarda
- * proporcionalmente más que uno corto.
- */
-export const V_BASE = 4
-
-/**
- * Cuánto puede llegar tarde una moto respecto del motor, en minutos
- * **simulados**: es el límite del atraso, contado desde que el motor la manda a
- * un sitio. Si la simulación va tan rápido que a `V_BASE` no llegaría a tiempo,
- * la moto acelera lo justo para llegar dentro de este margen.
+ * Cuánto se mueve una moto: **solo depende del reloj simulado**, nunca del reloj
+ * real ni de los cuadros por segundo.
  *
- * Tres minutos son menos de una tercera parte de lo que dura un lavado
- * (10,7 min de media), así que la moto nunca se ve «puesta» en su placa mucho
- * antes de llegar. A 1 min/s da 3 s de reloj para llegar; a 60 min/s, 50 ms.
+ * Cada viaje tiene el minuto simulado en que el motor mandó a la moto a su sitio
+ * y una duración (en minutos simulados). Dónde está la moto en un instante es
+ * una función de «cuántos minutos simulados pasaron desde que salió»: con la
+ * simulación en pausa el reloj no avanza y nada se mueve; si se cambia la
+ * velocidad, el reloj avanza más o menos por cuadro y el movimiento cambia de
+ * ritmo en el cuadro siguiente; y si un viaje dura menos que un cuadro, la moto
+ * aparece directamente en su sitio.
  */
-export const ATRASO_MAXIMO_EN_MINUTOS = 3
+
+/**
+ * La velocidad de una moto, en **metros por minuto simulado**.
+ *
+ * Se eligió para que a 1 min/s (1 minuto simulado por segundo real) se vea
+ * natural: 6 m por minuto son 6 m/s en pantalla, unos 22 km/h, lo que anda una
+ * moto dentro de un lote. A 10 min/s la misma moto se ve a 60 m/s en pantalla,
+ * pero es el mismo movimiento visto con el tiempo diez veces más rápido.
+ */
+export const V_BASE = 6
+
+/**
+ * Lo más que puede durar un viaje, en minutos simulados: es el límite del
+ * atraso respecto del motor. Un camino largo (de la avenida a la fila: unos 50
+ * m, ocho minutos a `V_BASE`) se hace más deprisa, en este tiempo, para que la
+ * moto no llegue a su sitio mucho después de que el motor la puso allí: cuatro
+ * minutos son menos de la mitad de un lavado medio (10,7 min).
+ */
+export const ATRASO_MAXIMO_EN_MINUTOS = 4
 
 /** Metros de arranque y de frenado, al principio y al final de cada camino. */
 export const LARGO_DE_LA_RAMPA = 0.6
 
-/** Con qué parte de su velocidad sale una moto parada, para que nunca se quede quieta. */
-export const FACTOR_MINIMO_DE_LA_RAMPA = 0.25
+/** Cuánto dura, en minutos simulados, un viaje de `largo` metros: a `V_BASE`, sin pasar del atraso máximo. */
+export function duracionDelViaje(largo) {
+  if (!(largo > 0)) return 0
+  return Math.min(largo / V_BASE, ATRASO_MAXIMO_EN_MINUTOS)
+}
 
-/**
- * Qué parte de la velocidad lleva una moto según dónde va: arranca despacio,
- * llega a la velocidad entera pasada la rampa y frena en los últimos metros.
- * Fuera de las dos rampas la velocidad es la entera: de ahí que sea constante.
- */
-export function factorDeRampa(recorrido, largo) {
-  const alArrancar = recorrido / LARGO_DE_LA_RAMPA
-  const alFrenar = (largo - recorrido) / LARGO_DE_LA_RAMPA
-  return Math.min(1, Math.max(FACTOR_MINIMO_DE_LA_RAMPA, Math.min(alArrancar, alFrenar)))
+/** Qué parte de su duración dedica un viaje de `largo` metros a arrancar y a frenar (cada una). */
+function fraccionDeLaRampa(largo) {
+  return Math.min(0.4, LARGO_DE_LA_RAMPA / largo)
 }
 
 /**
- * A qué velocidad (m/s) va una moto que lleva `recorrido` metros de un camino
- * de `largo`, con la simulación a `velocidadDeSimulacion` minutos simulados por
- * segundo (0 si está en pausa).
- *
- *     v = max( V_BASE · rampa , lo que falta / tiempo que queda )
- *     tiempo que queda = margen en minutos simulados / velocidadDeSimulacion
- *
- * El margen empieza en `ATRASO_MAXIMO_EN_MINUTOS` cuando el motor manda a la
- * moto a un sitio y **baja con el reloj simulado** (ver `margenTrasAvanzar`):
- * es un plazo, no una velocidad que se recalcula de cero cada cuadro, que es lo
- * que haría que la moto se acercara sin llegar nunca. El segundo término solo
- * manda si la simulación va rápido: es el que acota el atraso. Se mide sobre lo
- * que **falta**, así que una moto replanificada a mitad de camino se pone al
- * día con lo que le queda.
+ * Qué parte del camino (de 0 a 1) lleva recorrida una moto cuando ha pasado la
+ * fracción `u` (de 0 a 1) de la duración de su viaje: arranca poco a poco,
+ * va a velocidad constante y frena poco a poco. Es creciente y no se queda
+ * quieta a mitad de camino.
  */
-export function velocidadDeLaMoto({
-  recorrido,
-  largo,
-  velocidadDeSimulacion,
-  margenEnMinutos = ATRASO_MAXIMO_EN_MINUTOS,
-}) {
-  const base = V_BASE * factorDeRampa(recorrido, largo)
-  if (!(velocidadDeSimulacion > 0)) return base
-  const aunQueda = Math.max(margenEnMinutos, MARGEN_MINIMO_EN_MINUTOS)
-  const alPlazo = (Math.max(0, largo - recorrido) * velocidadDeSimulacion) / aunQueda
-  return Math.max(base, alPlazo)
-}
-
-/** El margen no baja de aquí al calcular la velocidad, para no dividir entre cero al vencer el plazo. */
-const MARGEN_MINIMO_EN_MINUTOS = 0.005
-
-/** Cuánto margen le queda a la moto tras `segundos` de reloj a `velocidadDeSimulacion` (en pausa no baja). */
-export function margenTrasAvanzar(margenEnMinutos, segundos, velocidadDeSimulacion) {
-  return Math.max(0, margenEnMinutos - segundos * Math.max(0, velocidadDeSimulacion))
+export function avanceNormalizado(u, rampa) {
+  const t = Math.min(1, Math.max(0, u))
+  if (rampa <= 0) return t
+  const crucero = 1 / (1 - rampa)
+  if (t < rampa) return (crucero * t * t) / (2 * rampa)
+  if (t > 1 - rampa) return 1 - (crucero * (1 - t) * (1 - t)) / (2 * rampa)
+  return crucero * (rampa / 2 + (t - rampa))
 }
 
 /**
- * Cuántos metros lleva recorridos una moto tras `segundos` de reloj más.
- *
- * Con `limite`, la moto no pasa de ahí: es donde espera su turno en el
- * corredor. Si ya estaba más allá, se queda donde está en vez de retroceder.
+ * Los metros que lleva recorridos una moto en un viaje de `largo` metros que
+ * dura `duracion` minutos simulados, cuando han pasado `minutos` desde que salió.
  */
-export function recorridoTrasAvanzar({
-  recorrido,
-  largo,
-  segundos,
-  velocidadDeSimulacion,
-  margenEnMinutos = ATRASO_MAXIMO_EN_MINUTOS,
-  limite = null,
-}) {
-  const metros = velocidadDeLaMoto({ recorrido, largo, velocidadDeSimulacion, margenEnMinutos }) * segundos
-  let nuevo = Math.min(largo, recorrido + metros)
-  if (limite !== null) nuevo = Math.min(nuevo, Math.max(recorrido, limite))
-  return nuevo
+export function recorridoEnElTiempo({ largo, duracion, minutos }) {
+  if (!(largo > 0)) return 0
+  if (!(duracion > 0) || minutos >= duracion) return largo
+  if (!(minutos > 0)) return 0
+  return largo * avanceNormalizado(minutos / duracion, fraccionDeLaRampa(largo))
+}
+
+/**
+ * Lo contrario: cuántos minutos simulados tiene que haber andado una moto para
+ * llevar `recorrido` metros. Sirve para detener una moto en un punto (la que
+ * espera su turno): se atrasa su hora de salida lo justo para que, desde ahora,
+ * siga justo ahí.
+ */
+export function minutosParaRecorrer({ largo, duracion, recorrido }) {
+  if (!(largo > 0) || !(duracion > 0)) return 0
+  if (recorrido >= largo) return duracion
+  if (!(recorrido > 0)) return 0
+  const objetivo = recorrido / largo
+  const rampa = fraccionDeLaRampa(largo)
+  let bajo = 0
+  let alto = 1
+  for (let i = 0; i < 40; i += 1) {
+    const medio = (bajo + alto) / 2
+    if (avanceNormalizado(medio, rampa) < objetivo) bajo = medio
+    else alto = medio
+  }
+  return ((bajo + alto) / 2) * duracion
 }
 
 /* ------------------------------------------------------------ replanificar -- */
@@ -619,11 +619,17 @@ export function sinRetrocesos(camino) {
  * a esperar y la que sale lo comparten, en sentidos contrarios. Es la franja de
  * piso del local que queda entre la pared del fondo y los puestos.
  */
-export const CORREDOR = { desdeZ: LOCAL.zSalida, hastaZ: Z_DETRAS_DE_LOS_PUESTOS + 0.9 }
+export const CORREDOR = {
+  desdeZ: LOCAL.zSalida,
+  hastaZ: Z_DETRAS_DE_LOS_PUESTOS + 0.9,
+  // Termina donde empieza la franja de espera: lo que está más a la derecha (la
+  // fila del lavado, y las motos que salen del final de ella) no usa el corredor.
+  hastaX: X_DEL_CARRIL_DE_LA_FRANJA + 0.2,
+}
 
 /** ¿Este punto está dentro del corredor? */
-export function estaEnElCorredor([, , z]) {
-  return z >= CORREDOR.desdeZ - 1e-9 && z <= CORREDOR.hastaZ + 1e-9
+export function estaEnElCorredor([x, , z]) {
+  return z >= CORREDOR.desdeZ - 1e-9 && z <= CORREDOR.hastaZ + 1e-9 && x <= CORREDOR.hastaX
 }
 
 /** Cada cuántos metros se mira por dónde va un camino al buscar el corredor. */

@@ -1,11 +1,19 @@
 /**
  * El viaje de cada moto, cuadro a cuadro: adónde va según la foto del motor,
- * por qué camino y a qué velocidad.
+ * por qué camino y dónde está en cada instante.
  *
  * Es JavaScript puro, sin React ni Three.js: `Motos.jsx` solo pone en pantalla
  * lo que sale de aquí, y las pruebas lo recorren con una corrida entera del
  * motor. **Solo lee la foto**: nunca le escribe ni toca su generador aleatorio,
  * así que los tiempos y las métricas son los mismos con la escena o sin ella.
+ *
+ * **Todo se mueve con el reloj simulado** (ver `relojDeLaEscena.js` y
+ * `trayectorias.js`): la posición de una moto es una función de los minutos
+ * simulados que pasaron desde que el motor la mandó a su sitio. En pausa no pasa
+ * ninguno y no se mueve nada; al cambiar la velocidad, el ritmo cambia en el
+ * cuadro siguiente. Y cuando el motor se reemplaza o el estado salta (reiniciar,
+ * terminar la corrida larga, entrar o salir de la visita…), no se anima: se
+ * descarta lo que se recordaba y cada moto se coloca en su lugar según la foto.
  */
 
 import {
@@ -18,35 +26,34 @@ import {
   SEPARACION_EN_FILA,
   TOPE_DE_MOTOS_DIBUJADAS,
 } from './posiciones.js'
+import { avanceDelReloj, crearMemoriaDelReloj } from './relojDeLaEscena.js'
 import {
-  ATRASO_MAXIMO_EN_MINUTOS,
   caminoDeAjusteEnLaFila,
   caminoDeLlegada,
   caminoDeSalida,
-  enLaBandaDeAcceso,
   caminoHacia,
   caminoReplanificado,
   debeEsperarParaElCorredor,
   distanciaHastaElCorredor,
+  duracionDelViaje,
+  enLaBandaDeAcceso,
   estaEnElCorredor,
   girarHacia,
   largoDelCamino,
-  margenTrasAvanzar,
+  minutosParaRecorrer,
+  puntoDe,
   puntoEnElCamino,
-  recorridoTrasAvanzar,
+  recorridoEnElTiempo,
   SITIO_DE_SALIDA,
   sitioEnFila,
   sitioEnPlaca,
   sitioEnPuesto,
-  Z_DETRAS_DE_LOS_PUESTOS,
 } from './trayectorias.js'
-
-/** Qué parte del giro que le falta hace una moto por segundo real. */
-export const VELOCIDAD_DE_GIRO = 6
 
 /**
  * Cuánto de su giro hace una moto por cada metro que avanza: a más velocidad,
- * más rápido gira, para que no vaya de lado en las curvas.
+ * más rápido gira, para que no vaya de lado en las curvas. Solo gira si avanza:
+ * una moto quieta (en pausa, o esperando su turno) no se mueve ni gira.
  */
 export const GIRO_POR_METRO = 0.8
 
@@ -61,8 +68,18 @@ export const DISTANCIA_MINIMA_EN_FILA = MOTO.largo + 0.1
 /** Cada cuántos metros del camino se mira si una moto se montaría sobre otra de su fila. */
 const PASO_PARA_VER_SI_SE_MONTA = 0.25
 
-/** Cuánto, como mucho, espera seguida una moto de una fila a que otra se aparte, en segundos de reloj. */
-const ESPERA_MAXIMA_EN_FILA_S = 8
+/**
+ * Cuánto, como mucho, espera seguida una moto de una fila a que otra se aparte,
+ * en minutos simulados: es el seguro de que ninguna se quede parada para siempre.
+ */
+const ESPERA_MAXIMA_EN_FILA_MIN = 30
+
+/**
+ * Cuántos viajes puede haber a la vez como mucho. Se dibujan unas 40 motos y
+ * algunas más van de camino; si hay muchas más, la escena perdió el hilo y es
+ * mejor recolocar que seguir arrastrándolas.
+ */
+const LIMITE_DE_VIAJES = 150
 
 /**
  * Hacia dónde va una moto ahora (un vector unitario sobre el piso), o `null` si ya
@@ -82,7 +99,7 @@ function direccionDelViaje(viaje) {
  */
 export function enLaLineaDeLaFila([x, , z], etapa) {
   return etapa === 'lavado'
-    ? Math.abs(x - FILA_DEL_LAVADO.x) < 0.4 && z > Z_DETRAS_DE_LOS_PUESTOS + 1
+    ? Math.abs(x - FILA_DEL_LAVADO.x) < 0.4 && z > LOCAL.zSalida
     : Math.abs(z - LOCAL.zFilaAcabado) < 0.4
 }
 
@@ -115,24 +132,38 @@ function seMontan(a, b, etapa) {
  */
 const METROS_ANTES_DE_OCULTARSE = SEPARACION_EN_FILA + 0.2
 
-/** Hasta dónde llega una moto que espera: unos centímetros antes del corredor, para no contar como dentro. */
+/** Hasta dónde llega una moto que espera: antes de la boca del corredor, para dejar libre su carril. */
 const MARGEN_ANTES_DEL_CORREDOR = 1.5
-
-/**
- * A qué velocidad de simulación se terminan los viajes con la simulación en
- * pausa: ninguna. En pausa el motor no avanza, pero una moto a medio camino
- * congelada en el aire se vería mal; con esto termina de aparcar a la
- * velocidad de siempre (`V_BASE`) y se queda quieta.
- */
-export const VELOCIDAD_DE_SIMULACION_EN_PAUSA = 0
 
 /**
  * Lo que recuerda la escena de las motos entre un cuadro y el siguiente:
  * - `porMoto`: el viaje de cada moto que se ve o que va de camino, por su número;
- * - `ocultas`: las que siguen en el lavadero pero la fila ya no dibuja (llegaron
- *   al final de una fila más larga que su tope), con la etapa de esa fila.
+ * - `ocultas`: las que siguen en el lavadero pero la fila ya no dibuja (la fila es
+ *   más larga que su tope), con la etapa de esa fila: se cuentan en «+N motos más»
+ *   y nunca se dibujan apiladas en una avenida ni en una boca;
+ * - `memoria`: el último reloj simulado y la última generación que vio (ver
+ *   `relojDeLaEscena.js`).
  */
-export const crearViajes = () => ({ porMoto: new Map(), ocultas: new Map() })
+export const crearViajes = () => ({ porMoto: new Map(), ocultas: new Map(), memoria: crearMemoriaDelReloj() })
+
+/**
+ * Lo que hace la escena en cada cuadro con el estado del store: nada mientras
+ * corre la corrida larga (el motor es de ella, y la escena no anima ni dibuja
+ * hasta que termine), y si no, avanza las motos.
+ *
+ * @param {object} viajes lo que devuelve `crearViajes`
+ * @param {{ foto: object, corridaLarga: object|null, generacion: number }} estado el del store
+ * @param {number} segundosReales tiempo real desde el cuadro anterior
+ * @returns {Array|null} las motos a dibujar, o `null` si no hay que dibujar ninguna
+ */
+export function animarLaEscena(viajes, { foto, corridaLarga, generacion }, segundosReales = 0) {
+  if (!foto || corridaLarga) {
+    // Lo que se recordaba ya no vale: al terminar se recoloca con el estado final.
+    viajes.memoria.generacion = null
+    return null
+  }
+  return avanzarLasMotos(viajes, foto, { generacion, segundosReales })
+}
 
 /**
  * Avanza un cuadro a todas las motos: traza o replanifica el viaje de cada una
@@ -146,15 +177,28 @@ export const crearViajes = () => ({ porMoto: new Map(), ocultas: new Map() })
  *   «+N motos más» las cuenta. Cuando les toca dibujarse salen de ahí.
  * - El corredor de detrás de los puestos es de un solo carril: la que va a
  *   entrar o a salir espera en su puerta si ya viene otra de frente.
+ * - Si el motor se reemplazó (cambió la `generacion`), el reloj retrocedió o saltó, o
+ *   pasó mucho tiempo real, no se anima: se descarta lo recordado y cada moto se
+ *   coloca en su lugar.
  *
  * @param {object} viajes lo que devuelve `crearViajes`, que se va actualizando
  * @param {object} foto la foto del motor
- * @param {{ segundos: number, velocidadDeSimulacion: number }} cuadro lo que dura
- *   el cuadro en reloj, y los minutos simulados por segundo (0 en pausa)
+ * @param {{ generacion?: number, segundosReales?: number }} cuadro el número de
+ *   generación del store y el tiempo real desde el cuadro anterior
  * @returns {Array<{ n: number, plan: number, punto: number[], rumbo: number, saliendo: boolean }>}
  */
-export function avanzarLasMotos(viajes, foto, { segundos, velocidadDeSimulacion }) {
-  const { porMoto, ocultas } = viajes
+export function avanzarLasMotos(viajes, foto, { generacion = 0, segundosReales = 0 } = {}) {
+  const { porMoto, ocultas, memoria } = viajes
+  const { minutos, recolocar } = avanceDelReloj(memoria, { relojMin: foto.relojMin, generacion, segundosReales })
+  if (recolocar || porMoto.size > LIMITE_DE_VIAJES) {
+    return recolocarLasMotos(viajes, foto)
+  }
+
+  const reloj = foto.relojMin
+  const contexto = {
+    reloj,
+    largoDeLaFila: { lavado: foto.colaLavado.length, acabado: foto.colaAcabado.length },
+  }
   const destinos = sitiosDeLasMotos(foto)
 
   // Las que dejan de estar en la lista de dibujadas: o salieron, o siguen en una fila
@@ -188,7 +232,7 @@ export function avanzarLasMotos(viajes, foto, { segundos, velocidadDeSimulacion 
   }
   for (const [n, { sitio, plan }] of destinos) {
     // Una moto que vuelve a dibujarse sale de su fila solo cuando hay sitio por donde sale.
-    if (!porMoto.has(n) && ocultas.has(n) && sitio.zona === 'fila') {
+    if (!porMoto.has(n) && saleDeLaFilaOculta(n, sitio, ocultas, contexto.largoDeLaFila)) {
       const sale = posicionEnFila(sitio.indice + 1, sitio.etapa)
       const ocupado = [...enLasFilas[sitio.etapa].values()].some(({ punto }) => seMontan(sale, punto, sitio.etapa))
       if (ocupado) {
@@ -196,7 +240,7 @@ export function avanzarLasMotos(viajes, foto, { segundos, velocidadDeSimulacion 
         continue
       }
     }
-    const viaje = viajeDeLaMoto(n, sitio, viajes)
+    const viaje = viajeDeLaMoto(n, sitio, viajes, contexto)
     viaje.plan = plan
     const punto = puntoEnElCamino(viaje.camino, viaje.recorrido).punto
     if (viaje.sitio.zona === 'fila' && enLaLineaDeLaFila(punto, viaje.sitio.etapa)) {
@@ -214,72 +258,87 @@ export function avanzarLasMotos(viajes, foto, { segundos, velocidadDeSimulacion 
     const viaje = porMoto.get(n)
     viaje.oculta = oculta ? { sitio: viaje.sitio, plan: viaje.plan } : null
 
-    // Espera en la puerta del corredor si ya viene otra moto de frente. La que ya
-    // está dentro no espera nunca: así quien bloquea siempre se está moviendo.
-    // Mientras espera no gasta su plazo: ceder el paso no es ir atrasada.
-    const esperaPorElCorredor =
-      !viaje.enElCorredor &&
-      viaje.puertaDelCorredor !== null &&
-      viaje.recorrido < viaje.puertaDelCorredor &&
-      (debeEsperarParaElCorredor(viaje.saliendo, dentroDelCorredor) ||
-        // Aunque vengan en el mismo sentido, no se entra a la boca del corredor
-        // mientras otra moto pasa por delante de ella: se espera un poco antes.
-        puntosDentro.some(({ n: otra, punto }) => otra !== n && cercaDe(punto, viaje.puntoDeLaPuerta)))
+    // Cuánto le tocaría haber recorrido ya, por el reloj simulado. Con la simulación
+    // en pausa (0 minutos) no se toca nada: la moto se queda exactamente donde está.
     const antes = viaje.recorrido
-    let recorrido = recorridoTrasAvanzar({
-      recorrido: viaje.recorrido,
-      largo: viaje.largo,
-      segundos,
-      velocidadDeSimulacion,
-      margenEnMinutos: viaje.margenMin,
-      limite: esperaPorElCorredor ? viaje.metrosHastaElCorredor : null,
-    })
+    let recorrido = antes
+    const deseado =
+      minutos > 0
+        ? Math.max(
+            antes,
+            recorridoEnElTiempo({ largo: viaje.largo, duracion: viaje.duracion, minutos: reloj - viaje.salioEnMin }),
+          )
+        : antes
 
-    // Tampoco se acerca a otra moto de su fila más de lo debido: espera a que se aparte.
-    // Vale para la que viene detrás de otra y para la que llega tarde a un lugar de más
-    // adelante y se encuentra con las que ya esperan. No cuenta con las que vienen de
-    // frente (se cruzan por carriles distintos: esperarse una a otra las dejaría
-    // trabadas), y nunca espera más de `ESPERA_MAXIMA_EN_FILA_S` seguidos: es el
-    // seguro de que ninguna se quede parada para siempre.
-    const sitio = viaje.sitio
-    const deFila = sitio.zona === 'fila' ? enLasFilas[sitio.etapa] : null
-    let esperaPorLaFila = false
-    if (deFila && recorrido !== antes && viaje.esperaEnFila < ESPERA_MAXIMA_EN_FILA_S) {
-      const actual = puntoEnElCamino(viaje.camino, antes).punto
-      const miDireccion = direccionDelViaje(viaje)
-      const otras = []
-      for (const [otra, { punto, direccion }] of deFila) {
-        if (otra === n) continue
-        // Las que vienen de frente no cuentan: se cruzan por carriles distintos.
-        if (direccion && miDireccion && direccion[0] * miDireccion[0] + direccion[1] * miDireccion[1] < 0) continue
-        otras.push(punto)
+    if (deseado > antes) {
+      recorrido = deseado
+
+      // Espera en la puerta del corredor si ya viene otra moto de frente. La que ya
+      // está dentro no espera nunca: así quien bloquea siempre se está moviendo.
+      const esperaPorElCorredor =
+        !viaje.enElCorredor &&
+        viaje.puertaDelCorredor !== null &&
+        viaje.recorrido < viaje.puertaDelCorredor &&
+        (debeEsperarParaElCorredor(viaje.saliendo, dentroDelCorredor) ||
+          // Aunque vengan en el mismo sentido, no se entra a la boca del corredor
+          // mientras otra moto pasa por delante de ella: se espera un poco antes.
+          puntosDentro.some(({ n: otra, punto }) => otra !== n && cercaDe(punto, viaje.puntoDeLaPuerta)))
+      if (esperaPorElCorredor) recorrido = Math.min(recorrido, Math.max(antes, viaje.metrosHastaElCorredor))
+
+      // Tampoco se acerca a otra moto de su fila más de lo debido: espera a que se aparte.
+      // Vale para la que viene detrás de otra y para la que llega tarde a un lugar de más
+      // adelante y se encuentra con las que ya esperan. No cuenta con las que vienen de
+      // frente (se cruzan por carriles distintos: esperarse una a otra las dejaría
+      // trabadas), y nunca espera más de `ESPERA_MAXIMA_EN_FILA_MIN` seguidos.
+      const sitio = viaje.sitio
+      const deFila = sitio.zona === 'fila' ? enLasFilas[sitio.etapa] : null
+      let esperaPorLaFila = false
+      if (deFila && recorrido > antes && viaje.esperaEnFila < ESPERA_MAXIMA_EN_FILA_MIN) {
+        const actual = puntoEnElCamino(viaje.camino, antes).punto
+        const miDireccion = direccionDelViaje(viaje)
+        const otras = []
+        for (const [otra, { punto, direccion }] of deFila) {
+          if (otra === n) continue
+          // Las que vienen de frente no cuentan: se cruzan por carriles distintos.
+          if (direccion && miDireccion && direccion[0] * miDireccion[0] + direccion[1] * miDireccion[1] < 0) continue
+          otras.push(punto)
+        }
+        // Se avanza por tramos cortos hasta justo antes de montarse sobre otra: a velocidad
+        // alta un solo paso podría saltar por encima de ella.
+        let seguro = antes
+        for (let r = antes; r < recorrido; ) {
+          r = Math.min(recorrido, r + PASO_PARA_VER_SI_SE_MONTA)
+          const aqui = puntoEnElCamino(viaje.camino, r).punto
+          const choca = otras.some(
+            (punto) =>
+              seMontan(aqui, punto, sitio.etapa) &&
+              Math.hypot(aqui[0] - punto[0], aqui[2] - punto[2]) < Math.hypot(actual[0] - punto[0], actual[2] - punto[2]),
+          )
+          if (choca) break
+          seguro = r
+        }
+        esperaPorLaFila = seguro < recorrido
+        recorrido = seguro
       }
-      // Se avanza por tramos cortos hasta justo antes de montarse sobre otra: a velocidad
-      // alta un solo paso podría saltar por encima de ella.
-      let seguro = antes
-      for (let r = antes; r < recorrido; ) {
-        r = Math.min(recorrido, r + PASO_PARA_VER_SI_SE_MONTA)
-        const aqui = puntoEnElCamino(viaje.camino, r).punto
-        const choca = otras.some(
-          (punto) =>
-            seMontan(aqui, punto, sitio.etapa) &&
-            Math.hypot(aqui[0] - punto[0], aqui[2] - punto[2]) < Math.hypot(actual[0] - punto[0], actual[2] - punto[2]),
-        )
-        if (choca) break
-        seguro = r
+      viaje.esperaEnFila = esperaPorLaFila ? viaje.esperaEnFila + minutos : 0
+
+      // Si se quedó corta por esperar, su hora de salida se atrasa lo justo para que,
+      // desde ahora, siga justo ahí: esperar no gasta su tiempo de viaje.
+      if (recorrido < deseado) {
+        viaje.salioEnMin = reloj - minutosParaRecorrer({ largo: viaje.largo, duracion: viaje.duracion, recorrido })
       }
-      esperaPorLaFila = seguro < recorrido
-      recorrido = seguro
     }
-    viaje.esperaEnFila = esperaPorLaFila ? viaje.esperaEnFila + segundos : 0
+
     viaje.recorrido = recorrido
-    if (!esperaPorElCorredor && !esperaPorLaFila) {
-      viaje.margenMin = margenTrasAvanzar(viaje.margenMin, segundos, velocidadDeSimulacion)
-    }
     const { punto, rumbo } = puntoEnElCamino(viaje.camino, viaje.recorrido)
-    if (deFila) {
-      if (enLaLineaDeLaFila(punto, sitio.etapa)) deFila.set(n, { punto, direccion: direccionDelViaje(viaje) })
-      else deFila.delete(n)
+    const sitioActual = viaje.sitio
+    if (sitioActual.zona === 'fila') {
+      const deFila = enLasFilas[sitioActual.etapa]
+      if (enLaLineaDeLaFila(punto, sitioActual.etapa)) {
+        deFila.set(n, { punto, direccion: direccionDelViaje(viaje) })
+      } else {
+        deFila.delete(n)
+      }
     }
 
     // Si acaba de entrar al corredor, las demás de este cuadro ya lo saben: así dos
@@ -290,12 +349,9 @@ export function avanzarLasMotos(viajes, foto, { segundos, velocidadDeSimulacion 
     }
 
     // Gira hacia el rumbo del tramo que recorre. Al llegar, ese rumbo es el del
-    // último tramo y deja de cambiar, así que la moto se queda mirando hacia
-    // donde entró en vez de quedarse aparcada de lado: el último tramo es corto
-    // y el giro no llega a terminarse antes de parar.
-    if (rumbo !== null) {
-      const cuanto = Math.max(segundos * VELOCIDAD_DE_GIRO, (viaje.recorrido - antes) * GIRO_POR_METRO)
-      viaje.rumbo = girarHacia(viaje.rumbo, rumbo, cuanto)
+    // último tramo y deja de cambiar. Solo gira lo que avanza: sin avance, ni gira.
+    if (rumbo !== null && recorrido > antes) {
+      viaje.rumbo = girarHacia(viaje.rumbo, rumbo, (recorrido - antes) * GIRO_POR_METRO)
     }
 
     const llego = viaje.recorrido >= viaje.largo
@@ -315,30 +371,57 @@ export function avanzarLasMotos(viajes, foto, { segundos, velocidadDeSimulacion 
 }
 
 /**
+ * Descarta todo lo que se recordaba y coloca cada moto de la foto en su lugar,
+ * quieta: no hay viaje que animar. Las motos de las filas que no se dibujan (más
+ * allá del tope) quedan anotadas como ocultas, de modo que cuando les toque
+ * dibujarse salgan del final de su fila y no de una avenida.
+ */
+function recolocarLasMotos(viajes, foto) {
+  const { porMoto, ocultas } = viajes
+  porMoto.clear()
+  ocultas.clear()
+  const motos = []
+  for (const [n, { sitio, plan }] of sitiosDeLasMotos(foto)) {
+    const llegada = caminoDeLlegada(entradaDeLaMoto(n).clave, sitio)
+    const rumbo = puntoEnElCamino(llegada, largoDelCamino(llegada)).rumbo ?? 0
+    const punto = puntoDe(sitio)
+    porMoto.set(n, viajeNuevo({ camino: [punto], sitio, reloj: foto.relojMin, saliendo: false, rumbo, plan }))
+    motos.push({ n, plan, punto, rumbo, saliendo: false })
+  }
+  for (const [cola, etapa] of [
+    [foto.colaLavado, 'lavado'],
+    [foto.colaAcabado, 'acabado'],
+  ]) {
+    for (let i = TOPE_DE_MOTOS_DIBUJADAS[etapa]; i < cola.length; i += 1) ocultas.set(cola[i].n, etapa)
+  }
+  return motos
+}
+
+/**
  * El viaje que lleva una moto hacia `sitio`, creándolo o replanificándolo.
  *
  * Una moto nueva entra por la avenida que le toca (`entradaDeLaMoto`), por su
- * curva y su boca. Si el motor la manda a otro sitio antes de que llegue, se
- * traza el camino nuevo **desde donde está**, no desde el principio. Las que ya
- * no están en la foto salen por la avenida por la que entraron. Una que estaba
- * oculta al final de su fila y vuelve a dibujarse sale de ese último lugar.
+ * curva y su boca; pero si lleva tiempo esperando (estaba más allá de lo que la
+ * fila dibuja), sale del final de su fila y no de la avenida. Si el motor la manda
+ * a otro sitio antes de que llegue, se traza el camino nuevo **desde donde está**,
+ * no desde el principio. Las que ya no están en la foto salen por la avenida por
+ * la que entraron.
  */
-export function viajeDeLaMoto(n, sitio, { porMoto, ocultas }) {
+export function viajeDeLaMoto(n, sitio, { porMoto, ocultas }, { reloj, largoDeLaFila }) {
   const anterior = porMoto.get(n)
   const saliendo = sitio.zona === 'salida'
   const avenida = entradaDeLaMoto(n).clave
 
   if (!anterior) {
-    // Una que estaba oculta al final de su fila sale de ese último lugar; las demás, de la avenida.
-    const etapa = ocultas.get(n)
+    // Una que estaba oculta al final de su fila (o que llega a la fila del lavado cuando
+    // ya es más larga que lo que se dibuja) sale de ese último lugar; las demás, de la avenida.
+    const etapa = saleDeLaFilaOculta(n, sitio, ocultas, largoDeLaFila) ? sitio.etapa : ocultas.get(n)
     ocultas.delete(n)
     // Sale un lugar más atrás del suyo (si el motor adelantó a dos a la vez, no salen
     // las dos del mismo punto).
-    const atras = (etapa && sitio.zona === 'fila' ? sitio.indice + 1 : TOPE_DE_MOTOS_DIBUJADAS[etapa])
-    const camino = etapa
-      ? caminoHacia(sitioEnFila(etapa, atras), sitio)
-      : caminoDeLlegada(avenida, sitio)
-    const viaje = nuevoViaje(camino, sitio, { saliendo })
+    const atras = etapa && sitio.zona === 'fila' ? sitio.indice + 1 : TOPE_DE_MOTOS_DIBUJADAS[etapa]
+    const camino = etapa ? caminoHacia(sitioEnFila(etapa, atras), sitio) : caminoDeLlegada(avenida, sitio)
+    const viaje = viajeNuevo({ camino, sitio, reloj, saliendo, rumbo: rumboDelPrimerTramo(camino) })
     porMoto.set(n, viaje)
     return viaje
   }
@@ -355,17 +438,33 @@ export function viajeDeLaMoto(n, sitio, { porMoto, ocultas }) {
     anterior.sitio.etapa === sitio.etapa &&
     anterior.recorrido < anterior.largo &&
     enLaBandaDeAcceso(aqui, sitio.etapa)
-  const desdeSuSitio = saliendo
-    ? caminoDeSalida(anterior.sitio, avenida)
-    : caminoHacia(anterior.sitio, sitio)
+  const desdeSuSitio = saliendo ? caminoDeSalida(anterior.sitio, avenida) : caminoHacia(anterior.sitio, sitio)
   const camino = ajusteEnLaFila
     ? caminoDeAjusteEnLaFila(aqui, sitio)
     : caminoReplanificado(anterior.camino, anterior.recorrido, desdeSuSitio)
-  const viaje = nuevoViaje(camino, sitio, { saliendo, rumbo: anterior.rumbo, plan: anterior.plan })
+  const viaje = viajeNuevo({ camino, sitio, reloj, saliendo, rumbo: anterior.rumbo, plan: anterior.plan })
   porMoto.set(n, viaje)
   return viaje
 }
 
+/**
+ * ¿Sale esta moto, que no tiene viaje, del final de su fila y no de una avenida?
+ * Sí si estaba anotada como oculta, o si va a una fila del lavado que ya es más
+ * larga que lo que se dibuja: las que llegan a una fila así esperaban fuera de lo
+ * que se ve, no vienen de la avenida.
+ */
+function saleDeLaFilaOculta(n, sitio, ocultas, largoDeLaFila) {
+  if (sitio.zona !== 'fila') return false
+  return (
+    ocultas.has(n) ||
+    (sitio.etapa === 'lavado' && largoDeLaFila.lavado >= TOPE_DE_MOTOS_DIBUJADAS.lavado)
+  )
+}
+
+/** Hacia dónde mira una moto al empezar un camino: el rumbo de su primer tramo. */
+function rumboDelPrimerTramo(camino) {
+  return puntoEnElCamino(camino, 0).rumbo ?? 0
+}
 
 /** El punto del camino donde se entra al corredor, o `null` si no se entra. */
 function puntoDeLaPuerta(camino) {
@@ -373,17 +472,27 @@ function puntoDeLaPuerta(camino) {
   return metros === null ? null : puntoEnElCamino(camino, metros).punto
 }
 
-/** Hasta cuántos metros avanza la que espera: unos centímetros antes de la puerta. */
+/** Hasta cuántos metros avanza la que espera: antes de la puerta, para dejar libre el carril. */
 function esperaAntesDeLaPuerta(camino) {
   const puerta = distanciaHastaElCorredor(camino)
   return puerta === null ? null : Math.max(0, puerta - MARGEN_ANTES_DEL_CORREDOR)
 }
 
-function nuevoViaje(camino, sitio, { saliendo, rumbo = 0, plan = 2 }) {
+/**
+ * Un viaje que sale ahora (`reloj`, en minutos simulados) por `camino`: dura lo
+ * que dice `duracionDelViaje` y su plazo cuenta desde este momento.
+ */
+function viajeNuevo({ camino, sitio, reloj, saliendo, rumbo = 0, plan = 2 }) {
+  const largo = largoDelCamino(camino)
   return {
     sitio,
     camino,
-    largo: largoDelCamino(camino),
+    largo,
+    // El minuto simulado en que el motor la mandó allí (no cambia), y aquel en que salió y
+    // cuánto dura: de ahí sale dónde está en cada instante (si espera, la salida se atrasa).
+    ordenadoEnMin: reloj,
+    salioEnMin: reloj,
+    duracion: duracionDelViaje(largo),
     // Cuántos metros hay hasta la puerta del corredor, si pasa por él; ahí espera
     // si viene otra moto de frente. Se queda un poco antes, fuera de él.
     puertaDelCorredor: distanciaHastaElCorredor(camino),
@@ -392,8 +501,7 @@ function nuevoViaje(camino, sitio, { saliendo, rumbo = 0, plan = 2 }) {
     enElCorredor: false,
     esperaEnFila: 0,
     recorrido: 0,
-    // El plazo para llegar, en minutos simulados: baja con el reloj de la simulación.
-    margenMin: ATRASO_MAXIMO_EN_MINUTOS,
+    oculta: null,
     rumbo,
     plan,
     saliendo,

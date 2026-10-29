@@ -175,6 +175,11 @@ function estadoInicial() {
     resumen: resumenDe(motor.estado()),
     // Progreso de la corrida larga: null cuando no hay ninguna en marcha.
     corridaLarga: null,
+    // Cuántas veces se ha reemplazado el motor o saltado el estado (reiniciar,
+    // terminar la corrida larga, entrar o salir de la visita, fin de la visita…).
+    // La escena lo compara en cada cuadro: si cambió, no anima lo que recuerda,
+    // recoloca cada moto en su lugar según la foto.
+    generacion: 0,
     // El modo "Repetir la visita": el reproductor ocupa el lugar del motor, y
     // aquí se guarda lo que había antes para poder volver.
     modo: MODO_ALEATORIO,
@@ -206,7 +211,8 @@ export const useSimulacion = create((set, get) => ({
 
   iniciar: () => {
     // Una visita terminada no se reanuda: hay que reiniciarla o volver al modo normal.
-    if (get().visita?.terminada) {
+    // Y mientras corre la corrida larga el motor es de ella: no se anima hasta que termine.
+    if (get().visita?.terminada || get().corridaLarga) {
       return
     }
     set({ corriendo: true })
@@ -224,6 +230,10 @@ export const useSimulacion = create((set, get) => ({
     set({
       motor,
       foto: motor.estado(),
+      // Otro motor: la escena tiene que recolocar, no animar desde lo que recordaba.
+      generacion: get().generacion + 1,
+      // Si había una corrida larga, reiniciar la cancela y deja la simulación lista para Iniciar.
+      corriendo: get().corridaLarga ? false : get().corriendo,
       aviso,
       avisoDeEscenario: null,
       visita: enLaVisita ? { terminada: false } : null,
@@ -243,6 +253,10 @@ export const useSimulacion = create((set, get) => ({
    * @param {number} msDelCuadro lapso real desde el cuadro anterior
    */
   avanzarCuadro: (msDelCuadro) => {
+    // Mientras corre la corrida larga el motor es de ella: nadie más lo avanza.
+    if (get().corridaLarga) {
+      return
+    }
     const { motor, velocidadMinPorSegundo, corriendo } = get()
     const paso = pasoSimuladoMin({ msDelCuadro, velocidadMinPorSegundo, corriendo })
     if (paso <= 0) {
@@ -268,6 +282,8 @@ export const useSimulacion = create((set, get) => ({
     const hayUltimoPunto = puntos.at(-1)?.minuto === foto.relojMin
     set({
       corriendo: false,
+      // La escena se recoloca con el estado final: nada queda a medio camino.
+      generacion: get().generacion + 1,
       visita: { terminada: true },
       metricas: motor.metricas(),
       resumen: resumenDe(foto),
@@ -391,6 +407,9 @@ export const useSimulacion = create((set, get) => ({
     if (horasQueFaltan <= 0) {
       set({
         corridaLarga: null,
+        // Termina en pausa y la escena se recoloca con el estado final, lista para Iniciar.
+        corriendo: false,
+        generacion: get().generacion + 1,
         metricas: motor.metricas(),
         foto: motor.estado(),
         resumen: resumenDe(motor.estado()),

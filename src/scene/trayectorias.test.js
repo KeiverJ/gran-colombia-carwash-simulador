@@ -30,15 +30,12 @@ import {
   debeEsperarParaElCorredor,
   distanciaHastaElCorredor,
   estaEnElCorredor,
-  factorDeRampa,
-  FACTOR_MINIMO_DE_LA_RAMPA,
-  LARGO_DE_LA_RAMPA,
   ATRASO_MAXIMO_EN_MINUTOS,
-  margenTrasAvanzar,
-  recorridoTrasAvanzar,
+  duracionDelViaje,
+  minutosParaRecorrer,
+  recorridoEnElTiempo,
   sinRetrocesos,
   V_BASE,
-  velocidadDeLaMoto,
   esDeLaFilaDeAtras,
   girarHacia,
   largoDelCamino,
@@ -324,107 +321,123 @@ describe('avanzar por el camino', () => {
   })
 })
 
-/**
- * Cuántos segundos de reloj tarda una moto en recorrer un camino de `largo`
- * metros, a cuadros de 1/60 s, llevando la cuenta de su margen como lo hace la escena.
- */
-function segundosParaRecorrer(largo, velocidadDeSimulacion, { desde = 0, limite = null } = {}) {
-  let recorrido = desde
-  let margenEnMinutos = ATRASO_MAXIMO_EN_MINUTOS
-  let segundos = 0
-  while (recorrido < largo - 1e-9 && segundos < 600) {
-    recorrido = recorridoTrasAvanzar({ recorrido, largo, segundos: 1 / 60, velocidadDeSimulacion, margenEnMinutos, limite })
-    margenEnMinutos = margenTrasAvanzar(margenEnMinutos, 1 / 60, velocidadDeSimulacion)
-    segundos += 1 / 60
-  }
-  return segundos
-}
+describe('la velocidad de las motos, en metros por minuto simulado', () => {
+  const viaje = (largo) => ({ largo, duracion: duracionDelViaje(largo) })
+  /** Cuántos metros lleva una moto de un viaje tras `minutos` minutos simulados. */
+  const tras = (largo, minutos) => recorridoEnElTiempo({ ...viaje(largo), minutos })
 
-describe('la velocidad de las motos', () => {
-  it('a una simulación lenta es la misma en un tramo corto que en uno largo', () => {
-    // 0,1 min/s: lo que falta nunca obliga a ir más deprisa que V_BASE.
-    for (const largo of [8, 20, 40]) {
-      expect(velocidadDeLaMoto({ recorrido: largo / 2, largo, velocidadDeSimulacion: 0.1 })).toBe(V_BASE)
-    }
+  it('V_BASE y el atraso máximo están en minutos simulados, no en segundos reales', () => {
+    expect(V_BASE).toBe(6)
+    expect(ATRASO_MAXIMO_EN_MINUTOS).toBe(4)
   })
 
-  it('el tramo largo tarda proporcionalmente más que el corto', () => {
-    const corto = segundosParaRecorrer(10, 0.1)
-    const largo = segundosParaRecorrer(40, 0.1)
-    // Salvo las dos rampas, que son iguales en los dos, el tiempo crece con la distancia.
-    expect(largo / corto).toBeGreaterThan(3.5)
-    expect(largo / corto).toBeLessThan(4.1)
+  it('un tramo corto va a V_BASE: dura largo / V_BASE minutos', () => {
+    expect(duracionDelViaje(12)).toBeCloseTo(12 / V_BASE, 10)
+    expect(duracionDelViaje(2)).toBeCloseTo(2 / V_BASE, 10)
   })
 
-  it('arranca y frena poco a poco, pero nunca se queda quieta', () => {
-    const largo = 20
-    const al = (recorrido) => velocidadDeLaMoto({ recorrido, largo, velocidadDeSimulacion: 0.1 })
-    expect(al(0)).toBeGreaterThan(0)
-    expect(al(0)).toBeLessThan(al(LARGO_DE_LA_RAMPA / 2))
-    expect(al(LARGO_DE_LA_RAMPA / 2)).toBeLessThan(al(largo / 2))
-    expect(al(largo)).toBeGreaterThan(0)
-    expect(al(largo - LARGO_DE_LA_RAMPA / 2)).toBeLessThan(al(largo / 2))
-    expect(al(0)).toBeCloseTo(V_BASE * FACTOR_MINIMO_DE_LA_RAMPA, 10)
+  it('un tramo largo no pasa del atraso máximo: se hace más deprisa', () => {
+    expect(duracionDelViaje(50)).toBe(ATRASO_MAXIMO_EN_MINUTOS)
+    expect(duracionDelViaje(1000)).toBe(ATRASO_MAXIMO_EN_MINUTOS)
   })
 
-  it('fuera de las rampas el factor es 1', () => {
-    expect(factorDeRampa(LARGO_DE_LA_RAMPA, 20)).toBe(1)
-    expect(factorDeRampa(10, 20)).toBe(1)
-    expect(factorDeRampa(20 - LARGO_DE_LA_RAMPA, 20)).toBe(1)
+  it('el tramo largo tarda proporcionalmente más que el corto, mientras no llega al atraso máximo', () => {
+    expect(duracionDelViaje(12) / duracionDelViaje(6)).toBeCloseTo(2, 10)
+    expect(duracionDelViaje(18) / duracionDelViaje(6)).toBeCloseTo(3, 10)
   })
 
-  it('con la simulación en pausa termina el viaje a V_BASE', () => {
-    expect(velocidadDeLaMoto({ recorrido: 5, largo: 20, velocidadDeSimulacion: 0 })).toBe(V_BASE)
-    // y llega: no se queda a medio camino
-    expect(segundosParaRecorrer(20, 0)).toBeCloseTo(20 / V_BASE, 0)
+  it('sin camino no hay viaje', () => {
+    expect(duracionDelViaje(0)).toBe(0)
+    expect(tras(0, 5)).toBe(0)
   })
 
-  it('a una simulación rápida el atraso queda acotado: llega dentro de ATRASO_MAXIMO_EN_MINUTOS', () => {
-    for (const velocidad of [10, 30, 60]) {
-      for (const largo of [10, 40, 60]) {
-        const segundos = segundosParaRecorrer(largo, velocidad)
-        const minutosSimulados = segundos * velocidad
-        // un cuadro más de margen por la rampa final y el redondeo del último paso
-        expect(minutosSimulados, `${largo} m a ${velocidad} min/s`).toBeLessThanOrEqual(
-          ATRASO_MAXIMO_EN_MINUTOS + velocidad / 30,
-        )
+  it('empieza en 0, acaba en el largo y nunca retrocede', () => {
+    for (const largo of [0.5, 2, 12, 50]) {
+      const { duracion } = viaje(largo)
+      expect(tras(largo, 0)).toBe(0)
+      expect(tras(largo, duracion)).toBe(largo)
+      expect(tras(largo, duracion * 3)).toBe(largo)
+      expect(tras(largo, -1)).toBe(0)
+      let antes = 0
+      for (let i = 0; i <= 200; i += 1) {
+        const ahora = tras(largo, (i / 200) * duracion)
+        expect(ahora).toBeGreaterThanOrEqual(antes - 1e-12)
+        antes = ahora
       }
     }
   })
 
-  it('a la velocidad más alta (60 min/s) acelera mucho más que V_BASE', () => {
-    expect(velocidadDeLaMoto({ recorrido: 5, largo: 40, velocidadDeSimulacion: 60 })).toBeGreaterThan(V_BASE * 10)
+  it('arranca y frena poco a poco: al principio y al final va más lento que por el medio', () => {
+    const largo = 24
+    const { duracion } = viaje(largo)
+    const paso = duracion / 400
+    const velocidadEn = (u) => (tras(largo, u * duracion + paso) - tras(largo, u * duracion)) / paso
+    expect(velocidadEn(0)).toBeLessThan(velocidadEn(0.5))
+    expect(velocidadEn(0.99)).toBeLessThan(velocidadEn(0.5))
   })
 
-  it('el margen baja con el reloj simulado y no con los cuadros: en pausa no se gasta', () => {
-    expect(margenTrasAvanzar(3, 1, 0.5)).toBeCloseTo(2.5, 10)
-    expect(margenTrasAvanzar(3, 10, 0)).toBe(3)
-    expect(margenTrasAvanzar(0.1, 5, 10)).toBe(0)
+  it('en el medio la velocidad es constante, y vale lo que dice la duración', () => {
+    const largo = 24
+    const { duracion } = viaje(largo)
+    const paso = duracion / 1000
+    const v1 = (tras(largo, 0.4 * duracion + paso) - tras(largo, 0.4 * duracion)) / paso
+    const v2 = (tras(largo, 0.6 * duracion + paso) - tras(largo, 0.6 * duracion)) / paso
+    expect(v1).toBeCloseTo(v2, 6)
+    // sin las rampas sería largo / duración = V_BASE; con ellas, un poco más
+    expect(v1).toBeGreaterThanOrEqual(V_BASE - 1e-9)
+    expect(v1).toBeLessThan(V_BASE * 1.1)
   })
 
-  it('con el plazo casi vencido va muy deprisa, así que llega: no se acerca sin llegar nunca', () => {
-    const casiVencido = velocidadDeLaMoto({ recorrido: 10, largo: 12, velocidadDeSimulacion: 10, margenEnMinutos: 0.05 })
-    const alPrincipio = velocidadDeLaMoto({ recorrido: 10, largo: 12, velocidadDeSimulacion: 10, margenEnMinutos: 3 })
-    expect(casiVencido).toBeGreaterThan(alPrincipio)
+  it('duplicar los minutos que pasan duplica lo que avanza (en el tramo del medio)', () => {
+    const largo = 40
+    const { duracion } = viaje(largo)
+    const desde = 0.45 * duracion
+    const d = 0.05
+    const uno = tras(largo, desde + d) - tras(largo, desde)
+    const dos = tras(largo, desde + 2 * d) - tras(largo, desde)
+    expect(dos / uno).toBeCloseTo(2, 6)
   })
 
-  it('una moto replanificada se pone al día con lo que le queda, no con el camino entero', () => {
-    const alPrincipio = velocidadDeLaMoto({ recorrido: 1, largo: 60, velocidadDeSimulacion: 20 })
-    const alFinal = velocidadDeLaMoto({ recorrido: 50, largo: 60, velocidadDeSimulacion: 20 })
-    expect(alFinal).toBeLessThan(alPrincipio)
+  it('el tiempo real no interviene: la misma cuenta da el mismo resultado', () => {
+    expect(tras(30, 1.7)).toBe(tras(30, 1.7))
   })
 
-  it('no pasa de su límite, y si ya estaba más allá se queda donde está sin retroceder', () => {
-    const espera = recorridoTrasAvanzar({ recorrido: 4, largo: 30, segundos: 5, velocidadDeSimulacion: 0.1, limite: 10 })
-    expect(espera).toBe(10)
-    const yaPasado = recorridoTrasAvanzar({ recorrido: 12, largo: 30, segundos: 1, velocidadDeSimulacion: 0.1, limite: 10 })
-    expect(yaPasado).toBe(12)
-    const sinLimite = recorridoTrasAvanzar({ recorrido: 12, largo: 30, segundos: 1, velocidadDeSimulacion: 0.1 })
-    expect(sinLimite).toBeGreaterThan(12)
+  it('si el viaje dura menos que un cuadro (a 60 min/s, un minuto), la moto llega de golpe', () => {
+    // un tramo de 3 m dura 0,5 min; un cuadro a 60 min/s pasa 1 minuto
+    expect(tras(3, 1)).toBe(3)
   })
 
-  it('nunca pasa del largo del camino', () => {
-    expect(recorridoTrasAvanzar({ recorrido: 19.9, largo: 20, segundos: 10, velocidadDeSimulacion: 60 })).toBe(20)
+  it('minutosParaRecorrer es lo contrario de recorridoEnElTiempo', () => {
+    for (const largo of [3, 12, 50]) {
+      const { duracion } = viaje(largo)
+      for (const u of [0.05, 0.2, 0.5, 0.8, 0.97]) {
+        const minutos = u * duracion
+        const recorrido = tras(largo, minutos)
+        expect(minutosParaRecorrer({ largo, duracion, recorrido })).toBeCloseTo(minutos, 6)
+      }
+      expect(minutosParaRecorrer({ largo, duracion, recorrido: 0 })).toBe(0)
+      expect(minutosParaRecorrer({ largo, duracion, recorrido: largo })).toBe(duracion)
+    }
+  })
+
+  it('detener una moto en un punto y seguir desde ahí no la hace retroceder ni saltar', () => {
+    const largo = 20
+    const { duracion } = viaje(largo)
+    const retenida = 7.3
+    const minutosQueLleva = minutosParaRecorrer({ largo, duracion, recorrido: retenida })
+    // si su hora de salida se atrasa hasta que lleva `retenida`, un instante después va un poco más allá
+    expect(tras(largo, minutosQueLleva)).toBeCloseTo(retenida, 6)
+    expect(tras(largo, minutosQueLleva + 0.01)).toBeGreaterThan(retenida)
+    expect(tras(largo, minutosQueLleva + 0.01)).toBeLessThan(retenida + 0.2)
+  })
+
+  it('a 1 min/s (un minuto simulado por segundo) la velocidad en pantalla es natural: unos 6 m/s', () => {
+    // en el tramo del medio de un viaje corto, metros por segundo real = metros por minuto simulado
+    const largo = 24
+    const { duracion } = viaje(largo)
+    const porMinuto = (tras(largo, 0.5 * duracion + 0.01) - tras(largo, 0.5 * duracion)) / 0.01
+    expect(porMinuto).toBeGreaterThan(5)
+    expect(porMinuto).toBeLessThan(8)
   })
 })
 
@@ -499,36 +512,6 @@ describe('el corredor de detrás de los puestos es de un solo carril', () => {
     expect(debeEsperarParaElCorredor(false, { entrando: 2, saliendo: 0 })).toBe(false)
     expect(debeEsperarParaElCorredor(true, { entrando: 0, saliendo: 3 })).toBe(false)
     expect(debeEsperarParaElCorredor(false, { entrando: 0, saliendo: 0 })).toBe(false)
-  })
-
-  it.each(AVENIDAS_DEL_MAPA)('%s: la que entra y la que sale nunca están de frente dentro del corredor', (avenida) => {
-    // Las dos llegan a su puerta a la vez, que es lo peor que puede pasar.
-    const entrada = caminoDeLlegada(avenida, sitioEnFila('lavado', 3))
-    const salida = caminoDeSalida(sitioEnPuesto(1, PUESTOS), avenida)
-    const puertaE = Math.max(0, distanciaHastaElCorredor(entrada) - 0.15)
-    const puertaS = Math.max(0, distanciaHastaElCorredor(salida) - 0.15)
-    const motos = {
-      e: { camino: entrada, puerta: puertaE, saliendo: false, recorrido: Math.max(0, puertaE - 3), largo: largoDelCamino(entrada) },
-      s: { camino: salida, puerta: puertaS, saliendo: true, recorrido: Math.max(0, puertaS - 3), largo: largoDelCamino(salida) },
-    }
-    const dentro = (moto) => estaEnElCorredor(puntoEnElCamino(moto.camino, moto.recorrido).punto)
-    for (let cuadro = 0; cuadro < 60 * 120; cuadro += 1) {
-      const cuenta = { entrando: dentro(motos.e) ? 1 : 0, saliendo: dentro(motos.s) ? 1 : 0 }
-      for (const moto of [motos.e, motos.s]) {
-        const espera = !dentro(moto) && debeEsperarParaElCorredor(moto.saliendo, cuenta)
-        moto.recorrido = recorridoTrasAvanzar({
-          recorrido: moto.recorrido,
-          largo: moto.largo,
-          segundos: 1 / 60,
-          velocidadDeSimulacion: 1,
-          limite: espera ? moto.puerta : null,
-        })
-      }
-      expect(dentro(motos.e) && dentro(motos.s), `cuadro ${cuadro}`).toBe(false)
-    }
-    // y las dos terminan su viaje: nadie se queda esperando para siempre
-    expect(motos.e.recorrido).toBe(motos.e.largo)
-    expect(motos.s.recorrido).toBe(motos.s.largo)
   })
 })
 

@@ -4,6 +4,7 @@ import { DynamicDrawUsage } from 'three'
 
 import { COLOR_DE_OCUPADO } from '../estilos/colores.js'
 import { useSimulacion } from '../store/simulacion.js'
+import { avanceDelReloj, crearMemoriaDelReloj, pasoDeLaAnimacion } from './relojDeLaEscena.js'
 import { GOTAS_POR_PLACA, PLACAS_COMO_MAXIMO, posicionDeLaGota } from './gotas.js'
 import { posicionDePlaca, SERVIDOR } from './posiciones.js'
 
@@ -12,18 +13,22 @@ import { posicionDePlaca, SERVIDOR } from './posiciones.js'
  *
  * Es un solo `Points` con todas las gotas: una llamada de dibujo. Las posiciones
  * se escriben en `useFrame`, sin pasar por React, y las de las placas libres se
- * esconden debajo del piso. Se mueven solo con la simulación corriendo.
+ * esconden debajo del piso. Se mueven con el reloj simulado: en pausa, quietas.
  */
 export function Particulas({ placas }) {
   const puntos = useRef(null)
   const tiempo = useRef(0)
+  const reloj = useRef(crearMemoriaDelReloj())
 
   const posicionesIniciales = useMemo(() => new Float32Array(PLACAS_COMO_MAXIMO * GOTAS_POR_PLACA * 3), [])
 
   useFrame((_, delta) => {
-    const { foto, corriendo } = useSimulacion.getState()
+    const { foto, generacion } = useSimulacion.getState()
     if (!foto || !puntos.current) return
-    if (corriendo) tiempo.current += delta
+    // Las gotas caen con el reloj simulado: en pausa no se mueven, y a menos de 1 min/s
+    // van más despacio, como la simulación.
+    const { minutos } = avanceDelReloj(reloj.current, { relojMin: foto.relojMin, generacion, segundosReales: delta })
+    tiempo.current += pasoDeLaAnimacion(delta, minutos)
 
     const { geometry } = puntos.current
     const posiciones = geometry.attributes.position

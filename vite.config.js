@@ -12,5 +12,8 @@ export default defineConfig({
     // sin navegador. Las funciones de Vitest se importan explícitamente.
     environment: 'node',
     include: ['src/**/*.test.js', 'src/**/*.test.jsx'],
+    // Las pruebas de la escena corren la aplicación cuadro a cuadro con el motor real: con
+    // todas en paralelo pueden pasar de los 5 s de siempre.
+    testTimeout: 30000,
   },
 })
