@@ -155,6 +155,7 @@ export const crearViajes = () => ({
   memoria: crearMemoriaDelReloj(),
   levantadas: { placas: [], puestos: [] },
   losas: null,
+  fotoMostrada: null,
 })
 
 /**
@@ -168,13 +169,35 @@ export const crearViajes = () => ({
  * @returns {Array|null} las motos a dibujar, o `null` si no hay que dibujar ninguna
  */
 export function animarLaEscena(viajes, { foto, corridaLarga, generacion }, segundosReales = 0) {
+  if (foto && corridaLarga?.camaraRapida) {
+    return mostrarLaFoto(viajes, foto, generacion)
+  }
+  // Lo que se recordaba ya no vale: al terminar se recoloca con el estado final.
+  viajes.fotoMostrada = null
   if (!foto || corridaLarga) {
-    // Lo que se recordaba ya no vale: al terminar se recoloca con el estado final.
     viajes.memoria.generacion = null
     viajes.losas = null
     return null
   }
   return avanzarLasMotos(viajes, foto, { generacion, segundosReales })
+}
+
+/**
+ * La cámara rápida de la corrida larga: no se anima nada, se dibuja la foto del
+ * motor tal cual. Cuando el motor entrega una foto nueva (una por cuadro) cada
+ * moto se coloca directamente en su lugar, sin viajes; mientras sea la misma, se
+ * repite lo dibujado. El reloj simulado que se guarda es el de la foto, así que
+ * el resto de piezas ven avanzar el mismo reloj.
+ */
+function mostrarLaFoto(viajes, foto, generacion) {
+  if (viajes.fotoMostrada?.foto !== foto) {
+    viajes.memoria.reloj = foto.relojMin
+    viajes.memoria.generacion = generacion
+    const motos = recolocarLasMotos(viajes, foto)
+    calcularLasLosas(viajes, foto)
+    viajes.fotoMostrada = { foto, motos }
+  }
+  return viajes.fotoMostrada.motos
 }
 
 /**

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   CRECIMIENTO_MAXIMO,
+  DURACION_MINIMA_DE_LA_CAMARA_RAPIDA_MS,
+  horasDeLaCamaraRapida,
   PRESUPUESTO_POR_CUADRO_MS,
   progreso,
   siguienteTrozoHoras,
@@ -92,5 +94,47 @@ describe('el progreso', () => {
   it('no se pasa de 100 ni se rompe sin total', () => {
     expect(progreso(1200, 1000)).toBe(100)
     expect(progreso(5, 0)).toBe(100)
+  })
+})
+
+describe('el ritmo de la cámara rápida', () => {
+  const horas = (msTranscurridos, extra = {}) =>
+    horasDeLaCamaraRapida({ msTranscurridos, horasTotales: 1000, ...extra })
+
+  it('dura al menos 4 segundos', () => {
+    expect(DURACION_MINIMA_DE_LA_CAMARA_RAPIDA_MS).toBeGreaterThanOrEqual(4000)
+  })
+
+  it('empieza en cero horas y llega a todas justo cuando se cumple la duración', () => {
+    expect(horas(0)).toBe(0)
+    expect(horas(DURACION_MINIMA_DE_LA_CAMARA_RAPIDA_MS - 1)).toBeLessThan(1000)
+    expect(horas(DURACION_MINIMA_DE_LA_CAMARA_RAPIDA_MS)).toBe(1000)
+    expect(horas(60000)).toBe(1000)
+  })
+
+  it('siempre son horas enteras y nunca bajan', () => {
+    let anterior = 0
+    for (let ms = 0; ms <= 5000; ms += 7) {
+      const h = horas(ms)
+      expect(Number.isInteger(h)).toBe(true)
+      expect(h).toBeGreaterThanOrEqual(anterior)
+      anterior = h
+    }
+  })
+
+  it('arranca y frena despacio y va rápido en el medio', () => {
+    const d = DURACION_MINIMA_DE_LA_CAMARA_RAPIDA_MS
+    const primeraDecima = horas(d * 0.1)
+    const medio = horas(d * 0.55) - horas(d * 0.45)
+    const ultimaDecima = 1000 - horas(d * 0.9)
+    expect(primeraDecima).toBeLessThan(medio)
+    expect(ultimaDecima).toBeLessThan(medio)
+    // y es simétrica: lo que le falta al final es lo que lleva al principio
+    expect(Math.abs(primeraDecima - ultimaDecima)).toBeLessThanOrEqual(1)
+  })
+
+  it('con otra duración o menos horas, igual', () => {
+    expect(horas(500, { duracionMs: 1000 })).toBe(500)
+    expect(horasDeLaCamaraRapida({ msTranscurridos: 9999, horasTotales: 50 })).toBe(50)
   })
 })

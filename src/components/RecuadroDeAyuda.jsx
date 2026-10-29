@@ -114,7 +114,8 @@ export function ContenidoDeLaAyuda() {
           <li>Abre Resultados para ver las métricas y las gráficas de las filas.</li>
           <li>
             Usa la corrida larga para que los valores simulados se acerquen a los calculados
-            con las fórmulas.
+            con las fórmulas. La escena la muestra en cámara rápida durante unos segundos y
+            puedes cancelarla.
           </li>
           <li>
             En «Visita del 17 de octubre» se reproduce la tarde observada, con sus horas

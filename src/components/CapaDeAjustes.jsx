@@ -269,6 +269,7 @@ function Avanzado() {
 /** Todo lo que se puede ajustar, en el orden en que lo recorre una moto. */
 export function ContenidoDeAjustes() {
   const enLaVisita = useSimulacion((estado) => estado.modo === MODO_VISITA)
+  const enCorridaLarga = useSimulacion((estado) => estado.corridaLarga !== null)
   const aviso = useSimulacion((estado) => estado.aviso)
   const restablecerValores = useSimulacion((estado) => estado.restablecerValores)
 
@@ -277,7 +278,7 @@ export function ContenidoDeAjustes() {
       <BotonConConfirmacion
         ancha
         className="boton-secundario boton-ancho"
-        disabled={enLaVisita}
+        disabled={enLaVisita || enCorridaLarga}
         pregunta="Los parámetros volverán a sus valores por defecto y la simulación empezará de nuevo."
         textoDeLaAccion="Restablecer"
         alConfirmar={restablecerValores}
@@ -292,10 +293,17 @@ export function ContenidoDeAjustes() {
         </Aviso>
       ) : null}
 
+      {enCorridaLarga ? (
+        <Aviso tipo="info" role="status" className="aviso--separado">
+          Hay una <strong>corrida larga</strong> en marcha: los ajustes se activan cuando termine o
+          la canceles.
+        </Aviso>
+      ) : null}
+
       {/* En la visita todo esto se ve pero no se mueve: los tiempos salen de la
           tabla. Se desactiva en vez de ocultarse para que se vea qué valores se
           recuperan al volver. */}
-      <fieldset className="parametros" disabled={enLaVisita}>
+      <fieldset className="parametros" disabled={enLaVisita || enCorridaLarga}>
         <Escenarios />
         <Llegadas />
         <EtapaDeLavado />

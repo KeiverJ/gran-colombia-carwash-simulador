@@ -497,3 +497,66 @@
     margin-top: 0;
   }
 }
+
+/* --- Aviso de la corrida larga en cámara rápida --- */
+
+/*
+ * Discreto y centrado arriba, debajo de la fila de botones: no tapa el centro de
+ * la escena, que es lo que se está mirando. Empieza donde termina la capa de Ajustes.
+ */
+.aviso-de-corrida-larga {
+  position: absolute;
+  top: calc(var(--espacio-2) + var(--alto-control) + var(--espacio-2));
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  /* Con left: 50% el ancho disponible sería la mitad: se pide el del contenido, con tope. */
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100% - 2 * var(--espacio-2));
+  padding: var(--espacio-2) var(--espacio-3);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--velo-escena);
+  transform: translateX(-50%);
+}
+
+.corrida-larga-texto {
+  margin: 0;
+  font-size: var(--letra-secundaria);
+  font-weight: 600;
+  color: var(--texto);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.corrida-larga-barra {
+  flex: 1 1 8rem;
+  min-width: 5rem;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--borde);
+}
+
+.corrida-larga-relleno {
+  width: 100%;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--etapa-1);
+  transform: scaleX(var(--avance, 0));
+  transform-origin: left;
+}
+
+@media (max-width: 767px) {
+  .aviso-de-corrida-larga {
+    gap: var(--espacio-2);
+    padding: var(--espacio-2);
+  }
+
+  .corrida-larga-barra {
+    min-width: 2rem;
+  }
+}

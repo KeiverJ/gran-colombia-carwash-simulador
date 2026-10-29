@@ -70,12 +70,23 @@ describe('la generación del motor', () => {
     expect(estado().generacion).toBe(antes)
   })
 
-  it('Reiniciar durante la corrida larga la cancela y deja la simulación en pausa', () => {
+  it('Reiniciar durante la corrida larga no hace nada: se cancela con su propio botón', () => {
     estado().empezarCorridaLarga(50)
     estado().avanzarCorridaLarga()
+    const antes = estado().generacion
     estado().reiniciar()
+    expect(estado().corridaLarga).not.toBeNull()
+    expect(estado().generacion).toBe(antes)
+  })
+
+  it('Cancelar la corrida larga la detiene, deja la simulación en pausa y sube la generación', () => {
+    estado().empezarCorridaLarga(50)
+    estado().avanzarCorridaLarga()
+    const antes = estado().generacion
+    estado().cancelarCorridaLarga()
     expect(estado().corridaLarga).toBeNull()
     expect(estado().corriendo).toBe(false)
+    expect(estado().generacion).toBeGreaterThan(antes)
   })
 
   it('un solo dueño: con la corrida larga en marcha, darUnCuadro la avanza a ella y no al ciclo normal', () => {

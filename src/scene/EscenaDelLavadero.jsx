@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { useCallback, useMemo, useRef, useState } from 'react'
 
 import Aviso from '../components/Aviso.jsx'
+import AvisoDeCorridaLarga from '../components/AvisoDeCorridaLarga.jsx'
 import IndicadoresDeLaEscena from '../components/IndicadoresDeLaEscena.jsx'
 import MandosMinimos from '../components/MandosMinimos.jsx'
 import AjusteALasCapas from './AjusteALasCapas.jsx'
@@ -147,6 +148,7 @@ export function EscenaDelLavadero() {
           expandida={expandida}
           alExpandir={setExpandida}
         />
+        <AvisoDeCorridaLarga />
         <IndicadoresDeLaEscena />
         <MandosMinimos />
       </div>

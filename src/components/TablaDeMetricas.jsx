@@ -6,6 +6,7 @@ import {
 import { HORAS_DE_LA_CORRIDA_LARGA, useSimulacion } from '../store/simulacion.js'
 import Aviso from './Aviso.jsx'
 import BotonConConfirmacion from './BotonConConfirmacion.jsx'
+import { prefiereMenosMovimiento } from './corridaLargaActiva.js'
 import { comoNumero } from './formato.js'
 
 /** Lo que dice el encabezado "Fórmulas" al pasar el mouse y a las ayudas técnicas. */
@@ -190,7 +191,9 @@ export function ContenidoDeMetricas({ enPanel = false }) {
               necesitaConfirmacion={hayUnaSimulacionEnCurso}
               pregunta="Se descartará la simulación actual para empezar de cero."
               textoDeLaAccion="Iniciar corrida larga"
-              alConfirmar={() => empezarCorridaLarga()}
+              alConfirmar={() =>
+                empezarCorridaLarga(undefined, { camaraRapida: !prefiereMenosMovimiento() })
+              }
             >
               Corrida larga (estado estable)
             </BotonConConfirmacion>

@@ -17,7 +17,7 @@ import { useSimulacion } from './simulacion.js'
  */
 export function darUnCuadro(estado, instante, instanteAnterior) {
   if (estado.corridaLarga) {
-    estado.avanzarCorridaLarga()
+    estado.avanzarCorridaLarga(instante)
     return null
   }
   if (instanteAnterior !== null) {

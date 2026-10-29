@@ -1,5 +1,6 @@
 import { MODO_VISITA, useSimulacion } from '../store/simulacion.js'
 import { comoHoraDeLaTarde, comoReloj } from './formato.js'
+import { RAZON_DE_LA_CORRIDA_LARGA } from './corridaLargaActiva.js'
 import { IconoDeReiniciar } from './iconos.jsx'
 
 /**
@@ -12,6 +13,7 @@ import { IconoDeReiniciar } from './iconos.jsx'
 export function MandosMinimos() {
   const corriendo = useSimulacion((estado) => estado.corriendo)
   const enLaVisita = useSimulacion((estado) => estado.modo === MODO_VISITA)
+  const enCorridaLarga = useSimulacion((estado) => estado.corridaLarga !== null)
   const relojMin = useSimulacion((estado) => estado.resumen.relojMin)
   const iniciar = useSimulacion((estado) => estado.iniciar)
   const pausar = useSimulacion((estado) => estado.pausar)
@@ -19,7 +21,11 @@ export function MandosMinimos() {
 
   return (
     <div className="mandos-minimos" role="group" aria-label="Mandos de la simulación">
-      <button type="button" className="boton-barra" onClick={() => reiniciar(null)} aria-label="Reiniciar">
+      <button type="button" className="boton-barra" onClick={() => reiniciar(null)}
+        aria-label="Reiniciar"
+        disabled={enCorridaLarga}
+        title={enCorridaLarga ? RAZON_DE_LA_CORRIDA_LARGA : undefined}
+      >
         <IconoDeReiniciar />
       </button>
       {corriendo ? (
@@ -27,7 +33,13 @@ export function MandosMinimos() {
           Pausar
         </button>
       ) : (
-        <button type="button" className="boton-principal" onClick={iniciar}>
+        <button
+          type="button"
+          className="boton-principal"
+          onClick={iniciar}
+          disabled={enCorridaLarga}
+          title={enCorridaLarga ? RAZON_DE_LA_CORRIDA_LARGA : undefined}
+        >
           Iniciar
         </button>
       )}

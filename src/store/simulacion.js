@@ -19,7 +19,12 @@ import {
 } from '../data/parametros.js'
 import { crearSimulador, MODO_POR_PLAN } from '../engine/simulador.js'
 import { crearReproductor } from '../visita/reproductor.js'
-import { progreso, siguienteTrozoHoras } from './corridaLarga.js'
+import {
+  horasDeLaCamaraRapida,
+  progreso,
+  PUNTOS_DE_LA_CAMARA_RAPIDA,
+  siguienteTrozoHoras,
+} from './corridaLarga.js'
 import { pasoSimuladoMin } from './paso.js'
 import { agregarPunto, tocaAnotar } from './puntos.js'
 
@@ -224,6 +229,10 @@ export const useSimulacion = create((set, get) => ({
    * visita, otra vez desde las 3:10 p. m.
    */
   reiniciar: (aviso = null) => {
+    // Mientras corre la corrida larga el motor es de ella: se cancela con su botón.
+    if (get().corridaLarga) {
+      return
+    }
     const { parametros, semilla, modo } = get()
     const enLaVisita = modo === MODO_VISITA
     const motor = enLaVisita ? crearReproductor() : motorCon(parametros, semilla)
@@ -232,8 +241,7 @@ export const useSimulacion = create((set, get) => ({
       foto: motor.estado(),
       // Otro motor: la escena tiene que recolocar, no animar desde lo que recordaba.
       generacion: get().generacion + 1,
-      // Si había una corrida larga, reiniciar la cancela y deja la simulación lista para Iniciar.
-      corriendo: get().corridaLarga ? false : get().corriendo,
+      corriendo: get().corriendo,
       aviso,
       avisoDeEscenario: null,
       visita: enLaVisita ? { terminada: false } : null,
@@ -304,7 +312,7 @@ export const useSimulacion = create((set, get) => ({
    * dibuje las losas de ese día) y empieza en pausa a las 3:10 p. m.
    */
   entrarEnLaVisita: () => {
-    if (get().modo === MODO_VISITA) {
+    if (get().modo === MODO_VISITA || get().corridaLarga) {
       return
     }
     set({
@@ -323,7 +331,7 @@ export const useSimulacion = create((set, get) => ({
    */
   volverAlModoNormal: () => {
     const { modo, antesDeLaVisita } = get()
-    if (modo !== MODO_VISITA) {
+    if (modo !== MODO_VISITA || get().corridaLarga) {
       return
     }
     set({
@@ -374,8 +382,8 @@ export const useSimulacion = create((set, get) => ({
    * Arranca la corrida larga: descarta lo simulado y vuelve a empezar, porque
    * mezclar mil horas con lo que ya había daría métricas de dos sistemas.
    */
-  empezarCorridaLarga: (horas = HORAS_DE_LA_CORRIDA_LARGA) => {
-    if (get().modo === MODO_VISITA) {
+  empezarCorridaLarga: (horas = HORAS_DE_LA_CORRIDA_LARGA, { camaraRapida = false } = {}) => {
+    if (get().modo === MODO_VISITA || get().corridaLarga) {
       return
     }
     get().reiniciar(
@@ -389,20 +397,32 @@ export const useSimulacion = create((set, get) => ({
         horasDelTrozoAnterior: 0,
         msDelTrozoAnterior: 0,
         porcentaje: 0,
+        // En cámara rápida la escena muestra el estado al final de cada trozo y la
+        // corrida dura a la vista un mínimo de tiempo; si no, salta al final.
+        camaraRapida,
+        inicioMs: null,
       },
     })
   },
 
   /**
-   * Avanza un trozo de la corrida larga; la llama el ciclo de animación una
+   * Avanza la corrida larga en este cuadro; la llama el ciclo de animación una
    * vez por cuadro, así que la pantalla sigue respondiendo mientras tanto.
    * Devuelve true mientras quede trabajo.
+   *
+   * En cámara rápida, además, el trabajo sigue el ritmo de la cámara
+   * (`horasDeLaCamaraRapida`): no se adelanta a ella, y si el cálculo es más
+   * lento, va a su paso. Las horas simuladas y los resultados son los mismos.
+   *
+   * @param {number|null} [instante] el instante de este cuadro, en milisegundos
    */
-  avanzarCorridaLarga: () => {
+  avanzarCorridaLarga: (instante = null) => {
     const { corridaLarga, motor } = get()
     if (!corridaLarga) {
       return false
     }
+    const ahora = instante ?? Date.now()
+    const inicioMs = corridaLarga.inicioMs ?? ahora
     const horasQueFaltan = corridaLarga.horasTotales - corridaLarga.horasHechas
     if (horasQueFaltan <= 0) {
       set({
@@ -418,8 +438,21 @@ export const useSimulacion = create((set, get) => ({
       return false
     }
 
+    // Las horas que la cámara deja hacer ahora; sin cámara, todas las que faltan.
+    const permitidas = corridaLarga.camaraRapida
+      ? horasDeLaCamaraRapida({ msTranscurridos: ahora - inicioMs, horasTotales: corridaLarga.horasTotales }) -
+        corridaLarga.horasHechas
+      : horasQueFaltan
+    if (permitidas <= 0) {
+      // Al principio la cámara arranca despacio: este cuadro no toca avanzar.
+      if (corridaLarga.inicioMs === null) {
+        set({ corridaLarga: { ...corridaLarga, inicioMs } })
+      }
+      return true
+    }
+
     const trozo = siguienteTrozoHoras({
-      horasQueFaltan,
+      horasQueFaltan: permitidas,
       horasDelTrozoAnterior: corridaLarga.horasDelTrozoAnterior,
       msDelTrozoAnterior: corridaLarga.msDelTrozoAnterior,
     })
@@ -428,29 +461,62 @@ export const useSimulacion = create((set, get) => ({
     const tardo = Date.now() - empezo
 
     const horasHechas = corridaLarga.horasHechas + trozo
+    const terminoElTrabajo = horasHechas >= corridaLarga.horasTotales
     const foto = motor.estado()
-    // Un punto por trozo: si no, tras mil horas la gráfica quedaría vacía
-    // justo cuando más hay que enseñar, que es cómo crece la fila del acabado.
-    const puntos = agregarPunto(get().puntos, {
-      minuto: foto.relojMin,
-      colaLavado: foto.colaLavado.length,
-      colaAcabado: foto.colaAcabado.length,
-    })
-    set({
+    const cambios = {
       foto,
-      puntos,
-      ultimoPuntoMin: foto.relojMin,
-      metricas: motor.metricas(),
       resumen: resumenDe(foto),
       corridaLarga: {
         ...corridaLarga,
+        inicioMs,
         horasHechas,
         horasDelTrozoAnterior: trozo,
         msDelTrozoAnterior: tardo,
         porcentaje: progreso(horasHechas, corridaLarga.horasTotales),
       },
-    })
+    }
+    // Un punto por trozo: si no, tras mil horas la gráfica quedaría vacía
+    // justo cuando más hay que enseñar, que es cómo crece la fila del acabado.
+    // En cámara rápida los trozos son uno por cuadro: se anotan unos 200 puntos en total.
+    const cadaCuantasHoras = corridaLarga.horasTotales / PUNTOS_DE_LA_CAMARA_RAPIDA
+    const cruzaUnaMarca =
+      Math.floor(horasHechas / cadaCuantasHoras) > Math.floor(corridaLarga.horasHechas / cadaCuantasHoras)
+    if (!corridaLarga.camaraRapida || cruzaUnaMarca || terminoElTrabajo) {
+      cambios.puntos = agregarPunto(get().puntos, {
+        minuto: foto.relojMin,
+        colaLavado: foto.colaLavado.length,
+        colaAcabado: foto.colaAcabado.length,
+      })
+      cambios.ultimoPuntoMin = foto.relojMin
+    }
+    // La tabla de métricas, como en la marcha normal, cuatro veces por segundo; y al final siempre.
+    if (!corridaLarga.camaraRapida || terminoElTrabajo || Date.now() - get().ultimasMetricasMs >= INTERVALO_DE_METRICAS_MS) {
+      cambios.metricas = motor.metricas()
+      cambios.ultimasMetricasMs = Date.now()
+    }
+    set(cambios)
     return true
+  },
+
+  /**
+   * Cancela la corrida larga a medias: el motor se queda donde estaba, la
+   * simulación queda en pausa y la escena se recoloca, quieta, con ese estado.
+   */
+  cancelarCorridaLarga: () => {
+    const { corridaLarga, motor } = get()
+    if (!corridaLarga) {
+      return
+    }
+    const foto = motor.estado()
+    set({
+      corridaLarga: null,
+      corriendo: false,
+      generacion: get().generacion + 1,
+      metricas: motor.metricas(),
+      foto,
+      resumen: resumenDe(foto),
+      aviso: `Cancelaste la corrida larga: quedó en ${corridaLarga.horasHechas} de ${corridaLarga.horasTotales} horas.`,
+    })
   },
 
   /**
@@ -459,7 +525,7 @@ export const useSimulacion = create((set, get) => ({
    * lavadero; se conservan la semilla, la velocidad y si estaba corriendo.
    */
   cambiarParametro: (nombre, valor) => {
-    if (get().modo === MODO_VISITA) {
+    if (get().modo === MODO_VISITA || get().corridaLarga) {
       return
     }
     const parametros = { ...get().parametros, [nombre]: valor }
@@ -471,7 +537,7 @@ export const useSimulacion = create((set, get) => ({
 
   /** Cambia el tiempo de acabado de un plan y vuelve a empezar. */
   cambiarAcabadoDePlan: (plan, minutos) => {
-    if (get().modo === MODO_VISITA) {
+    if (get().modo === MODO_VISITA || get().corridaLarga) {
       return
     }
     const anteriores = get().parametros.acabadoPlanMin
@@ -493,7 +559,7 @@ export const useSimulacion = create((set, get) => ({
    */
   elegirEscenario: (id) => {
     const escenario = ESCENARIOS.find((candidato) => candidato.id === id)
-    if (!escenario || get().modo === MODO_VISITA) {
+    if (!escenario || get().modo === MODO_VISITA || get().corridaLarga) {
       return
     }
     set({ parametros: parametrosDelEscenario(escenario) })
@@ -509,7 +575,7 @@ export const useSimulacion = create((set, get) => ({
    * "Situación actual", con su propio aviso. En la visita no hace nada.
    */
   restablecerValores: () => {
-    if (get().modo === MODO_VISITA) {
+    if (get().modo === MODO_VISITA || get().corridaLarga) {
       return
     }
     set({ parametros: parametrosPorDefecto() })
@@ -518,7 +584,7 @@ export const useSimulacion = create((set, get) => ({
 
   /** Mueve la proporción de un plan; las otras dos se reajustan. */
   cambiarProporcion: (plan, valor) => {
-    if (get().modo === MODO_VISITA) {
+    if (get().modo === MODO_VISITA || get().corridaLarga) {
       return
     }
     const proporcionPlan = repartirProporciones(get().parametros.proporcionPlan, plan, valor)
@@ -530,7 +596,7 @@ export const useSimulacion = create((set, get) => ({
 
   /** Otra semilla es otra tarde simulada: también reinicia. */
   cambiarSemilla: (semilla) => {
-    if (get().modo === MODO_VISITA) {
+    if (get().modo === MODO_VISITA || get().corridaLarga) {
       return
     }
     set({ semilla })

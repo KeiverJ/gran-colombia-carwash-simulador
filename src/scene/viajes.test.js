@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ESCENARIOS } from '../data/escenarios.js'
 import { useSimulacion } from '../store/simulacion.js'
@@ -464,12 +464,12 @@ describe('recolocar en lugar de animar', () => {
     expect(banco.cuadros(60)).toEqual(motos)
   })
 
-  it('cancelar la corrida larga (Reiniciar a mitad) deja la escena limpia y lista para Iniciar', () => {
+  it('cancelar la corrida larga a mitad deja la escena limpia y lista para Iniciar', () => {
     const banco = bancoEnMarcha()
     estado().empezarCorridaLarga(200)
     for (let i = 0; i < 3; i += 1) banco.cuadro()
     expect(estado().corridaLarga).not.toBeNull()
-    estado().reiniciar()
+    estado().cancelarCorridaLarga()
     expect(estado().corridaLarga).toBeNull()
     expect(estado().corriendo).toBe(false)
     esperarEscenaRecolocada(banco.cuadro())
@@ -866,5 +866,181 @@ describe('las losas siguen a las motos de la escena, no al motor', () => {
     // distintas cuando hay desfase, y nunca más losas levantadas que placas
     expect(ocupadasPorLaEscena).toBeLessThanOrEqual(foto.placas.length)
     expect(ocupadasPorElMotor).toBeGreaterThanOrEqual(0)
+  })
+})
+
+describe('la corrida larga en cámara rápida', () => {
+  const HORAS = 1000
+
+  /** Una escena con motos y la corrida larga recién empezada, en cámara rápida. */
+  function empezarEnCamaraRapida() {
+    prepararCorrida({ velocidad: 5 })
+    const banco = crearBanco()
+    banco.cuadros(60 * 20)
+    estado().empezarCorridaLarga(HORAS, { camaraRapida: true })
+    return banco
+  }
+
+  /** Recorre la corrida hasta el final y anota lo que pasó en cada cuadro. */
+  function recorrerHastaElFinal(banco, alCuadro = () => {}) {
+    const cuadros = []
+    while (estado().corridaLarga && cuadros.length < 60 * 120) {
+      const motos = banco.cuadro()
+      cuadros.push({ horas: estado().corridaLarga?.horasHechas ?? HORAS, relojMin: estado().foto.relojMin, motos })
+      alCuadro(cuadros.at(-1), cuadros.length)
+    }
+    return cuadros
+  }
+
+  it('el reloj simulado nunca retrocede y la escena muestra la foto de cada cuadro, con las motos quietas', () => {
+    const banco = empezarEnCamaraRapida()
+    let anterior = -1
+    const cuadros = recorrerHastaElFinal(banco, ({ relojMin, motos }, n) => {
+      expect(relojMin).toBeGreaterThanOrEqual(anterior)
+      anterior = relojMin
+      if (!estado().corridaLarga) return
+      expect(motos, 'la escena dibuja').not.toBeNull()
+      expect(banco.viajes.losas, 'y publica las losas').not.toBeNull()
+      if (n % 12 === 0) esperarEscenaRecolocada(motos)
+    })
+    expect(cuadros.length).toBeGreaterThan(100)
+    expect(anterior).toBe(HORAS * 60)
+  })
+
+  it('los indicadores de abajo se mueven mientras corre: las filas crecen a la vista', () => {
+    const banco = empezarEnCamaraRapida()
+    const filas = new Set()
+    recorrerHastaElFinal(banco, () => filas.add(estado().resumen.enFilaAcabado))
+    expect(filas.size, 'valores distintos de la fila del acabado').toBeGreaterThan(20)
+  })
+
+  it('dura a la vista al menos 4 segundos aunque el cálculo termine antes', () => {
+    const banco = empezarEnCamaraRapida()
+    const cuadros = recorrerHastaElFinal(banco)
+    expect(cuadros.length * CUADRO_EN_SEGUNDOS).toBeGreaterThanOrEqual(4)
+    expect(cuadros.length * CUADRO_EN_SEGUNDOS).toBeLessThan(5)
+  })
+
+  it('arranca despacio, va rápido en el medio y frena al final', () => {
+    const banco = empezarEnCamaraRapida()
+    const cuadros = recorrerHastaElFinal(banco)
+    const horasA = (segundos) => cuadros[Math.round(segundos / CUADRO_EN_SEGUNDOS) - 1].horas
+    expect(horasA(0.5)).toBeLessThan(80)
+    expect(horasA(2)).toBeGreaterThan(400)
+    expect(horasA(2)).toBeLessThan(600)
+    expect(horasA(3.5)).toBeGreaterThan(900)
+    // lo más que avanza en un cuadro es poco: se ve crecer, no salta
+    let masEnUnCuadro = 0
+    cuadros.forEach(({ horas }, i) => {
+      masEnUnCuadro = Math.max(masEnUnCuadro, horas - (cuadros[i - 1]?.horas ?? 0))
+    })
+    expect(masEnUnCuadro).toBeLessThanOrEqual(10)
+    // y el último segundo avanza menos que el del medio
+    expect(HORAS - horasA(3)).toBeLessThan(horasA(2.5) - horasA(1.5))
+  })
+
+  it('las horas simuladas y los resultados son los mismos que sin cámara, con la misma semilla', () => {
+    const banco = empezarEnCamaraRapida()
+    recorrerHastaElFinal(banco)
+    banco.cuadro()
+    const conCamara = { metricas: estado().metricas, foto: estado().motor.estado(), reloj: estado().foto.relojMin }
+
+    prepararCorrida({ velocidad: 5 })
+    estado().empezarCorridaLarga(HORAS)
+    const sinCamara = crearBanco()
+    while (estado().corridaLarga) sinCamara.cuadro()
+    expect(estado().foto.relojMin).toBe(HORAS * 60)
+    expect(conCamara.reloj).toBe(HORAS * 60)
+    expect(conCamara.metricas).toEqual(estado().metricas)
+    expect(conCamara.foto).toEqual(estado().motor.estado())
+  })
+
+  it('un solo dueño del motor: el ciclo normal no lo avanza mientras corre la corrida', () => {
+    const banco = empezarEnCamaraRapida()
+    const avanzar = vi.spyOn(estado().motor, 'avanzar')
+    recorrerHastaElFinal(banco)
+    expect(avanzar).not.toHaveBeenCalled()
+  })
+
+  it('al terminar, la escena queda en pausa, quieta y coherente con el estado final', () => {
+    const banco = empezarEnCamaraRapida()
+    recorrerHastaElFinal(banco)
+    expect(estado().corriendo).toBe(false)
+    const motos = banco.cuadro()
+    esperarEscenaRecolocada(motos)
+    expect(banco.cuadros(120)).toEqual(motos)
+  })
+
+  it('Cancelar a mitad deja la escena quieta y coherente con lo simulado hasta ahí', () => {
+    const banco = empezarEnCamaraRapida()
+    banco.cuadros(120)
+    const hechas = estado().corridaLarga.horasHechas
+    expect(hechas).toBeGreaterThan(0)
+    expect(hechas).toBeLessThan(HORAS)
+    estado().cancelarCorridaLarga()
+    expect(estado().corridaLarga).toBeNull()
+    expect(estado().corriendo).toBe(false)
+    expect(estado().foto.relojMin).toBe(hechas * 60)
+    expect(estado().aviso).toContain(`${hechas} de ${HORAS}`)
+    const motos = banco.cuadro()
+    esperarEscenaRecolocada(motos)
+    expect(banco.cuadros(240)).toEqual(motos)
+    expect(estado().foto.relojMin).toBe(hechas * 60)
+    // y se puede seguir: Iniciar anima desde ahí
+    estado().iniciar()
+    banco.cuadros(60 * 30)
+    expect(estado().foto.relojMin).toBeGreaterThan(hechas * 60)
+  })
+
+  it('mientras corre, Iniciar y lo que reinicia no hacen nada', () => {
+    empezarEnCamaraRapida()
+    const motor = estado().motor
+    const parametros = estado().parametros
+    const semilla = estado().semilla
+    estado().iniciar()
+    estado().reiniciar()
+    estado().cambiarParametro('placas', 7)
+    estado().cambiarSemilla(99)
+    estado().elegirEscenario(ESCENARIOS[1].id)
+    estado().restablecerValores()
+    estado().entrarEnLaVisita()
+    estado().empezarCorridaLarga(50)
+    expect(estado().corriendo).toBe(false)
+    expect(estado().motor).toBe(motor)
+    expect(estado().parametros).toBe(parametros)
+    expect(estado().semilla).toBe(semilla)
+    expect(estado().modo).not.toBe('visita')
+    expect(estado().corridaLarga.horasTotales).toBe(HORAS)
+  })
+
+  it('si el cálculo necesita más tiempo que la cámara, va a su paso y llega igual al final', () => {
+    const banco = empezarEnCamaraRapida()
+    // cada lectura del reloj «cuesta» 50 ms: un trozo no cabe en el presupuesto de un cuadro
+    let ahora = 0
+    const reloj = vi.spyOn(Date, 'now').mockImplementation(() => (ahora += 50))
+    try {
+      const cuadros = recorrerHastaElFinal(banco)
+      expect(cuadros.length * CUADRO_EN_SEGUNDOS).toBeGreaterThan(4)
+    } finally {
+      reloj.mockRestore()
+    }
+    expect(estado().corridaLarga).toBeNull()
+    expect(estado().foto.relojMin).toBe(HORAS * 60)
+  }, 120000)
+
+  it('sin cámara (movimiento reducido) la escena no dibuja y la corrida salta al final sin esperar', () => {
+    prepararCorrida({ velocidad: 5 })
+    const banco = crearBanco()
+    banco.cuadros(60 * 20)
+    estado().empezarCorridaLarga(HORAS)
+    let cuadros = 0
+    while (estado().corridaLarga) {
+      const motos = banco.cuadro()
+      // el último cuadro ya es el del final: la escena se recoloca
+      if (estado().corridaLarga) expect(motos).toBeNull()
+      cuadros += 1
+    }
+    expect(cuadros * CUADRO_EN_SEGUNDOS).toBeLessThan(2)
+    esperarEscenaRecolocada(banco.cuadro())
   })
 })

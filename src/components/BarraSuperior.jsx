@@ -6,6 +6,7 @@ import {
   VELOCIDAD_MINIMA,
 } from '../store/simulacion.js'
 import { comoHoraDeLaTarde, comoNumero, comoReloj } from './formato.js'
+import { RAZON_DE_LA_CORRIDA_LARGA } from './corridaLargaActiva.js'
 import { IconoDeAyuda, IconoDeReiniciar } from './iconos.jsx'
 import SelectorDeModo from './SelectorDeModo.jsx'
 
@@ -21,6 +22,7 @@ export function BarraSuperior() {
   const placas = useSimulacion((estado) => estado.parametros.placas)
   const puestos = useSimulacion((estado) => estado.parametros.puestos)
   const enLaVisita = useSimulacion((estado) => estado.modo === MODO_VISITA)
+  const enCorridaLarga = useSimulacion((estado) => estado.corridaLarga !== null)
   const corriendo = useSimulacion((estado) => estado.corriendo)
   const velocidad = useSimulacion((estado) => estado.velocidadMinPorSegundo)
   const relojMin = useSimulacion((estado) => estado.resumen.relojMin)
@@ -56,6 +58,8 @@ export function BarraSuperior() {
           className="boton-barra"
           onClick={() => reiniciar(null)}
           aria-label="Reiniciar"
+          disabled={enCorridaLarga}
+          title={enCorridaLarga ? RAZON_DE_LA_CORRIDA_LARGA : undefined}
         >
           <IconoDeReiniciar />
           <span className="boton-texto">Reiniciar</span>
@@ -66,7 +70,13 @@ export function BarraSuperior() {
             Pausar
           </button>
         ) : (
-          <button type="button" className="boton-principal" onClick={iniciar}>
+          <button
+            type="button"
+            className="boton-principal"
+            onClick={iniciar}
+            disabled={enCorridaLarga}
+            title={enCorridaLarga ? RAZON_DE_LA_CORRIDA_LARGA : undefined}
+          >
             Iniciar
           </button>
         )}

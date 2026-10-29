@@ -1,4 +1,5 @@
 import { MODO_VISITA, useSimulacion } from '../store/simulacion.js'
+import { RAZON_DE_LA_CORRIDA_LARGA } from './corridaLargaActiva.js'
 import { moverConLasFlechas } from './moverConLasFlechas.js'
 
 /**
@@ -11,6 +12,7 @@ import { moverConLasFlechas } from './moverConLasFlechas.js'
  */
 export function SelectorDeModo() {
   const enLaVisita = useSimulacion((estado) => estado.modo === MODO_VISITA)
+  const enCorridaLarga = useSimulacion((estado) => estado.corridaLarga !== null)
   const entrarEnLaVisita = useSimulacion((estado) => estado.entrarEnLaVisita)
   const volverAlModoNormal = useSimulacion((estado) => estado.volverAlModoNormal)
 
@@ -28,6 +30,8 @@ export function SelectorDeModo() {
         tabIndex={enLaVisita ? -1 : 0}
         className={enLaVisita ? 'modo' : 'modo modo--elegido'}
         onClick={volverAlModoNormal}
+        disabled={enCorridaLarga}
+        title={enCorridaLarga ? RAZON_DE_LA_CORRIDA_LARGA : undefined}
       >
         Simulación
       </button>
@@ -38,6 +42,8 @@ export function SelectorDeModo() {
         tabIndex={enLaVisita ? 0 : -1}
         className={enLaVisita ? 'modo modo--elegido' : 'modo'}
         onClick={entrarEnLaVisita}
+        disabled={enCorridaLarga}
+        title={enCorridaLarga ? RAZON_DE_LA_CORRIDA_LARGA : undefined}
       >
         <span className="solo-escritorio-medio">Visita del 17 de octubre</span>
         <span className="solo-celular">Visita</span>

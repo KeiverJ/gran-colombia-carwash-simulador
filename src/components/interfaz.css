@@ -176,8 +176,13 @@
   cursor: pointer;
 }
 
-.modo:hover {
+.modo:hover:not(:disabled) {
   background: var(--fondo-pagina);
+}
+
+.modo:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .modo + .modo {
@@ -210,9 +215,14 @@
   cursor: pointer;
 }
 
-.boton-barra:hover {
+.boton-barra:hover:not(:disabled) {
   border-color: var(--etapa-1);
   color: var(--texto);
+}
+
+.boton-barra:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* La ayuda de la barra superior es solo para el celular; en escritorio está al pie de la barra lateral. */

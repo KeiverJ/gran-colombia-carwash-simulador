@@ -63,6 +63,39 @@ export function siguienteTrozoHoras({
   return Math.min(horas, horasQueFaltan)
 }
 
+/**
+ * Lo menos que dura, a la vista, la corrida larga en «cámara rápida», aunque el
+ * cálculo termine antes. Si el cálculo necesita más, manda su propio ritmo.
+ */
+export const DURACION_MINIMA_DE_LA_CAMARA_RAPIDA_MS = 4000
+
+/** Cuántos puntos, como mucho, deja la cámara rápida en la gráfica de colas. */
+export const PUNTOS_DE_LA_CAMARA_RAPIDA = 200
+
+/**
+ * Cuántas horas enteras debería llevar simuladas la cámara rápida a los `ms`
+ * de haber empezado: arranca despacio, va rápido en el medio y frena al final
+ * (curva suave de 0 a todas las horas en `duracionMs`).
+ *
+ * Son horas enteras a propósito: correr 1000 horas en trozos de horas enteras da
+ * exactamente lo mismo que correrlas de una vez, así que el ritmo de la cámara no
+ * cambia los resultados.
+ *
+ * @param {object} opciones
+ * @param {number} opciones.msTranscurridos tiempo real desde que empezó
+ * @param {number} opciones.horasTotales
+ * @param {number} [opciones.duracionMs]
+ * @returns {number} horas enteras, de 0 a `horasTotales`
+ */
+export function horasDeLaCamaraRapida({
+  msTranscurridos,
+  horasTotales,
+  duracionMs = DURACION_MINIMA_DE_LA_CAMARA_RAPIDA_MS,
+}) {
+  const t = Math.min(1, Math.max(0, msTranscurridos / duracionMs))
+  return Math.min(horasTotales, Math.floor(horasTotales * t * t * (3 - 2 * t)))
+}
+
 /** Qué porcentaje lleva hecho la corrida larga, de 0 a 100. */
 export function progreso(horasHechas, horasTotales) {
   if (!horasTotales || horasTotales <= 0) {
