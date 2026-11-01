@@ -36,7 +36,17 @@ describe('todo lo que el motor ya entregaba sigue igual', () => {
   // `referencia.json` se generó con el motor tal como estaba antes de añadir la
   // ocupación por servidor: la foto del estado y las métricas de 13 corridas
   // (escenarios, semillas, modos de acabado, calentamiento, estado inicial),
-  // tras cada paso de avanzar o correr de golpe.
+  // tras cada paso de avanzar o correr de golpe. Como esa foto es anterior a los
+  // cierres, se le añade lo que traen hoy todas las fotos sin cierres: cada
+  // servidor `activo` y el largo de cada fila. Nada de lo demás se toca.
+  const conLosCamposNuevos = (foto) => ({
+    ...foto,
+    placas: foto.placas.map((placa) => ({ ...placa, estado: 'activo' })),
+    puestos: foto.puestos.map((puesto) => ({ ...puesto, estado: 'activo' })),
+    largoColaLavado: foto.colaLavado.length,
+    largoColaAcabado: foto.colaAcabado.length,
+  })
+
   it('la referencia trae las corridas esperadas', () => {
     expect(referencia).toHaveLength(13)
   })
@@ -45,7 +55,7 @@ describe('todo lo que el motor ya entregaba sigue igual', () => {
     const motor = crearSimulador(caso.opciones)
     for (const { accion, cantidad, estado, metricas } of caso.registros) {
       motor[accion](cantidad)
-      expect(motor.estado()).toEqual(estado)
+      expect(motor.estado()).toEqual(conLosCamposNuevos(estado))
       expect(sinOcupacionPorServidor(motor.metricas())).toEqual(metricas)
     }
   })

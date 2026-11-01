@@ -7,8 +7,6 @@ import {
   acabadoPromedioDe,
   escenarioQueCoincide,
   MODO_VISITA,
-  PLACAS_POSIBLES,
-  PUESTOS_POSIBLES,
   useSimulacion,
 } from '../store/simulacion.js'
 import Aviso from './Aviso.jsx'
@@ -16,6 +14,7 @@ import BotonConConfirmacion from './BotonConConfirmacion.jsx'
 import { RANGOS } from './campoNumerico.js'
 import CampoNumerico from './CampoNumerico.jsx'
 import Capa from './Capa.jsx'
+import FilaDeServidores from './FilaDeServidores.jsx'
 import { comoNumero, comoPorcentaje } from './formato.js'
 import GrupoDeBotones from './GrupoDeBotones.jsx'
 import { usePresencia } from './usePresencia.js'
@@ -98,7 +97,8 @@ function Llegadas() {
 function EtapaDeLavado() {
   const parametros = useSimulacion((estado) => estado.parametros)
   const cambiarParametro = useSimulacion((estado) => estado.cambiarParametro)
-  const calculado = metricasCalculadas(parametros)
+  const resumen = useSimulacion((estado) => estado.resumen)
+  const calculado = metricasCalculadas(parametros, resumen)
 
   return (
     <section className="seccion seccion--etapa-1" aria-labelledby="ajustes-etapa-1">
@@ -117,15 +117,16 @@ function EtapaDeLavado() {
       <p className="calculado">
         μ₁ = {comoNumero(calculado.servicioLavadoPorHora, 4)} motos/h por placa
       </p>
-      <div className="control">
-        <span className="control-nombre">Placas</span>
-        <GrupoDeBotones
-          etiqueta="Placas de lavado"
-          opciones={PLACAS_POSIBLES.map((placas) => ({ valor: placas, texto: String(placas) }))}
-          valor={parametros.placas}
-          alElegir={(placas) => cambiarParametro('placas', placas)}
-        />
-      </div>
+      <CampoNumerico
+        etiqueta="Placas"
+        nombreAccesible="Placas de lavado"
+        valor={parametros.placas}
+        rango={RANGOS.placas}
+        conDeslizador={false}
+        pasos={{ menos: 'Una placa menos', mas: 'Una placa más' }}
+        alAplicar={(placas) => cambiarParametro('placas', placas)}
+      />
+      <FilaDeServidores etapa="lavado" nombre="placa" />
     </section>
   )
 }
@@ -135,7 +136,8 @@ function EtapaDeAcabado() {
   const parametros = useSimulacion((estado) => estado.parametros)
   const cambiarParametro = useSimulacion((estado) => estado.cambiarParametro)
   const cambiarAcabadoDePlan = useSimulacion((estado) => estado.cambiarAcabadoDePlan)
-  const calculado = metricasCalculadas(parametros)
+  const resumen = useSimulacion((estado) => estado.resumen)
+  const calculado = metricasCalculadas(parametros, resumen)
   const rho = calculado.acabado.rho
   const satura = rho >= 1
 
@@ -168,15 +170,16 @@ function EtapaDeAcabado() {
         </span>
       </p>
 
-      <div className="control">
-        <span className="control-nombre">Puestos</span>
-        <GrupoDeBotones
-          etiqueta="Puestos de acabado"
-          opciones={PUESTOS_POSIBLES.map((puestos) => ({ valor: puestos, texto: String(puestos) }))}
-          valor={parametros.puestos}
-          alElegir={(puestos) => cambiarParametro('puestos', puestos)}
-        />
-      </div>
+      <CampoNumerico
+        etiqueta="Puestos"
+        nombreAccesible="Puestos de acabado"
+        valor={parametros.puestos}
+        rango={RANGOS.puestos}
+        conDeslizador={false}
+        pasos={{ menos: 'Un puesto menos', mas: 'Un puesto más' }}
+        alAplicar={(puestos) => cambiarParametro('puestos', puestos)}
+      />
+      <FilaDeServidores etapa="acabado" nombre="puesto" />
 
       <div className="control">
         <span className="control-nombre">Cómo se calcula el acabado</span>

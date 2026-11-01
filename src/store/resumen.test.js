@@ -40,6 +40,10 @@ describe('el resumen que alimenta los indicadores', () => {
       motosSalidas: 0,
       placasTotales: 6,
       puestosTotales: 3,
+      estadosDePlacas: Array(6).fill('activo'),
+      estadosDePuestos: Array(3).fill('activo'),
+      placasActivas: 6,
+      puestosActivos: 3,
     })
   })
 

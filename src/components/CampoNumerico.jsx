@@ -1,6 +1,6 @@
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 
-import { comoTextoDelCampo, interpretarNumero, mensajeDeError } from './campoNumerico.js'
+import { comoTextoDelCampo, interpretarNumero, mensajeDeError, valorConPaso } from './campoNumerico.js'
 
 /**
  * Un valor numérico de Ajustes: un campo donde escribirlo y, debajo, un
@@ -22,6 +22,10 @@ import { comoTextoDelCampo, interpretarNumero, mensajeDeError } from './campoNum
  * @param {boolean} [props.conDeslizador] false para la semilla
  * @param {boolean} [props.compacto] etiqueta arriba y letra chica, para tres en fila
  * @param {string} [props.pista] una explicación corta debajo
+ * @param {{ menos: string, mas: string }} [props.pasos] los nombres accesibles de los
+ *   botones − y +; si se pasan, el campo lleva esos dos botones a los lados (para
+ *   enteros pequeños, como las placas) y se aplica de a uno. El − se desactiva en el
+ *   mínimo del rango y el + en el máximo, y entonces el foco pasa al campo.
  */
 export function CampoNumerico({
   etiqueta,
@@ -32,8 +36,10 @@ export function CampoNumerico({
   conDeslizador = true,
   compacto = false,
   pista,
+  pasos,
 }) {
   const idDelCampo = useId()
+  const campo = useRef(null)
   const idDelError = `${idDelCampo}-error`
   const idDeLaPista = `${idDelCampo}-pista`
   // `base` es el valor que había al empezar a escribir: si el valor cambia por
@@ -65,38 +71,79 @@ export function CampoNumerico({
     }
   }
 
+  const paso = (sentido) => {
+    const nuevo = valorConPaso(valor, rango, sentido)
+    // El botón que llega al extremo se desactiva: el foco no se pierde, pasa al campo.
+    if (nuevo === rango.minimo || nuevo === rango.maximo) {
+      campo.current?.focus()
+    }
+    setEdicion(null)
+    if (nuevo !== valor) {
+      alAplicar(nuevo)
+    }
+  }
+
   const describedBy = [error ? idDelError : null, pista ? idDeLaPista : null].filter(Boolean).join(' ')
+
+  const caja = (
+    <div className={error ? 'campo campo--invalido' : 'campo'}>
+      <input
+        ref={campo}
+        id={idDelCampo}
+        type="text"
+        inputMode={rango.entero ? 'numeric' : 'decimal'}
+        autoComplete="off"
+        spellCheck={false}
+        value={texto}
+        aria-invalid={error ? 'true' : undefined}
+        aria-describedby={describedBy || undefined}
+        onChange={(evento) => setEdicion({ texto: evento.target.value, base: valor, error: null })}
+        onBlur={confirmar}
+        onKeyDown={(evento) => {
+          if (evento.key === 'Enter') {
+            evento.preventDefault()
+            confirmar()
+          } else if (evento.key === 'Escape' && editando) {
+            evento.preventDefault()
+            evento.stopPropagation()
+            setEdicion(null)
+          }
+        }}
+      />
+      {rango.unidad ? <span className="campo-unidad">{rango.unidad}</span> : null}
+    </div>
+  )
 
   return (
     <div className={compacto ? 'control control--compacto' : 'control'}>
       <label className="control-nombre" htmlFor={idDelCampo}>
         {etiqueta}
       </label>
-      <div className={error ? 'campo campo--invalido' : 'campo'}>
-        <input
-          id={idDelCampo}
-          type="text"
-          inputMode={rango.entero ? 'numeric' : 'decimal'}
-          autoComplete="off"
-          spellCheck={false}
-          value={texto}
-          aria-invalid={error ? 'true' : undefined}
-          aria-describedby={describedBy || undefined}
-          onChange={(evento) => setEdicion({ texto: evento.target.value, base: valor, error: null })}
-          onBlur={confirmar}
-          onKeyDown={(evento) => {
-            if (evento.key === 'Enter') {
-              evento.preventDefault()
-              confirmar()
-            } else if (evento.key === 'Escape' && editando) {
-              evento.preventDefault()
-              evento.stopPropagation()
-              setEdicion(null)
-            }
-          }}
-        />
-        {rango.unidad ? <span className="campo-unidad">{rango.unidad}</span> : null}
-      </div>
+      {pasos ? (
+        <div className="campo-con-pasos">
+          <button
+            type="button"
+            className="campo-paso"
+            aria-label={pasos.menos}
+            disabled={valor <= rango.minimo}
+            onClick={() => paso(-1)}
+          >
+            <span aria-hidden="true">−</span>
+          </button>
+          {caja}
+          <button
+            type="button"
+            className="campo-paso"
+            aria-label={pasos.mas}
+            disabled={valor >= rango.maximo}
+            onClick={() => paso(1)}
+          >
+            <span aria-hidden="true">+</span>
+          </button>
+        </div>
+      ) : (
+        caja
+      )}
       {error ? (
         <p id={idDelError} className="campo-error" role="alert">
           {error}

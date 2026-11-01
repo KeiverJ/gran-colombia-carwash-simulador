@@ -174,3 +174,64 @@ describe('el aviso de saturación con lo simulado', () => {
     expect(avisoDeSaturacionConLoSimulado({ ...porDefecto(), llegadasPorHora: 3 }, true)).toBeNull()
   })
 })
+
+describe('la columna calculada y el aviso usan los servidores activos', () => {
+  const activos = (placasActivas, puestosActivos) => ({ placasActivas, puestosActivos })
+
+  it('sin resumen, o con todos activos, es idéntica a usar el total', () => {
+    const parametros = porDefecto()
+    expect(metricasCalculadas(parametros, activos(6, 3))).toEqual(metricasCalculadas(parametros))
+    expect(metricasCalculadas(parametros, undefined)).toEqual(metricasCalculadas(parametros))
+  })
+
+  it('cerrar una placa cambia el ρ calculado del lavado: ρ₁ = λ / (μ·activas)', () => {
+    const parametros = porDefecto()
+    const con6 = metricasCalculadas(parametros, activos(6, 3)).lavado.rho
+    const con5 = metricasCalculadas(parametros, activos(5, 3)).lavado.rho
+    const con3 = metricasCalculadas(parametros, activos(3, 3)).lavado.rho
+    expect(con5).toBeCloseTo((con6 * 6) / 5, 10)
+    expect(con3).toBeCloseTo(con6 * 2, 10)
+  })
+
+  it('cerrar un puesto cambia el ρ calculado del acabado', () => {
+    const parametros = { ...porDefecto(), puestos: 5 }
+    const con5 = metricasCalculadas(parametros, activos(6, 5)).acabado
+    const con4 = metricasCalculadas(parametros, activos(6, 4)).acabado
+    expect(con5.rho).toBeCloseTo(0.7508, 3)
+    expect(con4.rho).toBeCloseTo(0.9385, 3)
+  })
+
+  it('con los activos inestables aparece el aviso aunque el total sea estable', () => {
+    const parametros = { ...porDefecto(), puestos: 5 }
+    expect(avisoDeSaturacion(parametros, activos(6, 5))).toHaveLength(0)
+
+    const avisos = avisoDeSaturacion(parametros, activos(6, 3))
+    expect(avisos.map((a) => a.etapa)).toEqual(['acabado'])
+    expect(avisos[0].texto).toContain('Con 3 puestos abiertos')
+    expect(avisoCortoDeSaturacion(parametros, activos(6, 3))).not.toBeNull()
+    expect(etapaSaturada(parametros, 'acabado', activos(6, 3))).toBe(true)
+    expect(etapaSaturada(parametros, 'acabado', activos(6, 5))).toBe(false)
+  })
+
+  it('con todos abiertos el aviso no habla de "abiertos"', () => {
+    const [aviso] = avisoDeSaturacion(porDefecto(), activos(6, 3))
+    expect(aviso.texto).toContain('Con 3 puestos,')
+  })
+
+  it('nunca divide entre cero: una cuenta de activos inválida cae al total', () => {
+    const parametros = porDefecto()
+    for (const malo of [0, -1, 2.5, NaN, undefined]) {
+      expect(metricasCalculadas(parametros, activos(malo, malo))).toEqual(metricasCalculadas(parametros))
+    }
+  })
+
+  it('en el store, cerrar una placa mueve el ρ calculado con el resumen vivo', () => {
+    useSimulacion.getState().reiniciar()
+    const antes = metricasCalculadas(useSimulacion.getState().parametros, useSimulacion.getState().resumen)
+    expect(useSimulacion.getState().cerrarServidor('lavado', 0)).toBeTruthy()
+    const { parametros, resumen } = useSimulacion.getState()
+    expect(resumen.placasActivas).toBe(5)
+    expect(metricasCalculadas(parametros, resumen).lavado.rho).toBeCloseTo((antes.lavado.rho * 6) / 5, 10)
+    useSimulacion.getState().reiniciar()
+  })
+})

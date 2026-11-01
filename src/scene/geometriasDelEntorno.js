@@ -2,6 +2,7 @@ import {
   BoxGeometry,
   CatmullRomCurve3,
   Color,
+  ConeGeometry,
   CylinderGeometry,
   Float32BufferAttribute,
   PlaneGeometry,
@@ -186,6 +187,31 @@ export function posteSencillo({ alto = 1.2 }) {
   return juntar([
     conColor(new CylinderGeometry(0.045, 0.055, alto, 10).translate(0, alto / 2, 0), COLOR_DE_ESCENA.metal),
     conColor(new CylinderGeometry(0.14, 0.16, 0.05, 12).translate(0, 0.025, 0), COLOR_DE_ESCENA.metal),
+  ])
+}
+
+/**
+ * La barrera de un servidor cerrado: una barra ámbar a lo ancho de la losa sobre
+ * dos patas. Su pie está en (0, 0, 0), centrada en X, y va sobre la losa baja.
+ */
+export function barreraDeCierre({ ancho, alto = 0.55 }) {
+  const luz = ancho - 0.5
+  const pata = (x) => conColor(new BoxGeometry(0.07, alto, 0.07).translate(x, alto / 2, 0), COLOR_DE_ESCENA.metal)
+  return juntar([
+    pata(-luz / 2),
+    pata(luz / 2),
+    conColor(new BoxGeometry(luz, 0.14, 0.06).translate(0, alto - 0.07, 0), COLOR_DE_ESCENA.barreraDeCierre),
+  ])
+}
+
+/**
+ * El cono que avisa de un servidor cerrado o que se está cerrando: ámbar, sobre
+ * una base cuadrada de metal. Su pie está en (0, 0, 0).
+ */
+export function conoDeCierre({ alto = 0.5 } = {}) {
+  return juntar([
+    conColor(new BoxGeometry(0.34, 0.04, 0.34).translate(0, 0.02, 0), COLOR_DE_ESCENA.metal),
+    conColor(new ConeGeometry(0.14, alto - 0.04, 14).translate(0, 0.04 + (alto - 0.04) / 2, 0), COLOR_DE_ESCENA.barreraDeCierre),
   ])
 }
 

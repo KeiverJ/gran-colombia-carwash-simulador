@@ -111,3 +111,38 @@ describe('la línea de la Ayuda sobre las gráficas', () => {
     expect(html).toContain('como tabla')
   })
 })
+
+describe('cerrar y abrir placas y puestos en la Ayuda', () => {
+  const html = texto()
+
+  it('tiene su sección y explica las dos maneras de hacerlo', () => {
+    expect(html).toContain('Cerrar y abrir placas y puestos')
+    expect(html).toContain('fila de botones')
+    expect(html).toContain('Ajustes')
+    expect(html).toContain('Cerrar placa 3')
+    expect(html).toContain('Abrir placa 3')
+  })
+
+  it('explica cerrándose, la regla del último servidor abierto y que no reinicia', () => {
+    expect(html).toContain('cerrándose')
+    expect(html).toContain('termina de atender')
+    expect(html).toMatch(/al menos un servidor abierto/)
+    expect(html).toContain('el último no se')
+    expect(html).toContain('no se reinicia')
+  })
+
+  it('explica cómo se ve un servidor cerrado sin depender del color', () => {
+    expect(html).toContain('barrera')
+    expect(html).toContain('señal de aviso')
+    expect(html).toContain('más bajo')
+  })
+
+  it('dice que en la visita y en la corrida larga no se puede', () => {
+    expect(html).toContain('En la visita y durante la corrida larga no se puede abrir ni cerrar nada')
+  })
+
+  it('dice que las fórmulas usan los servidores abiertos y qué lo devuelve todo a abierto', () => {
+    expect(html).toContain('usan los servidores que están abiertos')
+    expect(html).toContain('vuelve a abrirlo')
+  })
+})

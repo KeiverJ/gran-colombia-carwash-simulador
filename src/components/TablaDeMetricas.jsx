@@ -3,11 +3,13 @@ import {
   comparacionEsAproximada,
   metricasCalculadas,
 } from '../store/metricas.js'
-import { HORAS_DE_LA_CORRIDA_LARGA, useSimulacion } from '../store/simulacion.js'
+import { HORAS_DE_LA_CORRIDA_LARGA_POSIBLES } from '../store/rangos.js'
+import { useSimulacion } from '../store/simulacion.js'
 import Aviso from './Aviso.jsx'
 import BotonConConfirmacion from './BotonConConfirmacion.jsx'
 import { prefiereMenosMovimiento } from './corridaLargaActiva.js'
 import { comoNumero } from './formato.js'
+import GrupoDeBotones from './GrupoDeBotones.jsx'
 
 /** Lo que dice el encabezado "Fórmulas" al pasar el mouse y a las ayudas técnicas. */
 const EXPLICACION_DE_LAS_FORMULAS = 'Calculado con las fórmulas M/M/s de la especificación'
@@ -160,14 +162,19 @@ export function ContenidoDeMetricas({ enPanel = false }) {
   const metricas = useSimulacion((estado) => estado.metricas)
   const corridaLarga = useSimulacion((estado) => estado.corridaLarga)
   const empezarCorridaLarga = useSimulacion((estado) => estado.empezarCorridaLarga)
+  const horasDeLaCorridaLarga = useSimulacion((estado) => estado.horasDeLaCorridaLarga)
+  const cambiarHorasDeLaCorridaLarga = useSimulacion((estado) => estado.cambiarHorasDeLaCorridaLarga)
   // Con una simulación ya en marcha (corriendo o con tiempo avanzado), la corrida
   // larga la descarta: antes de eso no hay nada que perder y no se pide confirmar.
   const hayUnaSimulacionEnCurso = useSimulacion(
     (estado) => estado.corriendo || estado.resumen.relojMin > 0,
   )
 
-  const calculado = metricasCalculadas(parametros)
-  const aviso = avisoDeSaturacionConLoSimulado(parametros, metricas !== null)
+  const resumen = useSimulacion((estado) => estado.resumen)
+  const huboCierres = useSimulacion((estado) => estado.huboCierres)
+
+  const calculado = metricasCalculadas(parametros, resumen)
+  const aviso = avisoDeSaturacionConLoSimulado(parametros, metricas !== null, resumen)
 
   return (
     <div className={enPanel ? 'metricas metricas--panel' : 'metricas metricas--capa'}>
@@ -185,6 +192,18 @@ export function ContenidoDeMetricas({ enPanel = false }) {
 
         <div className="metricas-lateral">
           <div className="corrida-larga">
+            <fieldset className="control control--sin-marco" disabled={corridaLarga !== null}>
+              <span className="control-nombre">Horas que simula</span>
+              <GrupoDeBotones
+                etiqueta="Horas que simula la corrida larga"
+                opciones={HORAS_DE_LA_CORRIDA_LARGA_POSIBLES.map((horas) => ({
+                  valor: horas,
+                  texto: `${comoNumero(horas, 0)} h`,
+                }))}
+                valor={horasDeLaCorridaLarga}
+                alElegir={cambiarHorasDeLaCorridaLarga}
+              />
+            </fieldset>
             <BotonConConfirmacion
               className="boton-principal"
               disabled={corridaLarga !== null}
@@ -203,7 +222,7 @@ export function ContenidoDeMetricas({ enPanel = false }) {
               </p>
             ) : (
               <p className="nota">
-                Simula {HORAS_DE_LA_CORRIDA_LARGA} horas seguidas, desde cero, para que los
+                Simula {comoNumero(horasDeLaCorridaLarga, 0)} horas seguidas, desde cero, para que los
                 valores simulados se acerquen a los calculados.
               </p>
             )}
@@ -224,6 +243,14 @@ export function ContenidoDeMetricas({ enPanel = false }) {
               {metricas ? `${comoNumero(metricas.total.wMin, 2)} min` : 'sin datos'}
             </strong>
           </p>
+
+          {huboCierres ? (
+            <p className="nota">
+              Durante esta simulación se cerró o se abrió algún servidor: lo simulado incluye
+              periodos con otro número de servidores activos, mientras que lo calculado usa los
+              que están activos ahora.
+            </p>
+          ) : null}
 
           {comparacionEsAproximada(parametros) ? (
             <p className="nota">

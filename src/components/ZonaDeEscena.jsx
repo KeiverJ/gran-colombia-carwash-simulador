@@ -1,5 +1,8 @@
 import EscenaDelLavadero from '../scene/EscenaDelLavadero.jsx'
+import AvisoDeFallo from './AvisoDeFallo.jsx'
+import AvisoDeLaEscenaCaida from './AvisoDeLaEscenaCaida.jsx'
 import CapaDeAjustes from './CapaDeAjustes.jsx'
+import LimiteDeError from './LimiteDeError.jsx'
 import PanelDeResultados from './PanelDeResultados.jsx'
 
 /**
@@ -14,7 +17,11 @@ import PanelDeResultados from './PanelDeResultados.jsx'
 export function ZonaDeEscena() {
   return (
     <div className="zona-lienzo">
-      <EscenaDelLavadero />
+      {/* Si la escena lanza un error, ocupa su lugar un aviso y lo demás sigue funcionando. */}
+      <LimiteDeError fallback={({ reintentar }) => <AvisoDeLaEscenaCaida alReintentar={reintentar} />}>
+        <EscenaDelLavadero />
+      </LimiteDeError>
+      <AvisoDeFallo />
       <CapaDeAjustes />
       <PanelDeResultados />
     </div>

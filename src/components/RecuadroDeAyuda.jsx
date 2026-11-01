@@ -118,6 +118,10 @@ export function ContenidoDeLaAyuda() {
             puedes cancelarla.
           </li>
           <li>
+            Puedes cerrar y volver a abrir placas y puestos con la simulación en marcha o en
+            pausa: mira «Cerrar y abrir placas y puestos», más abajo.
+          </li>
+          <li>
             En «Visita del 17 de octubre» se reproduce la tarde observada, con sus horas
             reales.
           </li>
@@ -133,6 +137,38 @@ export function ContenidoDeLaAyuda() {
           <li>{NOMBRE_DE_PLAN[1]} (aro sólido).</li>
           <li>{NOMBRE_DE_PLAN[2]} (aro en segmentos).</li>
           <li>{NOMBRE_DE_PLAN[3]} (aro doble, dos anillos finos).</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Cerrar y abrir placas y puestos</h3>
+        <p className="ayuda-parrafo">
+          Sirve para ver qué pasa si, por ejemplo, una placa se daña o un puesto se queda sin
+          personal. Se puede hacer de dos maneras: con la fila de botones que hay debajo del
+          número de placas y de puestos en Ajustes, o tocando una placa o un puesto en la
+          escena (con el puntero aparece «Cerrar placa 3» o «Abrir placa 3»).
+        </p>
+        <ul>
+          <li>
+            Un servidor cerrado no recibe motos nuevas. Se ve más bajo y gris, con una barrera
+            y una señal de aviso de tránsito.
+          </li>
+          <li>
+            Si tenía una moto, no se la quita: la termina de atender y entonces se cierra.
+            Mientras tanto se lee «cerrándose» y sigue elevado, con la señal de aviso.
+          </li>
+          <li>
+            En cada etapa tiene que quedar al menos un servidor abierto: el último no se
+            puede cerrar (su botón aparece desactivado y explica por qué).
+          </li>
+          <li>
+            La simulación no se reinicia al cerrar o abrir. Las fórmulas de la tabla de
+            métricas usan los servidores que están abiertos en ese momento, y una nota avisa
+            de que lo simulado incluye periodos con otro número de servidores. Reiniciar,
+            elegir un escenario o cambiar el número de placas o de puestos vuelve a abrirlo
+            todo.
+          </li>
+          <li>En la visita y durante la corrida larga no se puede abrir ni cerrar nada.</li>
         </ul>
       </section>
 

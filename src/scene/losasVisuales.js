@@ -10,6 +10,11 @@
  * - **libre**: plana y gris. No hay moto encima ni asignada;
  * - **reservada**: el motor le asignó una moto que todavía va en camino. Sigue
  *   plana, con un tono suave del color de su etapa;
+ * - **cerrada**: el servidor está fuera de servicio y no queda ninguna moto encima.
+ *   Baja y gris, con su barrera; no recibe motos;
+ * - **cerrandose**: el servidor está cerrándose y su moto está encima, en servicio.
+ *   Levantada como una ocupada, más la señal de que terminará con ella y quedará
+ *   cerrado;
  * - **ocupada**: tiene una moto encima. Levantada y del color de su etapa. Se
  *   levanta cuando la moto llega a ella y baja cuando la moto ya salió de su
  *   superficie, aunque el motor haya terminado el servicio antes. Si la siguiente
@@ -55,8 +60,19 @@ export function motoTocaLaLosa(punto, rumbo, centro, aire = AIRE_AL_SALIR) {
   return true
 }
 
-/** El estado de una losa según el motor, sin mirar las motos: libre u ocupada. */
-export const estadoSegunElMotor = (servidor) => (servidor.libre ? 'libre' : 'ocupada')
+/**
+ * El estado de una losa según el motor, sin mirar las motos: libre, ocupada,
+ * cerrada o cerrándose. Nunca reservada. Una foto sin `estado` (la visita) es
+ * de servidores activos.
+ */
+export function estadoSegunElMotor(servidor) {
+  if (servidor.estado === 'cerrado') return 'cerrada'
+  if (servidor.estado === 'cerrandose') return 'cerrandose'
+  return servidor.libre ? 'libre' : 'ocupada'
+}
+
+/** ¿Se ve la losa levantada en este estado? Sí si hay una moto en servicio encima. */
+export const estaLevantada = (estadoVisual) => estadoVisual === 'ocupada' || estadoVisual === 'cerrandose'
 
 /**
  * El estado visual de todas las losas.
@@ -67,7 +83,8 @@ export const estadoSegunElMotor = (servidor) => (servidor.libre ? 'libre' : 'ocu
  * @param {Map<number, { recorrido: number, largo: number }>} datos.viajes el viaje de cada moto
  * @param {{ placas: boolean[], puestos: boolean[] }} datos.levantadas qué losas estaban
  *   levantadas en el cuadro anterior; se actualiza
- * @returns {{ placas: string[], puestos: string[] }} `'libre'`, `'reservada'` u `'ocupada'` de cada una
+ * @returns {{ placas: string[], puestos: string[] }} `'libre'`, `'reservada'`, `'ocupada'`,
+ *   `'cerrada'` o `'cerrandose'` de cada una
  */
 export function estadoVisualDeLasLosas({ foto, motos, viajes, levantadas }) {
   const resolver = (servidores, centroDe, previas) =>
@@ -78,10 +95,14 @@ export function estadoVisualDeLasLosas({ foto, motos, viajes, levantadas }) {
       const sigue = previas[i] === true && motos.some(({ punto, rumbo }) => motoTocaLaLosa(punto, rumbo, centro))
       const levantada = encima || sigue
       previas[i] = levantada
-      if (levantada) return 'ocupada'
+      // Un servidor que se está cerrando sigue atendiendo a su moto: se ve levantado y con su señal.
+      // Cuando el motor lo da por cerrado, la moto puede estar todavía saliendo: se ve ocupado
+      // hasta que la deje, y solo entonces cerrado.
+      if (levantada) return servidor.estado === 'cerrandose' ? 'cerrandose' : 'ocupada'
       const viaje = servidor.moto ? viajes.get(servidor.moto.n) : null
       // Asignada por el motor y con la moto todavía en camino.
-      return viaje && viaje.recorrido < viaje.largo ? 'reservada' : 'libre'
+      if (viaje && viaje.recorrido < viaje.largo) return 'reservada'
+      return servidor.estado === 'cerrado' ? 'cerrada' : 'libre'
     })
   return {
     placas: resolver(foto.placas, posicionDePlaca, levantadas.placas),

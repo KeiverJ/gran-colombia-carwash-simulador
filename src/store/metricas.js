@@ -10,6 +10,24 @@ import { MODO_MMS } from '../engine/simulador.js'
 import { acabadoPromedioDe, parametrosDelEscenario } from './simulacion.js'
 
 /**
+ * Los parámetros con los servidores que están **activos** ahora en lugar de los
+ * del total: lo que las fórmulas deben usar cuando hay placas o puestos cerrados.
+ * Una etapa nunca queda con cero (el motor no deja cerrar el último), pero por
+ * si acaso nunca baja de 1, o las fórmulas dividirían entre cero.
+ *
+ * @param {object} parametros los del store
+ * @param {{ placasActivas?: number, puestosActivos?: number }} [resumen] el del store
+ */
+export function parametrosConLosActivos(parametros, resumen) {
+  const activos = (hay, total) => (Number.isInteger(hay) && hay >= 1 ? Math.min(hay, total) : total)
+  return {
+    ...parametros,
+    placas: activos(resumen?.placasActivas, parametros.placas),
+    puestos: activos(resumen?.puestosActivos, parametros.puestos),
+  }
+}
+
+/**
  * Las métricas teóricas de cada etapa, con los parámetros del panel.
  *
  * La etapa 2 usa la MISMA media de acabado que el motor —la que sale de los
@@ -17,12 +35,16 @@ import { acabadoPromedioDe, parametrosDelEscenario } from './simulacion.js'
  * del documento. Si cada columna usara parámetros distintos, estarían
  * describiendo sistemas distintos y compararlas no diría nada.
  *
+ * Si se pasa el `resumen` del store, usa las placas y los puestos que están
+ * **activos** ahora; sin él, el total (los escenarios y las pruebas).
+ *
  * @param {object} parametros los del store
+ * @param {{ placasActivas?: number, puestosActivos?: number }} [resumen] el del store
  * @returns {{ lavado: object, acabado: object, servicioLavadoPorHora: number,
  *             servicioAcabadoPorHora: number }}
  */
-export function metricasCalculadas(parametros) {
-  const { llegadasPorHora, lavadoMin, placas, puestos } = parametros
+export function metricasCalculadas(parametros, resumen) {
+  const { llegadasPorHora, lavadoMin, placas, puestos } = parametrosConLosActivos(parametros, resumen)
   const servicioLavadoPorHora = 60 / lavadoMin
   const servicioAcabadoPorHora = 60 / acabadoPromedioDe(parametros)
 
@@ -56,8 +78,18 @@ export function rho2DelEscenario(escenario) {
 
 /** Cómo se llama cada etapa y su fila, en palabras. */
 const ETAPAS = {
-  lavado: { nombre: 'el lavado', fila: 'la fila del lavado', servidores: 'placas' },
-  acabado: { nombre: 'el acabado', fila: 'la fila del acabado', servidores: 'puestos' },
+  lavado: {
+    nombre: 'el lavado',
+    fila: 'la fila del lavado',
+    servidores: 'placas',
+    abiertos: 'placas abiertas',
+  },
+  acabado: {
+    nombre: 'el acabado',
+    fila: 'la fila del acabado',
+    servidores: 'puestos',
+    abiertos: 'puestos abiertos',
+  },
 }
 
 /**
@@ -68,11 +100,14 @@ const ETAPAS = {
  * el lavadero esté abierto.
  *
  * @param {object} parametros
+ * @param {{ placasActivas?: number, puestosActivos?: number }} [resumen] el del store
  * @returns {Array<{ etapa: string, texto: string, llegadasDeSaturacionPorHora: number }>}
  */
-export function avisoDeSaturacion(parametros) {
-  const calculadas = metricasCalculadas(parametros)
-  const servidoresDe = { lavado: parametros.placas, acabado: parametros.puestos }
+export function avisoDeSaturacion(parametros, resumen) {
+  const calculadas = metricasCalculadas(parametros, resumen)
+  const { placas, puestos } = parametrosConLosActivos(parametros, resumen)
+  const servidoresDe = { lavado: placas, acabado: puestos }
+  const totalDe = { lavado: parametros.placas, acabado: parametros.puestos }
   const servicioDe = {
     lavado: calculadas.servicioLavadoPorHora,
     acabado: calculadas.servicioAcabadoPorHora,
@@ -84,12 +119,14 @@ export function avisoDeSaturacion(parametros) {
       continue
     }
     const llegadasDeSaturacionPorHora = servidoresDe[etapa] * servicioDe[etapa]
-    const { nombre, fila, servidores } = ETAPAS[etapa]
+    const { nombre, fila, servidores, abiertos } = ETAPAS[etapa]
+    // Con servidores cerrados se dice cuántos están abiertos, no solo el número.
+    const cuantos = `${servidoresDe[etapa]} ${servidoresDe[etapa] < totalDe[etapa] ? abiertos : servidores}`
     avisos.push({
       etapa,
       llegadasDeSaturacionPorHora,
       texto:
-        `Con ${servidoresDe[etapa]} ${servidores}, ${nombre} no da abasto: llegan más motos de las ` +
+        `Con ${cuantos}, ${nombre} no da abasto: llegan más motos de las ` +
         `que alcanza a atender, así que ${fila} crece sin parar mientras el lavadero esté abierto. ` +
         `Se satura a partir de ${conComa(llegadasDeSaturacionPorHora)} motos por hora, ` +
         `y están llegando ${conComa(parametros.llegadasPorHora)}.`,
@@ -106,10 +143,11 @@ export function avisoDeSaturacion(parametros) {
  * donde hay que entender algo.
  *
  * @param {object} parametros
+ * @param {{ placasActivas?: number, puestosActivos?: number }} [resumen] el del store
  * @returns {string|null} la frase, o nada si ninguna etapa está saturada
  */
-export function avisoCortoDeSaturacion(parametros) {
-  const avisos = avisoDeSaturacion(parametros)
+export function avisoCortoDeSaturacion(parametros, resumen) {
+  const avisos = avisoDeSaturacion(parametros, resumen)
   if (avisos.length === 0) {
     return null
   }
@@ -138,10 +176,11 @@ export const FRASE_DE_LOS_VALORES_SIMULADOS = 'Por eso sus valores simulados no 
  *
  * @param {object} parametros
  * @param {boolean} hayValoresSimulados
+ * @param {{ placasActivas?: number, puestosActivos?: number }} [resumen] el del store
  * @returns {string|null} el aviso, o nada si ninguna etapa está saturada
  */
-export function avisoDeSaturacionConLoSimulado(parametros, hayValoresSimulados) {
-  const corto = avisoCortoDeSaturacion(parametros)
+export function avisoDeSaturacionConLoSimulado(parametros, hayValoresSimulados, resumen) {
+  const corto = avisoCortoDeSaturacion(parametros, resumen)
   if (corto === null) {
     return null
   }
@@ -153,8 +192,8 @@ function conComa(numero) {
 }
 
 /** ¿Está saturada esta etapa con los parámetros puestos? */
-export function etapaSaturada(parametros, etapa) {
-  return !metricasCalculadas(parametros)[etapa].estable
+export function etapaSaturada(parametros, etapa, resumen) {
+  return !metricasCalculadas(parametros, resumen)[etapa].estable
 }
 
 /**

@@ -26,6 +26,7 @@ import {
   SEPARACION_EN_FILA,
   TOPE_DE_MOTOS_DIBUJADAS,
 } from './posiciones.js'
+import { largoDeLasFilas } from '../store/filas.js'
 import { estadoVisualDeLasLosas } from './losasVisuales.js'
 import { avanceDelReloj, crearMemoriaDelReloj } from './relojDeLaEscena.js'
 import {
@@ -234,7 +235,7 @@ export function avanzarLasMotos(viajes, foto, { generacion = 0, segundosReales =
   const reloj = foto.relojMin
   const contexto = {
     reloj,
-    largoDeLaFila: { lavado: foto.colaLavado.length, acabado: foto.colaAcabado.length },
+    largoDeLaFila: largoDeLasFilas(foto),
   }
   const destinos = sitiosDeLasMotos(foto)
 
@@ -508,10 +509,10 @@ export function viajeDeLaMoto(n, sitio, { porMoto, ocultas }, { reloj, largoDeLa
  */
 function saleDeLaFilaOculta(n, sitio, ocultas, largoDeLaFila) {
   if (sitio.zona !== 'fila') return false
-  return (
-    ocultas.has(n) ||
-    (sitio.etapa === 'lavado' && largoDeLaFila.lavado >= TOPE_DE_MOTOS_DIBUJADAS.lavado)
-  )
+  // La foto del store trae solo la cabeza de cada fila (ver `store/filas.js`): una moto
+  // que aparece en la parte visible de una fila más larga que lo que se dibuja venía de
+  // la parte oculta, aunque nunca se la haya visto llegar.
+  return ocultas.has(n) || largoDeLaFila[sitio.etapa] >= TOPE_DE_MOTOS_DIBUJADAS[sitio.etapa]
 }
 
 /** Hacia dónde mira una moto al empezar un camino: el rumbo de su primer tramo. */

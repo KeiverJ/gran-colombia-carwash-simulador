@@ -55,3 +55,14 @@ describe('el paso simulado de un cuadro', () => {
     }
   })
 })
+
+describe('a la velocidad máxima (120 min/s)', () => {
+  it('un cuadro simula un tramo acotado: 12 minutos como mucho, por más largo que sea el cuadro', () => {
+    const tope = (MS_TOPE_POR_CUADRO / 1000) * 120
+    expect(tope).toBe(12)
+    for (const ms of [16, 100, 1000, 30000, 600000]) {
+      expect(corriendoA(120)(ms)).toBeLessThanOrEqual(tope)
+    }
+    expect(corriendoA(120)(16)).toBeCloseTo(1.92, 10)
+  })
+})

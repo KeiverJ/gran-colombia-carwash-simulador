@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 
 import { COLOR_DE_ESCENA } from '../estilos/colores.js'
 import {
+  barreraDeCierre,
   bordillos,
+  conoDeCierre,
   juntasDelPiso,
   lineaDiscontinua,
   marcoDeLosa,
@@ -158,6 +160,33 @@ describe('piezas de las placas y los puestos', () => {
     const caja = cajaDe(rejillaDeDesague({ ancho: 1.4, fondo: 0.45 }))
     expect(caja.max.y).toBeLessThan(0.06)
     expect(caja.max.x).toBeCloseTo(0.7, 5)
+  })
+})
+
+describe('la barrera y el cono de un servidor cerrado', () => {
+  it('llevan color de vértice, nacen en el piso y la barrera cabe en el ancho de la losa', () => {
+    for (const g of [barreraDeCierre({ ancho: 2.2 }), conoDeCierre()]) {
+      expect(g.attributes.color.count).toBe(g.attributes.position.count)
+      expect(g.attributes.normal).toBeDefined()
+      expect(cajaDe(g).min.y).toBeCloseTo(0, 6)
+    }
+    const barrera = cajaDe(barreraDeCierre({ ancho: 2.2, alto: 0.55 }))
+    expect(barrera.max.y).toBeCloseTo(0.55, 6)
+    expect(barrera.max.x).toBeLessThan(1.1)
+    expect(barrera.min.x).toBeGreaterThan(-1.1)
+  })
+
+  it('usan el ámbar y el metal del tema, no colores propios', () => {
+    const ambar = new Color(COLOR_DE_ESCENA.barreraDeCierre)
+    const llevaAmbar = (g) => {
+      const c = g.attributes.color
+      for (let k = 0; k < c.count; k += 1) {
+        if (Math.abs(c.getX(k) - ambar.r) < 1e-6 && Math.abs(c.getY(k) - ambar.g) < 1e-6) return true
+      }
+      return false
+    }
+    expect(llevaAmbar(barreraDeCierre({ ancho: 2.2 }))).toBe(true)
+    expect(llevaAmbar(conoDeCierre())).toBe(true)
   })
 })
 

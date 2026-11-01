@@ -17,7 +17,13 @@ import {
   PROPORCION_PLAN_EXACTA,
   PUESTOS_ACABADO,
 } from '../data/parametros.js'
-import { crearSimulador, MODO_POR_PLAN } from '../engine/simulador.js'
+import {
+  crearSimulador,
+  ETAPA_ACABADO,
+  ETAPA_LAVADO,
+  MODO_POR_PLAN,
+  SERVIDOR_ACTIVO,
+} from '../engine/simulador.js'
 import { crearReproductor } from '../visita/reproductor.js'
 import {
   horasDeLaCamaraRapida,
@@ -25,18 +31,18 @@ import {
   progreso,
   siguienteTrozoHoras,
 } from './corridaLarga.js'
+import { fotoDe, largoDeLasFilas } from './filas.js'
 import { pasoSimuladoMin } from './paso.js'
 import { agregarPunto, intervaloDeMuestreoMin, tocaAnotar } from './puntos.js'
+import { esUnPlan, RANGOS, validarParametro } from './rangos.js'
 
 /** Los dos modos de la aplicación: la simulación al azar y la tarde de la visita. */
 export const MODO_ALEATORIO = 'aleatorio'
 export const MODO_VISITA = 'visita'
 
-/** Lo que el panel deja elegir. */
-export const PLACAS_POSIBLES = [5, 6, 7]
-export const PUESTOS_POSIBLES = [3, 4, 5]
-export const VELOCIDAD_MINIMA = 0.25
-export const VELOCIDAD_MAXIMA = 60
+/** Los extremos de la velocidad, en minutos simulados por segundo real. */
+export const VELOCIDAD_MINIMA = RANGOS.velocidad.minimo
+export const VELOCIDAD_MAXIMA = RANGOS.velocidad.maximo
 export const VELOCIDAD_POR_DEFECTO = 1
 
 /** Cada cuánto tiempo real se refrescan la tabla y la gráfica. */
@@ -52,7 +58,6 @@ const NOMBRE_DEL_PARAMETRO = {
   placas: 'el número de placas de lavado',
   puestos: 'el número de puestos de acabado',
   modoAcabado: 'el modo de acabado',
-  semilla: 'la semilla',
 }
 
 const parametrosPorDefecto = () => ({
@@ -151,6 +156,34 @@ export function repartirProporciones(proporcionActual, plan, valorPedido) {
   }
 }
 
+/** Lo que se le dice a la persona cuando el motor falla: sin jerga ni trazas. */
+export const MENSAJE_DE_FALLO =
+  'La simulación se detuvo por un error inesperado. Pulsa Reiniciar para volver a empezar.'
+
+/**
+ * El único sitio por donde el store habla con el motor. Si lo que se le pide lanza
+ * un error, la simulación se detiene (y la corrida larga, si la había), el fallo se
+ * guarda para que la interfaz lo explique y se devuelve `undefined`: nunca sale la
+ * excepción. Reiniciar borra el fallo.
+ *
+ * @template T
+ * @param {Function} set el `set` del store
+ * @param {() => T} accion lo que se le pide al motor
+ * @returns {T|undefined}
+ */
+function conMotor(set, accion) {
+  try {
+    return accion()
+  } catch (error) {
+    set({
+      corriendo: false,
+      corridaLarga: null,
+      fallo: { mensaje: MENSAJE_DE_FALLO, detalle: error instanceof Error ? error.message : String(error) },
+    })
+    return undefined
+  }
+}
+
 /** Estado con el que arranca la aplicación: un solo motor, en el minuto cero. */
 function estadoInicial() {
   const parametros = parametrosPorDefecto()
@@ -162,7 +195,7 @@ function estadoInicial() {
     velocidadMinPorSegundo: VELOCIDAD_POR_DEFECTO,
     corriendo: false,
     motor,
-    foto: motor.estado(),
+    foto: fotoDe(motor),
     aviso: null,
     // El aviso de haber cargado un escenario va aparte: se muestra junto al
     // selector, que está arriba del panel, y no al final con los demás avisos.
@@ -177,9 +210,16 @@ function estadoInicial() {
     // Lo que la escena necesita mostrar como texto. Se refresca con el mismo
     // freno que las métricas: si se leyera de la foto, cada cuadro provocaría
     // un render de React, que es justo lo que la escena no debe hacer.
-    resumen: resumenDe(motor.estado()),
+    resumen: resumenDe(fotoDe(motor)),
     // Progreso de la corrida larga: null cuando no hay ninguna en marcha.
     corridaLarga: null,
+    // ¿Se cerró algún servidor en esta corrida? Lo simulado cubre entonces periodos
+    // con distinto número de servidores activos (la tabla de métricas lo aclara).
+    huboCierres: false,
+    // Cuántas horas simula la corrida larga: 100, 1000 o 5000 (ver `rangos.js`).
+    horasDeLaCorridaLarga: HORAS_DE_LA_CORRIDA_LARGA,
+    // Si el motor falló: { mensaje, detalle }; null mientras todo va bien. Reiniciar lo borra.
+    fallo: null,
     // Cuántas veces se ha reemplazado el motor o saltado el estado (reiniciar,
     // terminar la corrida larga, entrar o salir de la visita, fin de la visita…).
     // La escena lo compara en cada cuadro: si cambió, no anima lo que recuerda,
@@ -201,15 +241,33 @@ function estadoInicial() {
 function resumenDe(foto) {
   return {
     relojMin: foto.relojMin,
-    enFilaLavado: foto.colaLavado.length,
-    enFilaAcabado: foto.colaAcabado.length,
+    enFilaLavado: largoDeLasFilas(foto).lavado,
+    enFilaAcabado: largoDeLasFilas(foto).acabado,
     placasOcupadas: foto.placas.filter((placa) => !placa.libre).length,
     puestosOcupados: foto.puestos.filter((puesto) => !puesto.libre).length,
     motosSalidas: foto.motosSalidas,
     placasTotales: foto.placas.length,
     puestosTotales: foto.puestos.length,
+    // Qué servidores reciben motos ahora. La visita no trae `estado`: allí todos están activos.
+    estadosDePlacas: foto.placas.map(estadoDelServidor),
+    estadosDePuestos: foto.puestos.map(estadoDelServidor),
+    placasActivas: foto.placas.filter((placa) => estadoDelServidor(placa) === SERVIDOR_ACTIVO).length,
+    puestosActivos: foto.puestos.filter((puesto) => estadoDelServidor(puesto) === SERVIDOR_ACTIVO).length,
   }
 }
+
+/** El estado de un servidor de la foto; sin el campo, activo. */
+const estadoDelServidor = (servidor) => servidor.estado ?? SERVIDOR_ACTIVO
+
+/** El nombre de la lista de la foto que corresponde a cada etapa. */
+const SERVIDORES_DE_LA_ETAPA = { [ETAPA_LAVADO]: 'placas', [ETAPA_ACABADO]: 'puestos' }
+
+/** Lo que se avisa cuando reiniciar vuelve a abrir servidores que estaban cerrados. */
+const AVISO_DE_SERVIDORES_REABIERTOS = 'Los servidores que estaban cerrados volvieron a abrirse.'
+
+/** ¿Hay algún servidor que no esté activo en esta foto? */
+const hayServidoresSinAbrir = (foto) =>
+  [...foto.placas, ...foto.puestos].some((servidor) => estadoDelServidor(servidor) !== SERVIDOR_ACTIVO)
 
 export const useSimulacion = create((set, get) => ({
   ...estadoInicial(),
@@ -222,7 +280,10 @@ export const useSimulacion = create((set, get) => ({
     }
     set({ corriendo: true })
   },
-  pausar: () => set({ corriendo: false }),
+  // Al pausar se refresca el resumen: tiene un freno de un cuarto de segundo y, sin esto,
+  // un cambio ocurrido justo antes (un servidor que pasa de «cerrándose» a «cerrado»)
+  // se quedaría sin mostrar mientras dure la pausa.
+  pausar: () => set({ corriendo: false, resumen: resumenDe(get().foto) }),
 
   /**
    * Empieza de cero con los parámetros y la semilla que haya ahora; en el modo
@@ -235,14 +296,26 @@ export const useSimulacion = create((set, get) => ({
     }
     const { parametros, semilla, modo } = get()
     const enLaVisita = modo === MODO_VISITA
-    const motor = enLaVisita ? crearReproductor() : motorCon(parametros, semilla)
+    // Un motor nuevo empieza con todos los servidores activos: si había cerrados, se dice.
+    const reabre = !enLaVisita && hayServidoresSinAbrir(get().foto)
+    // Si el motor nuevo no se puede crear, se queda el anterior y se explica el fallo.
+    const creado = conMotor(set, () => {
+      const motor = enLaVisita ? crearReproductor() : motorCon(parametros, semilla)
+      return { motor, foto: fotoDe(motor) }
+    })
+    if (!creado) {
+      return
+    }
+    const { motor, foto } = creado
     set({
       motor,
-      foto: motor.estado(),
+      foto,
       // Otro motor: la escena tiene que recolocar, no animar desde lo que recordaba.
       generacion: get().generacion + 1,
       corriendo: get().corriendo,
-      aviso,
+      aviso: reabre ? [aviso, AVISO_DE_SERVIDORES_REABIERTOS].filter(Boolean).join(' ') : aviso,
+      huboCierres: false,
+      fallo: null,
       avisoDeEscenario: null,
       visita: enLaVisita ? { terminada: false } : null,
       // Las métricas y los puntos son de la corrida que se acaba de descartar:
@@ -251,7 +324,7 @@ export const useSimulacion = create((set, get) => ({
       puntos: [],
       ultimoPuntoMin: null,
       ultimasMetricasMs: 0,
-      resumen: resumenDe(motor.estado()),
+      resumen: resumenDe(foto),
       corridaLarga: null,
     })
   },
@@ -270,12 +343,17 @@ export const useSimulacion = create((set, get) => ({
     if (paso <= 0) {
       return
     }
-    motor.avanzar(paso)
-    const foto = motor.estado()
+    const foto = conMotor(set, () => {
+      motor.avanzar(paso)
+      return fotoDe(motor)
+    })
+    if (foto === undefined) {
+      return
+    }
     set({ foto })
     get().anotarMetricas(foto)
 
-    if (get().modo === MODO_VISITA && motor.terminada() && !get().visita?.terminada) {
+    if (get().modo === MODO_VISITA && conMotor(set, () => motor.terminada()) && !get().visita?.terminada) {
       get().terminarLaVisita(foto)
     }
   },
@@ -288,19 +366,23 @@ export const useSimulacion = create((set, get) => ({
   terminarLaVisita: (foto) => {
     const { motor, puntos } = get()
     const hayUltimoPunto = puntos.at(-1)?.minuto === foto.relojMin
+    const metricas = conMotor(set, () => motor.metricas())
+    if (metricas === undefined) {
+      return
+    }
     set({
       corriendo: false,
       // La escena se recoloca con el estado final: nada queda a medio camino.
       generacion: get().generacion + 1,
       visita: { terminada: true },
-      metricas: motor.metricas(),
+      metricas,
       resumen: resumenDe(foto),
       puntos: hayUltimoPunto
         ? puntos
         : agregarPunto(puntos, {
             minuto: foto.relojMin,
-            colaLavado: foto.colaLavado.length,
-            colaAcabado: foto.colaAcabado.length,
+            colaLavado: largoDeLasFilas(foto).lavado,
+            colaAcabado: largoDeLasFilas(foto).acabado,
           }),
       ultimoPuntoMin: foto.relojMin,
     })
@@ -356,7 +438,11 @@ export const useSimulacion = create((set, get) => ({
     // redibujándose sesenta veces por segundo.
     const ahora = Date.now()
     if (ahora - ultimasMetricasMs >= INTERVALO_DE_METRICAS_MS) {
-      cambios.metricas = motor.metricas()
+      const metricas = conMotor(set, () => motor.metricas())
+      if (metricas === undefined) {
+        return
+      }
+      cambios.metricas = metricas
       cambios.resumen = resumenDe(foto)
       cambios.ultimasMetricasMs = ahora
     }
@@ -368,8 +454,8 @@ export const useSimulacion = create((set, get) => ({
     if (tocaAnotar(foto.relojMin, ultimoPuntoMin, intervaloDeMuestreoMin(puntos))) {
       cambios.puntos = agregarPunto(puntos, {
         minuto: foto.relojMin,
-        colaLavado: foto.colaLavado.length,
-        colaAcabado: foto.colaAcabado.length,
+        colaLavado: largoDeLasFilas(foto).lavado,
+        colaAcabado: largoDeLasFilas(foto).acabado,
       })
       cambios.ultimoPuntoMin = foto.relojMin
     }
@@ -380,16 +466,40 @@ export const useSimulacion = create((set, get) => ({
   },
 
   /**
+   * Elige cuántas horas simulará la corrida larga (100, 1000 o 5000). No reinicia
+   * nada. Devuelve `true` solo si el valor se aceptó; no se puede cambiar mientras
+   * hay una corrida larga en marcha.
+   */
+  cambiarHorasDeLaCorridaLarga: (horas) => {
+    if (get().corridaLarga) {
+      return false
+    }
+    const leido = validarParametro('horasDeLaCorridaLarga', horas)
+    if (!leido.valido) {
+      return false
+    }
+    set({ horasDeLaCorridaLarga: leido.valor })
+    return true
+  },
+
+  /**
    * Arranca la corrida larga: descarta lo simulado y vuelve a empezar, porque
    * mezclar mil horas con lo que ya había daría métricas de dos sistemas.
    */
-  empezarCorridaLarga: (horas = HORAS_DE_LA_CORRIDA_LARGA, { camaraRapida = false } = {}) => {
+  empezarCorridaLarga: (horas = get().horasDeLaCorridaLarga, { camaraRapida = false } = {}) => {
     if (get().modo === MODO_VISITA || get().corridaLarga) {
+      return
+    }
+    // Solo 100, 1000 o 5000 horas: cualquier otro valor no llega al motor.
+    if (!validarParametro('horasDeLaCorridaLarga', horas).valido) {
       return
     }
     get().reiniciar(
       `Simulando ${horas} horas seguidas. La simulación anterior se descartó para empezar desde cero.`,
     )
+    if (get().fallo) {
+      return
+    }
     set({
       corriendo: false,
       corridaLarga: {
@@ -426,14 +536,18 @@ export const useSimulacion = create((set, get) => ({
     const inicioMs = corridaLarga.inicioMs ?? ahora
     const horasQueFaltan = corridaLarga.horasTotales - corridaLarga.horasHechas
     if (horasQueFaltan <= 0) {
+      const final = conMotor(set, () => ({ metricas: motor.metricas(), foto: fotoDe(motor) }))
+      if (!final) {
+        return false
+      }
       set({
         corridaLarga: null,
         // Termina en pausa y la escena se recoloca con el estado final, lista para Iniciar.
         corriendo: false,
         generacion: get().generacion + 1,
-        metricas: motor.metricas(),
-        foto: motor.estado(),
-        resumen: resumenDe(motor.estado()),
+        metricas: final.metricas,
+        foto: final.foto,
+        resumen: resumenDe(final.foto),
         aviso: `Listo: se simularon ${corridaLarga.horasTotales} horas seguidas.`,
       })
       return false
@@ -466,28 +580,35 @@ export const useSimulacion = create((set, get) => ({
     // cambian; y la gráfica queda con ~200 puntos sea cual sea el tamaño del
     // trozo, con cámara rápida o sin ella.
     const empezo = Date.now()
-    let puntos = get().puntos
-    let horasCorridas = corridaLarga.horasHechas
-    let foto = null
-    const marcas = marcasQueCruza({
-      horasAntes: corridaLarga.horasHechas,
-      horasDespues: horasHechas,
-      horasTotales: corridaLarga.horasTotales,
-    })
-    for (const marca of marcas) {
-      motor.correrHoras(marca - horasCorridas)
-      horasCorridas = marca
-      foto = motor.estado()
-      puntos = agregarPunto(puntos, {
-        minuto: foto.relojMin,
-        colaLavado: foto.colaLavado.length,
-        colaAcabado: foto.colaAcabado.length,
+    const avance = conMotor(set, () => {
+      let puntos = get().puntos
+      let horasCorridas = corridaLarga.horasHechas
+      let foto = null
+      const marcas = marcasQueCruza({
+        horasAntes: corridaLarga.horasHechas,
+        horasDespues: horasHechas,
+        horasTotales: corridaLarga.horasTotales,
       })
+      for (const marca of marcas) {
+        motor.correrHoras(marca - horasCorridas)
+        horasCorridas = marca
+        foto = fotoDe(motor)
+        puntos = agregarPunto(puntos, {
+          minuto: foto.relojMin,
+          colaLavado: largoDeLasFilas(foto).lavado,
+          colaAcabado: largoDeLasFilas(foto).acabado,
+        })
+      }
+      if (horasCorridas < horasHechas) {
+        motor.correrHoras(horasHechas - horasCorridas)
+        foto = fotoDe(motor)
+      }
+      return { puntos, foto, marcas }
+    })
+    if (!avance) {
+      return false
     }
-    if (horasCorridas < horasHechas) {
-      motor.correrHoras(horasHechas - horasCorridas)
-      foto = motor.estado()
-    }
+    const { puntos, foto, marcas } = avance
     const tardo = Date.now() - empezo
 
     const cambios = {
@@ -509,7 +630,11 @@ export const useSimulacion = create((set, get) => ({
     }
     // La tabla de métricas, como en la marcha normal, cuatro veces por segundo; y al final siempre.
     if (!corridaLarga.camaraRapida || terminoElTrabajo || Date.now() - get().ultimasMetricasMs >= INTERVALO_DE_METRICAS_MS) {
-      cambios.metricas = motor.metricas()
+      const metricas = conMotor(set, () => motor.metricas())
+      if (metricas === undefined) {
+        return false
+      }
+      cambios.metricas = metricas
       cambios.ultimasMetricasMs = Date.now()
     }
     set(cambios)
@@ -525,12 +650,16 @@ export const useSimulacion = create((set, get) => ({
     if (!corridaLarga) {
       return
     }
-    const foto = motor.estado()
+    const parcial = conMotor(set, () => ({ foto: fotoDe(motor), metricas: motor.metricas() }))
+    if (!parcial) {
+      return
+    }
+    const { foto, metricas } = parcial
     set({
       corridaLarga: null,
       corriendo: false,
       generacion: get().generacion + 1,
-      metricas: motor.metricas(),
+      metricas,
       foto,
       resumen: resumenDe(foto),
       aviso: `Cancelaste la corrida larga: quedó en ${corridaLarga.horasHechas} de ${corridaLarga.horasTotales} horas.`,
@@ -538,35 +667,114 @@ export const useSimulacion = create((set, get) => ({
   },
 
   /**
-   * Cambia un parámetro y vuelve a empezar con la misma semilla.
-   * Se reinicia porque las métricas acumuladas de antes describirían otro
-   * lavadero; se conservan la semilla, la velocidad y si estaba corriendo.
+   * Cierra un servidor (una placa o un puesto) o lo vuelve a abrir, sin reiniciar:
+   * la simulación sigue en marcha o en pausa y las motos siguen donde estaban.
+   *
+   * No hace nada en la visita ni durante la corrida larga. El motor es quien
+   * decide si se puede (el último servidor activo de una etapa no se cierra).
+   *
+   * @param {'lavado'|'acabado'} etapa
+   * @param {number} indice posición del servidor, desde 0 (la placa 3 es el 2)
+   * @param {'cerrar'|'abrir'} que
+   * @returns {{ aplicado: boolean, motivo?: string }}
    */
-  cambiarParametro: (nombre, valor) => {
-    if (get().modo === MODO_VISITA || get().corridaLarga) {
-      return
+  cambiarServidor: (etapa, indice, que) => {
+    const { modo, corridaLarga, motor, foto } = get()
+    if (modo === MODO_VISITA) {
+      return { aplicado: false, motivo: 'visita' }
     }
-    const parametros = { ...get().parametros, [nombre]: valor }
-    set({ parametros })
-    get().reiniciar(
-      `Cambiaste ${NOMBRE_DEL_PARAMETRO[nombre] ?? nombre}, así que la simulación volvió a empezar con la misma semilla.`,
+    if (corridaLarga) {
+      return { aplicado: false, motivo: 'corrida-larga' }
+    }
+    const lista = foto[SERVIDORES_DE_LA_ETAPA[etapa]]
+    if (!lista || !Number.isInteger(indice) || indice < 0 || indice >= lista.length) {
+      return { aplicado: false, motivo: 'no-existe' }
+    }
+    const hecho = conMotor(set, () => {
+      const resultado =
+        que === 'cerrar' ? motor.cerrarServidor(etapa, indice + 1) : motor.abrirServidor(etapa, indice + 1)
+      return resultado.aplicado
+        ? { resultado, nueva: fotoDe(motor), huboCierres: motor.configuracion().huboCierres }
+        : { resultado }
+    })
+    if (!hecho) {
+      return { aplicado: false, motivo: 'fallo' }
+    }
+    if (hecho.resultado.aplicado) {
+      // La foto y el resumen se refrescan en la misma acción: el botón y la escena
+      // responden al instante, sin esperar al freno de la interfaz.
+      set({
+        foto: hecho.nueva,
+        resumen: resumenDe(hecho.nueva),
+        huboCierres: hecho.huboCierres,
+      })
+    }
+    return hecho.resultado
+  },
+
+  cerrarServidor: (etapa, indice) => get().cambiarServidor(etapa, indice, 'cerrar'),
+  abrirServidor: (etapa, indice) => get().cambiarServidor(etapa, indice, 'abrir'),
+
+  /** Cierra el servidor si está activo y lo abre si está cerrado o cerrándose. */
+  alternarServidor: (etapa, indice) => {
+    const servidor = get().foto[SERVIDORES_DE_LA_ETAPA[etapa]]?.[indice]
+    if (!servidor) {
+      return { aplicado: false, motivo: 'no-existe' }
+    }
+    return get().cambiarServidor(
+      etapa,
+      indice,
+      estadoDelServidor(servidor) === SERVIDOR_ACTIVO ? 'cerrar' : 'abrir',
     )
   },
 
-  /** Cambia el tiempo de acabado de un plan y vuelve a empezar. */
+  /**
+   * Cambia un parámetro y vuelve a empezar con la misma semilla.
+   * Se reinicia porque las métricas acumuladas de antes describirían otro
+   * lavadero; se conservan la semilla, la velocidad y si estaba corriendo.
+   *
+   * El store es la guardia: un valor que no pasa la validación no se aplica,
+   * no reinicia y deja el parámetro como estaba. Igual en la visita y durante la
+   * corrida larga. Devuelve `true` solo si el cambio se aplicó.
+   */
+  cambiarParametro: (nombre, valor) => {
+    if (get().modo === MODO_VISITA || get().corridaLarga) {
+      return false
+    }
+    if (!Object.hasOwn(NOMBRE_DEL_PARAMETRO, nombre)) {
+      return false
+    }
+    const leido = validarParametro(nombre, valor)
+    if (!leido.valido) {
+      return false
+    }
+    const parametros = { ...get().parametros, [nombre]: leido.valor }
+    set({ parametros })
+    get().reiniciar(
+      `Cambiaste ${NOMBRE_DEL_PARAMETRO[nombre]}, así que la simulación volvió a empezar con la misma semilla.`,
+    )
+    return true
+  },
+
+  /** Cambia el tiempo de acabado de un plan y vuelve a empezar. Devuelve `true` si se aplicó. */
   cambiarAcabadoDePlan: (plan, minutos) => {
     if (get().modo === MODO_VISITA || get().corridaLarga) {
-      return
+      return false
+    }
+    const leido = validarParametro('acabadoPlanMin', minutos)
+    if (!esUnPlan(plan) || !leido.valido) {
+      return false
     }
     const anteriores = get().parametros.acabadoPlanMin
     const parametros = {
       ...get().parametros,
-      acabadoPlanMin: { ...anteriores, [plan]: minutos },
+      acabadoPlanMin: { ...anteriores, [plan]: leido.valor },
     }
     set({ parametros })
     get().reiniciar(
       `Cambiaste el tiempo de acabado del plan ${plan}, así que la simulación volvió a empezar con la misma semilla.`,
     )
+    return true
   },
 
   /**
@@ -600,35 +808,53 @@ export const useSimulacion = create((set, get) => ({
     get().reiniciar('Se restablecieron los valores por defecto.')
   },
 
-  /** Mueve la proporción de un plan; las otras dos se reajustan. */
+  /**
+   * Mueve la proporción de un plan (una fracción de 0 a 1); las otras dos se
+   * reajustan. Devuelve `true` si se aplicó.
+   */
   cambiarProporcion: (plan, valor) => {
     if (get().modo === MODO_VISITA || get().corridaLarga) {
-      return
+      return false
     }
-    const proporcionPlan = repartirProporciones(get().parametros.proporcionPlan, plan, valor)
+    const leido = validarParametro('proporcionPlan', valor)
+    if (!esUnPlan(plan) || !leido.valido) {
+      return false
+    }
+    const proporcionPlan = repartirProporciones(get().parametros.proporcionPlan, plan, leido.valor)
     set({ parametros: { ...get().parametros, proporcionPlan } })
     get().reiniciar(
       `Cambiaste la proporción del plan ${plan}, así que la simulación volvió a empezar con la misma semilla.`,
     )
+    return true
   },
 
-  /** Otra semilla es otra tarde simulada: también reinicia. */
+  /** Otra semilla es otra tarde simulada: también reinicia. Devuelve `true` si se aplicó. */
   cambiarSemilla: (semilla) => {
     if (get().modo === MODO_VISITA || get().corridaLarga) {
-      return
+      return false
     }
-    set({ semilla })
+    const leido = validarParametro('semilla', semilla)
+    if (!leido.valido) {
+      return false
+    }
+    set({ semilla: leido.valor })
     get().reiniciar('Cambiaste la semilla, así que la simulación volvió a empezar con otro azar.')
+    return true
   },
 
-  /** La velocidad se puede cambiar en marcha: no reinicia nada. */
-  cambiarVelocidad: (velocidadMinPorSegundo) =>
-    set({
-      velocidadMinPorSegundo: Math.min(
-        VELOCIDAD_MAXIMA,
-        Math.max(VELOCIDAD_MINIMA, velocidadMinPorSegundo),
-      ),
-    }),
+  /**
+   * La velocidad se puede cambiar en marcha: no reinicia nada. Un valor fuera de
+   * 0,25 a 120 min/s no se aplica y la velocidad queda como estaba (no se recorta
+   * al extremo). Devuelve `true` si se aplicó.
+   */
+  cambiarVelocidad: (velocidadMinPorSegundo) => {
+    const leido = validarParametro('velocidad', velocidadMinPorSegundo)
+    if (!leido.valido) {
+      return false
+    }
+    set({ velocidadMinPorSegundo: leido.valor })
+    return true
+  },
 
   /** El tiempo medio de acabado que está usando el modo "M/M/s" ahora. */
   acabadoPromedioMin: () => acabadoPromedioDe(get().parametros),

@@ -4,21 +4,9 @@
  * cuando el texto no sirve. JavaScript puro, para probarlo con Node.
  */
 
-/**
- * Los rangos de cada valor, en un solo lugar: los usan por igual el campo
- * donde se escribe y el deslizador de al lado, y no hay otros.
- *
- * El generador aleatorio trabaja con 32 bits (`Math.trunc(semilla) >>> 0`),
- * así que una semilla de 4 294 967 296 o más repetiría la de otra más chica:
- * 4 294 967 296 daría exactamente la corrida de la semilla 0.
- */
-export const RANGOS = {
-  llegadas: { minimo: 1, maximo: 40, paso: 0.0001, unidad: 'motos/h' },
-  lavado: { minimo: 1, maximo: 30, paso: 0.1, unidad: 'min' },
-  acabado: { minimo: 1, maximo: 40, paso: 0.1, unidad: 'min' },
-  proporcion: { minimo: 0, maximo: 100, paso: 0.1, unidad: '%' },
-  semilla: { minimo: 0, maximo: 4294967295, entero: true },
-}
+// Los rangos viven en el store, que es quien los hace cumplir; el campo, el
+// deslizador y la validación comparten ese único dato.
+export { RANGOS } from '../store/rangos.js'
 
 /** Los decimales que se muestran como máximo en un campo, sin ceros sobrantes. */
 export const DECIMALES_DEL_CAMPO = 4
@@ -95,4 +83,19 @@ export function mensajeDeError({ minimo, maximo, entero = false }, ultimoValido)
     `Escribe ${queEscribir} entre ${comoTextoDeLaFrase(minimo)} y ${comoTextoDeLaFrase(maximo)}. ` +
     `La simulación sigue con ${comoTextoDeLaFrase(ultimoValido)} hasta que el valor sea válido.`
   )
+}
+
+/**
+ * El valor al que lleva pulsar − o + en un campo con botones.
+ *
+ * Suma o resta 1 (los campos con botones son de enteros) y nunca sale del
+ * rango: en el mínimo, − no cambia nada, y en el máximo, + tampoco.
+ *
+ * @param {number} valor el valor de ahora
+ * @param {{ minimo: number, maximo: number }} rango
+ * @param {1 | -1} sentido
+ * @returns {number}
+ */
+export function valorConPaso(valor, { minimo, maximo }, sentido) {
+  return Math.min(maximo, Math.max(minimo, valor + sentido))
 }

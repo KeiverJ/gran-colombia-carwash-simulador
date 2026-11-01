@@ -6,8 +6,6 @@ import { metricasCalculadas } from './metricas.js'
 import { MAXIMO_DE_PUNTOS } from './puntos.js'
 import {
   acabadoPromedioDe,
-  PLACAS_POSIBLES,
-  PUESTOS_POSIBLES,
   repartirProporciones,
   useSimulacion,
   VELOCIDAD_MAXIMA,
@@ -71,11 +69,15 @@ describe('avanzar cuadro a cuadro', () => {
     expect(estado().foto.relojMin).toBeCloseTo(0.1, 10)
   })
 
-  it('la velocidad se mantiene entre sus límites', () => {
-    estado().cambiarVelocidad(1000)
-    expect(estado().velocidadMinPorSegundo).toBe(VELOCIDAD_MAXIMA)
-    estado().cambiarVelocidad(0)
-    expect(estado().velocidadMinPorSegundo).toBe(VELOCIDAD_MINIMA)
+  it('la velocidad acepta sus extremos y rechaza lo que se sale, sin recortar', () => {
+    expect(estado().cambiarVelocidad(VELOCIDAD_MAXIMA)).toBe(true)
+    expect(estado().velocidadMinPorSegundo).toBe(120)
+    expect(estado().cambiarVelocidad(VELOCIDAD_MINIMA)).toBe(true)
+    expect(estado().velocidadMinPorSegundo).toBe(0.25)
+    expect(estado().cambiarVelocidad(1000)).toBe(false)
+    expect(estado().velocidadMinPorSegundo).toBe(0.25)
+    expect(estado().cambiarVelocidad(0)).toBe(false)
+    expect(estado().velocidadMinPorSegundo).toBe(0.25)
   })
 })
 
@@ -137,15 +139,13 @@ describe('cambiar un parámetro reinicia la simulación', () => {
     expect(estado().foto.relojMin).toBe(relojAntes)
   })
 
-  it('las placas y los puestos que ofrece el panel son los del proyecto', () => {
-    expect(PLACAS_POSIBLES).toEqual([5, 6, 7])
-    expect(PUESTOS_POSIBLES).toEqual([3, 4, 5])
-    for (const placas of PLACAS_POSIBLES) {
-      estado().cambiarParametro('placas', placas)
+  it('las placas van de 1 a 14 y los puestos de 1 a 7, y el motor los trae todos', () => {
+    for (let placas = 1; placas <= 14; placas += 1) {
+      expect(estado().cambiarParametro('placas', placas)).toBe(true)
       expect(estado().foto.placas).toHaveLength(placas)
     }
-    for (const puestos of PUESTOS_POSIBLES) {
-      estado().cambiarParametro('puestos', puestos)
+    for (let puestos = 1; puestos <= 7; puestos += 1) {
+      expect(estado().cambiarParametro('puestos', puestos)).toBe(true)
       expect(estado().foto.puestos).toHaveLength(puestos)
     }
   })
@@ -232,11 +232,11 @@ describe('las proporciones al mover un deslizador', () => {
     }
   })
 
-  it('un valor fuera de rango se acota en vez de romper nada', () => {
-    estado().cambiarProporcion(2, 1.8)
-    expect(estado().parametros.proporcionPlan[2]).toBe(1)
-    estado().cambiarProporcion(2, -0.5)
-    expect(estado().parametros.proporcionPlan[2]).toBe(0)
+  it('un valor fuera de rango no se aplica: las proporciones quedan como estaban', () => {
+    const antes = { ...estado().parametros.proporcionPlan }
+    expect(estado().cambiarProporcion(2, 1.8)).toBe(false)
+    expect(estado().cambiarProporcion(2, -0.5)).toBe(false)
+    expect(estado().parametros.proporcionPlan).toEqual(antes)
   })
 })
 

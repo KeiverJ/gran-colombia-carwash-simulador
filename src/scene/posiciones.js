@@ -395,6 +395,48 @@ export const COLUMNAS_DEL_TECHO = [
  */
 export const POSTE_DE_LOSA = { x: -(SERVIDOR.ancho / 2 + 0.4), z: 0.7 }
 
+/** Lo que mide a lo ancho la base de un poste, de radio, en metros. */
+export const RADIO_DE_LA_BASE_DEL_POSTE = 0.16
+
+/**
+ * Dónde queda el poste de una losa, medido desde su centro, y cuánto se encoge.
+ *
+ * Con la separación de siempre (0,8 m o más hasta la losa de la izquierda) es
+ * `POSTE_DE_LOSA`, sin tocar nada. Si las losas están más juntas, que pasa con 7
+ * en una fila, el poste se acerca al centro del hueco que queda entre las dos,
+ * y si ni así cabe su base se encoge (poste, base y manguera) lo justo.
+ *
+ * @param {number} espacio metros libres entre esta losa y la de su izquierda;
+ *   `Infinity` si es la primera de su fila
+ * @returns {{ x: number, z: number, escala: number }}
+ */
+export function posteDeLaLosa(espacio) {
+  const hastaElPoste = Math.min(-POSTE_DE_LOSA.x - SERVIDOR.ancho / 2, espacio / 2)
+  const escala = Math.min(1, Math.max((espacio - 0.04) / (2 * RADIO_DE_LA_BASE_DEL_POSTE), 0.3))
+  return { x: -(SERVIDOR.ancho / 2 + hastaElPoste), z: POSTE_DE_LOSA.z, escala }
+}
+
+/** Metros libres entre una losa de una fila y la de su izquierda (`Infinity` si es la primera). */
+function espacioALaIzquierda(columna, columnas) {
+  if (columna === 0) return Infinity
+  const paso = (ZONA_DE_SERVIDORES.ancho - SERVIDOR.ancho) / (columnas - 1)
+  return paso - SERVIDOR.ancho
+}
+
+/** El poste de la placa `indice`, medido desde el centro de su losa. */
+export function posteDeLaPlaca(indice, total) {
+  exigirIndice(indice, total, 'placa')
+  const { adelante } = repartoDePlacas(total)
+  const columna = indice >= adelante ? indice - adelante : indice
+  return posteDeLaLosa(espacioALaIzquierda(columna, adelante))
+}
+
+/** El poste del puesto `indice`, medido desde el centro de su losa. */
+export function posteDelPuesto(indice, total) {
+  exigirIndice(indice, total, 'puesto')
+  return posteDeLaLosa(espacioALaIzquierda(indice, total))
+}
+
 /**
  * El techo: una losa fina sobre las columnas que sobresale un poco de ellas.
  * `alto` es donde van las vigas y la cara de abajo de la losa. La escena la

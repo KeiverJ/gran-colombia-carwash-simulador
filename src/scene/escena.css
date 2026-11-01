@@ -367,6 +367,27 @@
   background: var(--fondo-tarjeta);
 }
 
+.aviso-sin-3d-texto {
+  margin: 0 0 var(--espacio-2);
+}
+
+/* El aviso de que el motor falló: flota arriba y al centro de la escena. */
+.aviso-de-fallo {
+  position: absolute;
+  top: calc(var(--espacio-2) + var(--alto-control) + var(--espacio-2));
+  left: 50%;
+  z-index: 3;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100% - 2 * var(--espacio-2));
+  transform: translateX(-50%);
+  background: var(--fondo-tarjeta);
+}
+
+.aviso-de-fallo-texto {
+  margin: 0 0 var(--espacio-2);
+}
+
 /* --- Rótulos dentro de la escena (HTML colocado en 3D) --- */
 
 .rotulo {

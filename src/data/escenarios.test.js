@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { PLACAS_POSIBLES, PUESTOS_POSIBLES } from '../store/simulacion.js'
+import { RANGOS } from '../store/rangos.js'
 import { ESCENARIOS } from './escenarios.js'
 import { PLACAS_LAVADO, PUESTOS_ACABADO } from './parametros.js'
 
@@ -31,8 +31,10 @@ describe('escenarios predefinidos', () => {
 
   it('todos caben en lo que el panel deja elegir', () => {
     for (const { placas, puestos } of ESCENARIOS) {
-      expect(PLACAS_POSIBLES).toContain(placas)
-      expect(PUESTOS_POSIBLES).toContain(puestos)
+      expect(placas).toBeGreaterThanOrEqual(RANGOS.placas.minimo)
+      expect(placas).toBeLessThanOrEqual(RANGOS.placas.maximo)
+      expect(puestos).toBeGreaterThanOrEqual(RANGOS.puestos.minimo)
+      expect(puestos).toBeLessThanOrEqual(RANGOS.puestos.maximo)
     }
   })
 

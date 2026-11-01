@@ -6,7 +6,8 @@ import {
   COLUMNAS_DEL_TECHO,
   posicionDePlaca,
   posicionDePuesto,
-  POSTE_DE_LOSA,
+  posteDeLaPlaca,
+  posteDelPuesto,
   SERVIDOR,
 } from './posiciones.js'
 import { crearTexturaDeSombra } from './texturaDeSombra.js'
@@ -21,12 +22,12 @@ const HOLGURA_DE_LA_LOSA = 1.3
 function sombrasEstaticas(placas, puestos) {
   const sombras = COLUMNAS_DEL_TECHO.map(([x, , z]) => [x, z, 1.5, 1.5])
   const losas = [
-    ...Array.from({ length: placas }, (_, i) => posicionDePlaca(i, placas)),
-    ...Array.from({ length: puestos }, (_, i) => posicionDePuesto(i, puestos)),
+    ...Array.from({ length: placas }, (_, i) => ({ centro: posicionDePlaca(i, placas), poste: posteDeLaPlaca(i, placas) })),
+    ...Array.from({ length: puestos }, (_, i) => ({ centro: posicionDePuesto(i, puestos), poste: posteDelPuesto(i, puestos) })),
   ]
-  for (const [x, , z] of losas) {
+  for (const { centro: [x, , z], poste } of losas) {
     sombras.push([x, z, SERVIDOR.ancho * HOLGURA_DE_LA_LOSA, SERVIDOR.fondo * HOLGURA_DE_LA_LOSA])
-    sombras.push([x + POSTE_DE_LOSA.x, z + POSTE_DE_LOSA.z, 0.7, 0.7])
+    sombras.push([x + poste.x, z + poste.z, 0.7 * poste.escala, 0.7 * poste.escala])
   }
   return sombras
 }

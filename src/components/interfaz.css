@@ -113,6 +113,7 @@
 
 .barra-derecha {
   display: flex;
+  flex: none;
   align-items: center;
   gap: var(--espacio-3);
   margin-left: auto;
@@ -138,7 +139,9 @@
 }
 
 .velocidad {
+  position: relative;
   display: flex;
+  flex: none;
   flex-direction: column;
   gap: 2px;
   width: 9.5rem;
@@ -158,6 +161,7 @@
 
 .selector-de-modo {
   display: inline-flex;
+  flex: none;
   border: 1px solid var(--borde-campo);
   border-radius: var(--radio-control);
   overflow: hidden;
@@ -1295,8 +1299,19 @@
     gap: var(--espacio-2);
   }
 
+  /* La palabra «Velocidad» se queda solo para las ayudas técnicas y el valor (hasta
+     «120,00 min/s») cabe entero: antes el texto se salía de su caja y ensanchaba la página. */
   .velocidad {
-    width: 4.5rem;
+    width: 5.75rem;
+  }
+
+  .velocidad-nombre {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .reloj-etiqueta {
@@ -1507,4 +1522,30 @@
   .ayuda {
     max-height: none;
   }
+}
+
+/* El último recurso: lo que se ve si la aplicación entera falla al dibujarse. */
+.aviso-de-la-aplicacion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--espacio-3);
+  box-sizing: border-box;
+  max-width: 32rem;
+  margin: var(--espacio-5) auto;
+  padding: var(--espacio-4);
+  border: 1px solid var(--peligro-borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--fondo-tarjeta);
+  color: var(--texto);
+  font-size: var(--letra-normal);
+}
+
+.aviso-de-la-aplicacion h1 {
+  margin: 0;
+  font-size: var(--letra-titulo);
+}
+
+.aviso-de-la-aplicacion p {
+  margin: 0;
 }

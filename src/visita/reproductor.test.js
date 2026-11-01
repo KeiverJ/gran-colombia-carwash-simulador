@@ -217,6 +217,14 @@ describe('la foto es la misma que entrega el motor', () => {
   // A las 3:15 la moto 1 está en la placa 2.
   const fotoConMoto = fotos[hm(3, 15)]
 
+  it('todos los servidores figuran activos y el largo de cada fila es el de su lista', () => {
+    for (const foto of fotos) {
+      for (const servidor of [...foto.placas, ...foto.puestos]) expect(servidor.estado).toBe('activo')
+      expect(foto.largoColaLavado).toBe(foto.colaLavado.length)
+      expect(foto.largoColaAcabado).toBe(foto.colaAcabado.length)
+    }
+  })
+
   it('tiene las mismas claves', () => {
     expect(Object.keys(fotoMediaTarde).sort()).toEqual(Object.keys(fotoDelMotor).sort())
   })

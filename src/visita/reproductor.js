@@ -8,7 +8,9 @@
  * 3:11 con todas las placas libres y entra a las 3:13, a la placa 2).
  *
  * Entrega **la misma foto del estado que el motor** —`relojMin`, `placas`,
- * `puestos`, `colaLavado`, `colaAcabado`, `motosLlegadas`, `motosSalidas`— y los
+ * `puestos` (cada uno con su `estado`, siempre `'activo'`), `colaLavado`,
+ * `colaAcabado`, `largoColaLavado`, `largoColaAcabado`, `motosLlegadas`,
+ * `motosSalidas`— y los
  * mismos tres métodos que usa el store (`avanzar`, `estado`, `metricas`), así que
  * la escena, la gráfica y los mandos funcionan sin saber de cuál de los dos
  * vienen. Si el store llegara a usar otro método del motor, hay que agregarlo aquí.
@@ -201,14 +203,22 @@ export function crearReproductor({
     /** Foto del lavadero, con la misma forma que la del motor. */
     estado() {
       const foto = minutos[minutoDe(reloj)]
+      // En la visita nadie abre ni cierra servidores: todos están siempre activos.
       const servidores = (numeros) =>
-        numeros.map((n, i) => ({ numero: i + 1, moto: fotoDeMoto(n), libre: n === null }))
+        numeros.map((n, i) => ({
+          numero: i + 1,
+          moto: fotoDeMoto(n),
+          libre: n === null,
+          estado: 'activo',
+        }))
       return {
         relojMin: reloj,
         placas: servidores(foto.placas),
         puestos: servidores(foto.puestos),
         colaLavado: foto.fila1.map(fotoDeMoto),
         colaAcabado: foto.fila2.map(fotoDeMoto),
+        largoColaLavado: foto.fila1.length,
+        largoColaAcabado: foto.fila2.length,
         motosLlegadas: foto.llegadas,
         motosSalidas: foto.salidas,
       }

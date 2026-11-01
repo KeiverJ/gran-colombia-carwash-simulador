@@ -25,7 +25,7 @@ describe('la generación del motor', () => {
     'cambiar la proporción de un plan': () => estado().cambiarProporcion(2, 0.4),
     'cambiar la semilla': () => estado().cambiarSemilla(3),
     'entrar a la visita': () => estado().entrarEnLaVisita(),
-    'empezar la corrida larga': () => estado().empezarCorridaLarga(5),
+    'empezar la corrida larga': () => estado().empezarCorridaLarga(100),
   }
 
   it.each(Object.entries(ACCIONES))('sube al %s', (_nombre, accion) => {
@@ -42,7 +42,7 @@ describe('la generación del motor', () => {
   })
 
   it('sube al terminar la corrida larga y al terminar la visita', () => {
-    estado().empezarCorridaLarga(5)
+    estado().empezarCorridaLarga(100)
     const antes = estado().generacion
     while (estado().corridaLarga) estado().avanzarCorridaLarga()
     expect(estado().generacion).toBeGreaterThan(antes)
@@ -71,7 +71,7 @@ describe('la generación del motor', () => {
   })
 
   it('Reiniciar durante la corrida larga no hace nada: se cancela con su propio botón', () => {
-    estado().empezarCorridaLarga(50)
+    estado().empezarCorridaLarga(100)
     estado().avanzarCorridaLarga()
     const antes = estado().generacion
     estado().reiniciar()
@@ -80,7 +80,7 @@ describe('la generación del motor', () => {
   })
 
   it('Cancelar la corrida larga la detiene, deja la simulación en pausa y sube la generación', () => {
-    estado().empezarCorridaLarga(50)
+    estado().empezarCorridaLarga(100)
     estado().avanzarCorridaLarga()
     const antes = estado().generacion
     estado().cancelarCorridaLarga()
@@ -90,7 +90,7 @@ describe('la generación del motor', () => {
   })
 
   it('un solo dueño: con la corrida larga en marcha, darUnCuadro la avanza a ella y no al ciclo normal', () => {
-    estado().empezarCorridaLarga(50)
+    estado().empezarCorridaLarga(100)
     const motor = estado().motor
     const horas = estado().corridaLarga.horasHechas
     const instante = darUnCuadro(estado(), 1000, 900)

@@ -31,6 +31,15 @@ import { tiemposDeLaVisita } from './tiemposDeLaVisita.js'
 export const MENSAJE_SIN_DATOS = 'Los datos aparecerán cuando la simulación avance.'
 export const MENSAJE_SIN_MOTOS_QUE_SALIERON = 'Aparecerá cuando salga la primera moto.'
 
+/** El detalle de la visita; si el reproductor falla, las gráficas siguen sin él. */
+function detalleSeguro(motor) {
+  try {
+    return motor.detalleDeLaEtapa2()
+  } catch {
+    return null
+  }
+}
+
 /** Lo que las gráficas leen del store, y nada más. */
 export function tomarLaInstantanea(estado) {
   const enLaVisita = estado.modo === MODO_VISITA
@@ -40,8 +49,10 @@ export function tomarLaInstantanea(estado) {
     puntos: estado.puntos,
     metricas: estado.metricas,
     relojMin: estado.resumen.relojMin,
+    placasActivas: estado.resumen.placasActivas,
+    puestosActivos: estado.resumen.puestosActivos,
     // El detalle de los puestos solo existe en el reproductor de la visita.
-    detalle: enLaVisita ? estado.motor.detalleDeLaEtapa2() : null,
+    detalle: enLaVisita ? detalleSeguro(estado.motor) : null,
   }
 }
 
@@ -52,7 +63,8 @@ export function tomarLaInstantanea(estado) {
  * @param {object} instantanea lo que entrega `tomarLaInstantanea`
  */
 export function modelosDeLasGraficas(instantanea) {
-  const { modo, parametros, puntos, metricas, relojMin, detalle } = instantanea
+  const { modo, parametros, puntos, metricas, relojMin, detalle, placasActivas, puestosActivos } =
+    instantanea
   const enLaVisita = modo === MODO_VISITA
 
   const filas = {
@@ -86,7 +98,11 @@ export function modelosDeLasGraficas(instantanea) {
 
   const desgloseModelo = enLaVisita
     ? desgloseDeLaVisita({ motos: MOTOS_VISITA, detalle, inicioMin: INICIO_OBSERVACION_MIN, relojMin })
-    : desgloseDeLaSimulacion({ metricas, calculadas: metricasCalculadas(parametros), parametros })
+    : desgloseDeLaSimulacion({
+        metricas,
+        calculadas: metricasCalculadas(parametros, { placasActivas, puestosActivos }),
+        parametros,
+      })
   const desglose = {
     id: 'desglose',
     titulo: 'En qué se va el tiempo promedio',

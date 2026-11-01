@@ -55,8 +55,8 @@ export function IndicadoresDeLaEscena() {
   const parametros = useSimulacion((estado) => estado.parametros)
   const enLaVisita = useSimulacion((estado) => estado.modo === MODO_VISITA)
   const satura = useMemo(
-    () => !enLaVisita && etapaSaturada(parametros, 'acabado'),
-    [parametros, enLaVisita],
+    () => !enLaVisita && etapaSaturada(parametros, 'acabado', resumen),
+    [parametros, enLaVisita, resumen],
   )
   const entero = (valor) => comoNumero(valor, 0)
 

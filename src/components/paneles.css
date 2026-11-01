@@ -91,6 +91,51 @@
   outline: none;
 }
 
+.campo-con-pasos {
+  display: flex;
+  align-items: stretch;
+  gap: var(--espacio-2);
+}
+
+.campo-con-pasos .campo {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Los botones − y +: del mismo alto que el campo, cuadrados y con la letra grande. */
+.campo-paso {
+  flex: none;
+  box-sizing: border-box;
+  inline-size: var(--alto-control);
+  min-height: var(--alto-control);
+  border: 1px solid var(--borde-campo);
+  border-radius: var(--radio-control);
+  background: var(--fondo-tarjeta);
+  color: var(--texto);
+  font: inherit;
+  font-size: var(--letra-titulo);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color var(--duracion-corta) var(--curva-entrada),
+    border-color var(--duracion-corta) var(--curva-entrada);
+}
+
+.campo-paso:hover:not(:disabled) {
+  border-color: var(--etapa-1);
+  background: var(--fondo-pagina);
+}
+
+.campo-paso:focus-visible {
+  outline: 2px solid var(--etapa-1-texto);
+  outline-offset: 1px;
+}
+
+.campo-paso:disabled {
+  color: var(--texto-tenue);
+  cursor: not-allowed;
+}
+
 .campo-unidad {
   flex: none;
   font-size: var(--letra-secundaria);
@@ -113,4 +158,90 @@
   margin: 0 0 var(--espacio-3);
   font-size: var(--letra-pequena);
   color: var(--texto-secundario);
+}
+
+/*
+ * La fila para abrir y cerrar cada placa o puesto. Cada botón dice su número y,
+ * en palabras, si está abierto, cerrándose o cerrado: el estado no depende del
+ * color. Abierto = el borde y el texto de siempre; cerrándose = borde de
+ * advertencia; cerrado = borde discontinuo, fondo de página y texto tenue.
+ */
+.servidores {
+  margin-bottom: var(--espacio-3);
+}
+
+.servidores-nombre {
+  display: block;
+  margin-bottom: var(--espacio-1);
+  font-size: var(--letra-secundaria);
+  color: var(--texto-secundario);
+}
+
+.servidores-fila {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.75rem, 1fr));
+  gap: var(--espacio-1);
+}
+
+.servidor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--alto-control-tactil);
+  padding: var(--espacio-1) var(--espacio-2);
+  border: 1px solid var(--borde-campo);
+  border-radius: var(--radio-control);
+  background: var(--fondo-tarjeta);
+  color: var(--texto);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--duracion-corta) var(--curva-entrada),
+    border-color var(--duracion-corta) var(--curva-entrada);
+}
+
+.servidor:hover:not(:disabled) {
+  border-color: var(--etapa-1);
+}
+
+.servidor-numero {
+  font-size: var(--letra-normal);
+  font-weight: 600;
+}
+
+.servidor-estado {
+  font-size: var(--letra-pequena);
+  color: var(--texto-secundario);
+}
+
+.servidor--cerrandose {
+  border-color: var(--advertencia);
+  background: var(--advertencia-fondo);
+}
+
+.servidor--cerrandose .servidor-estado {
+  color: var(--advertencia-texto);
+}
+
+.servidor--cerrado {
+  border-style: dashed;
+  background: var(--fondo-pagina);
+  color: var(--texto-tenue);
+}
+
+.servidor--cerrado .servidor-estado {
+  color: var(--texto-tenue);
+}
+
+.servidor:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Un grupo de controles con su `fieldset` (para desactivarlos juntos) pero sin el marco del navegador. */
+.control--sin-marco {
+  min-width: 0;
+  padding: 0;
+  border: 0;
 }

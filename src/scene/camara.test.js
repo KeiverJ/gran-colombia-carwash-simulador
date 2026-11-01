@@ -27,7 +27,16 @@ import {
   ZONA_DEL_ACABADO,
   ZONA_DEL_LAVADO,
 } from './camara.js'
-import { FILA_DEL_LAVADO, FRANJA_DE_ESPERA, LOCAL } from './posiciones.js'
+import {
+  FILA_DEL_LAVADO,
+  FRANJA_DE_ESPERA,
+  LOCAL,
+  posicionDePlaca,
+  posicionDePuesto,
+  posteDeLaPlaca,
+  posteDelPuesto,
+  SERVIDOR,
+} from './posiciones.js'
 
 /** Las proporciones que importan: escritorio, 1366 × 768, 1920 × 1080, celular vertical y celular girado. */
 const ASPECTOS = {
@@ -477,6 +486,59 @@ describe('el encuadre con los controles de arriba y el panel de abajo', () => {
     const encuadre = encuadreParaLasCapas({ ...LIENZO, arriba: 5000, abajo: Number.NaN })
     for (const valor of Object.values(encuadre)) {
       expect(Number.isFinite(valor)).toBe(true)
+    }
+  })
+})
+
+/**
+ * Los puntos de todo lo que hay con un número de placas y de puestos: las cuatro
+ * esquinas de cada losa (a ras del piso y a su altura de ocupada), la punta del
+ * poste y el número que lleva encima.
+ */
+function puntosDeLosServidores(placas, puestos) {
+  const de = (centro, poste) => {
+    const [x, , z] = centro
+    const esquinas = [-1, 1].flatMap((sx) =>
+      [-1, 1].flatMap((sz) =>
+        [0, SERVIDOR.altoOcupado].map((y) => [x + (sx * SERVIDOR.ancho) / 2, y, z + (sz * SERVIDOR.fondo) / 2]),
+      ),
+    )
+    return [...esquinas, [x + poste.x, 2.4, z + poste.z]]
+  }
+  return {
+    placas: Array.from({ length: placas }, (_, i) => de(posicionDePlaca(i, placas), posteDeLaPlaca(i, placas))).flat(),
+    puestos: Array.from({ length: puestos }, (_, i) => de(posicionDePuesto(i, puestos), posteDelPuesto(i, puestos))).flat(),
+  }
+}
+
+describe.each(Object.entries(ASPECTOS))('14 placas y 7 puestos, con %s', (_nombre, aspecto) => {
+  const { placas, puestos } = puntosDeLosServidores(14, 7)
+
+  it('la vista general los encuadra a todos', () => {
+    const vista = vistaGeneral(aspecto)
+    for (const punto of [...placas, ...puestos]) {
+      expect(cabe(punto, vista, aspecto), `punto ${punto}`).toBe(true)
+    }
+  })
+
+  it('la planta los encuadra a todos', () => {
+    const vista = vistaPlanta(aspecto)
+    for (const punto of [...placas, ...puestos]) {
+      expect(cabe(punto, vista, aspecto), `punto ${punto}`).toBe(true)
+    }
+  })
+
+  it('la vista del lavado encuadra las 14 placas', () => {
+    const vista = vistaLavado(aspecto)
+    for (const punto of placas) {
+      expect(cabe(punto, vista, aspecto), `punto ${punto}`).toBe(true)
+    }
+  })
+
+  it('la vista del acabado encuadra los 7 puestos', () => {
+    const vista = vistaAcabado(aspecto)
+    for (const punto of puestos) {
+      expect(cabe(punto, vista, aspecto), `punto ${punto}`).toBe(true)
     }
   })
 })

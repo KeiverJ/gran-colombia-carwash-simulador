@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { estadoDeLasLosas, publicarLasLosas } from './losasPublicadas.js'
 import {
   AIRE_AL_SALIR,
+  estaLevantada,
   estadoSegunElMotor,
   estadoVisualDeLasLosas,
   motoEncimaDeLaLosa,
@@ -156,6 +157,78 @@ describe('el estado visual de una losa', () => {
   })
 })
 
+describe('el estado visual de un servidor cerrado o cerrándose', () => {
+  const placa = posicionDePlaca(0, 1)
+  const sobre = [placa[0], 0.5, placa[2] - 0.5]
+  const lejos = [placa[0], 0, placa[2] + 6]
+  const yaSalio = [placa[0], 0, placa[2] - MEDIO_FONDO - 1.2]
+  const justoAlSalir = [placa[0], 0, placa[2] - MEDIO_FONDO - 0.4]
+
+  const conEstado = (estado, moto = null) => ({
+    placas: [{ moto, libre: moto === null, estado }],
+    puestos: [{ moto: null, libre: true, estado: 'activo' }],
+  })
+  const resolver = ({ f, motos = [], viajes = {}, levantadas }) =>
+    estadoVisualDeLasLosas({
+      foto: f,
+      motos,
+      viajes: new Map(Object.entries(viajes).map(([n, v]) => [Number(n), v])),
+      levantadas: levantadas ?? { placas: [], puestos: [] },
+    })
+
+  it('cerrada y sin ninguna moto cerca: cerrada, y el puesto activo de al lado sigue libre', () => {
+    const r = resolver({ f: conEstado('cerrado') })
+    expect(r.placas).toEqual(['cerrada'])
+    expect(r.puestos).toEqual(['libre'])
+  })
+
+  it('cerrada con una moto que todavía no terminó de salir: se ve ocupada hasta que la deja', () => {
+    const levantadas = { placas: [true], puestos: [] }
+    const saliendo = { n: 1, punto: justoAlSalir, rumbo: Math.PI }
+    expect(resolver({ f: conEstado('cerrado'), motos: [saliendo], levantadas }).placas).toEqual(['ocupada'])
+    const fuera = { ...saliendo, punto: yaSalio }
+    expect(resolver({ f: conEstado('cerrado'), motos: [fuera], levantadas }).placas).toEqual(['cerrada'])
+    expect(levantadas.placas).toEqual([false])
+  })
+
+  it('cerrándose con la moto encima: cerrándose (levantada, con su señal)', () => {
+    const r = resolver({
+      f: conEstado('cerrandose', moto(1)),
+      motos: [{ n: 1, punto: sobre, rumbo: Math.PI }],
+      viajes: { 1: { recorrido: 8, largo: 8 } },
+    })
+    expect(r.placas).toEqual(['cerrandose'])
+    expect(estaLevantada(r.placas[0])).toBe(true)
+  })
+
+  it('cerrándose con la moto todavía en camino: sigue reservada, plana', () => {
+    const r = resolver({
+      f: conEstado('cerrandose', moto(1)),
+      motos: [{ n: 1, punto: lejos, rumbo: Math.PI }],
+      viajes: { 1: { recorrido: 3, largo: 8 } },
+    })
+    expect(r.placas).toEqual(['reservada'])
+  })
+
+  it('al reabrir una cerrada vuelve a verse libre', () => {
+    expect(resolver({ f: conEstado('cerrado') }).placas).toEqual(['cerrada'])
+    expect(resolver({ f: conEstado('activo') }).placas).toEqual(['libre'])
+  })
+
+  it('las fotos sin `estado` (la visita) se resuelven como siempre', () => {
+    const f = { placas: [{ moto: null, libre: true }], puestos: [{ moto: null, libre: true }] }
+    expect(resolver({ f }).placas).toEqual(['libre'])
+  })
+
+  it('cerrada no se levanta: la altura distingue cerrada de ocupada sin depender del color', () => {
+    expect(estaLevantada('cerrada')).toBe(false)
+    expect(estaLevantada('libre')).toBe(false)
+    expect(estaLevantada('reservada')).toBe(false)
+    expect(estaLevantada('ocupada')).toBe(true)
+    expect(estaLevantada('cerrandose')).toBe(true)
+  })
+})
+
 describe('de dónde sale el estado que dibuja la escena', () => {
   const f = {
     relojMin: 5,
@@ -190,5 +263,12 @@ describe('de dónde sale el estado que dibuja la escena', () => {
   it('el motor da libre u ocupada, nunca reservada', () => {
     expect(estadoSegunElMotor({ libre: true })).toBe('libre')
     expect(estadoSegunElMotor({ libre: false })).toBe('ocupada')
+  })
+
+  it('el motor también da cerrada y cerrándose cuando el servidor está fuera de servicio', () => {
+    expect(estadoSegunElMotor({ libre: true, estado: 'cerrado' })).toBe('cerrada')
+    expect(estadoSegunElMotor({ libre: false, estado: 'cerrandose' })).toBe('cerrandose')
+    expect(estadoSegunElMotor({ libre: true, estado: 'activo' })).toBe('libre')
+    expect(estadoSegunElMotor({ libre: false, estado: 'activo' })).toBe('ocupada')
   })
 })

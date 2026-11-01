@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { useCallback, useMemo, useRef, useState } from 'react'
 
 import Aviso from '../components/Aviso.jsx'
+import AvisoDeLaEscenaCaida from '../components/AvisoDeLaEscenaCaida.jsx'
 import AvisoDeCorridaLarga from '../components/AvisoDeCorridaLarga.jsx'
 import IndicadoresDeLaEscena from '../components/IndicadoresDeLaEscena.jsx'
 import MandosMinimos from '../components/MandosMinimos.jsx'
@@ -87,6 +88,10 @@ export function EscenaDelLavadero() {
   // escena no tiene nada que ver con la simulación.
   const [expandida, setExpandida] = useState(false)
   const contenedor = useRef(null)
+  // Si el navegador le quita a la página la tarjeta gráfica (`webglcontextlost`), la escena
+  // se cambia por un aviso con un botón para dibujarla de nuevo (otro lienzo, otro contexto).
+  const [contextoPerdido, setContextoPerdido] = useState(false)
+  const [intento, setIntento] = useState(0)
 
   const vistaPedida = useRef(null)
   const pedirVista = useCallback((clave) => {
@@ -110,6 +115,17 @@ export function EscenaDelLavadero() {
     )
   }
 
+  if (contextoPerdido) {
+    return (
+      <AvisoDeLaEscenaCaida
+        alReintentar={() => {
+          setContextoPerdido(false)
+          setIntento((n) => n + 1)
+        }}
+      />
+    )
+  }
+
   return (
     <section
       className={`escena${expandida ? ' escena--expandida' : ''}`}
@@ -118,12 +134,17 @@ export function EscenaDelLavadero() {
     >
       <div className="lienzo-3d">
         <Canvas
+          key={intento}
           camera={{ position: VISTA_INICIAL.posicion, fov: CAMPO_DE_VISION }}
           shadows={false}
           onCreated={({ gl }) => {
             // El lienzo es una imagen para las ayudas técnicas: se describe qué muestra.
             gl.domElement.setAttribute('role', 'img')
             gl.domElement.setAttribute('aria-label', DESCRIPCION_DE_LA_ESCENA)
+            gl.domElement.addEventListener('webglcontextlost', (evento) => {
+              evento.preventDefault()
+              setContextoPerdido(true)
+            })
           }}
         >
           <Iluminacion />

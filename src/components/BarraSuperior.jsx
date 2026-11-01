@@ -5,6 +5,7 @@ import {
   VELOCIDAD_MAXIMA,
   VELOCIDAD_MINIMA,
 } from '../store/simulacion.js'
+import { RANGOS } from '../store/rangos.js'
 import { comoHoraDeLaTarde, comoNumero, comoReloj } from './formato.js'
 import { RAZON_DE_LA_CORRIDA_LARGA } from './corridaLargaActiva.js'
 import { IconoDeAyuda, IconoDeReiniciar } from './iconos.jsx'
@@ -83,13 +84,14 @@ export function BarraSuperior() {
 
         <label className="velocidad">
           <span>
-            Velocidad <strong>{comoNumero(velocidad, 2)} min/s</strong>
+            <span className="velocidad-nombre">Velocidad </span>
+            <strong>{comoNumero(velocidad, 2)} min/s</strong>
           </span>
           <input
             type="range"
             min={VELOCIDAD_MINIMA}
             max={VELOCIDAD_MAXIMA}
-            step={0.25}
+            step={RANGOS.velocidad.paso}
             value={velocidad}
             onChange={(evento) => cambiarVelocidad(Number(evento.target.value))}
           />

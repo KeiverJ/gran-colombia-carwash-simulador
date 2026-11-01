@@ -95,6 +95,10 @@ export const COLOR_DE_ESCENA = {
   manguera: '#2d3a44',
   bordeDeLosa: '#e8eef1',
   mesa: '#d9dfe3',
+  // Servidores fuera de servicio: la losa cerrada (el gris de la pintura de espera)
+  // y la barrera y la señal de «cerrándose» (el ámbar de las advertencias)
+  losaCerrada: '#9aa7ae',
+  barreraDeCierre: '#d98a00',
   // Rótulos de la escena
   rotuloTexto: '#12212c',
   rotuloFondo: '#ffffff',

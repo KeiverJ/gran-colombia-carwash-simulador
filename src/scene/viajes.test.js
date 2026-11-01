@@ -310,7 +310,7 @@ describe('un solo dueño del motor a la vez', () => {
 
   it('mientras corre la corrida larga el ciclo de animación no avanza el motor', () => {
     prepararCorrida({ velocidad: 10 })
-    estado().empezarCorridaLarga(30)
+    estado().empezarCorridaLarga(100)
     const cuentas = vigilarElMotor()
     const banco = crearBanco()
     let cuadros = 0
@@ -327,7 +327,7 @@ describe('un solo dueño del motor a la vez', () => {
 
   it('Iniciar no hace nada mientras corre la corrida larga, y al terminar queda en pausa', () => {
     prepararCorrida({ velocidad: 10 })
-    estado().empezarCorridaLarga(20)
+    estado().empezarCorridaLarga(100)
     estado().iniciar()
     expect(estado().corriendo).toBe(false)
     const banco = crearBanco()
@@ -340,7 +340,7 @@ describe('un solo dueño del motor a la vez', () => {
 
   it('avanzarCuadro, llamado a mano durante la corrida larga, tampoco avanza el motor', () => {
     prepararCorrida({ velocidad: 10 })
-    estado().empezarCorridaLarga(30)
+    estado().empezarCorridaLarga(100)
     const cuentas = vigilarElMotor()
     for (let i = 0; i < 50; i += 1) estado().avanzarCuadro(16)
     expect(cuentas.avanzar).toBe(0)
@@ -456,7 +456,7 @@ describe('recolocar en lugar de animar', () => {
 
   it('al terminar la corrida larga, la escena se recoloca con el estado final y queda en pausa', () => {
     const banco = bancoEnMarcha()
-    estado().empezarCorridaLarga(60)
+    estado().empezarCorridaLarga(100)
     while (estado().corridaLarga) banco.cuadro()
     expect(estado().corriendo).toBe(false)
     const motos = banco.cuadro()
@@ -466,7 +466,7 @@ describe('recolocar en lugar de animar', () => {
 
   it('cancelar la corrida larga a mitad deja la escena limpia y lista para Iniciar', () => {
     const banco = bancoEnMarcha()
-    estado().empezarCorridaLarga(200)
+    estado().empezarCorridaLarga(100)
     for (let i = 0; i < 3; i += 1) banco.cuadro()
     expect(estado().corridaLarga).not.toBeNull()
     estado().cancelarCorridaLarga()
@@ -521,11 +521,11 @@ describe('recolocar en lugar de animar', () => {
 describe('las motos que no caben en el dibujo no se apilan: se cuentan', () => {
   it('con una corrida larga (miles en fila), tras recolocar y seguir, solo se dibujan las que caben', () => {
     prepararCorrida({ velocidad: 10 })
-    estado().empezarCorridaLarga(300)
+    estado().empezarCorridaLarga(1000)
     const banco = crearBanco()
     while (estado().corridaLarga) banco.cuadro()
     const foto = estado().foto
-    expect(foto.colaAcabado.length, 'hay una fila larga').toBeGreaterThan(TOPE_DE_MOTOS_DIBUJADAS.acabado * 4)
+    expect(foto.largoColaAcabado, 'hay una fila larga').toBeGreaterThan(TOPE_DE_MOTOS_DIBUJADAS.acabado * 4)
     estado().iniciar()
     let masDibujadas = 0
     for (let i = 0; i < 60 * 240; i += 1) {
@@ -539,7 +539,7 @@ describe('las motos que no caben en el dibujo no se apilan: se cuentan', () => {
 
   it('las que salen de la fila oculta lo hacen del final de su fila, no de una avenida', () => {
     prepararCorrida({ velocidad: 10 })
-    estado().empezarCorridaLarga(300)
+    estado().empezarCorridaLarga(1000)
     const banco = crearBanco()
     while (estado().corridaLarga) banco.cuadro()
     estado().iniciar()
@@ -843,7 +843,7 @@ describe('las losas siguen a las motos de la escena, no al motor', () => {
     prepararCorrida({ velocidad: 10, llegadasPorHora: 40 })
     const banco = crearBanco()
     banco.cuadros(60 * 60)
-    estado().empezarCorridaLarga(30)
+    estado().empezarCorridaLarga(100)
     while (estado().corridaLarga) {
       banco.cuadro()
       if (estado().corridaLarga) expect(banco.viajes.losas).toBeNull()
@@ -1004,7 +1004,7 @@ describe('la corrida larga en cámara rápida', () => {
     estado().elegirEscenario(ESCENARIOS[1].id)
     estado().restablecerValores()
     estado().entrarEnLaVisita()
-    estado().empezarCorridaLarga(50)
+    estado().empezarCorridaLarga(100)
     expect(estado().corriendo).toBe(false)
     expect(estado().motor).toBe(motor)
     expect(estado().parametros).toBe(parametros)

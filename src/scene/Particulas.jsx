@@ -5,6 +5,7 @@ import { DynamicDrawUsage } from 'three'
 import { COLOR_DE_OCUPADO } from '../estilos/colores.js'
 import { useSimulacion } from '../store/simulacion.js'
 import { estadoDeLasLosas } from './losasPublicadas.js'
+import { estaLevantada } from './losasVisuales.js'
 import { avanceDelReloj, crearMemoriaDelReloj, pasoDeLaAnimacion } from './relojDeLaEscena.js'
 import { GOTAS_POR_PLACA, PLACAS_COMO_MAXIMO, posicionDeLaGota } from './gotas.js'
 import { posicionDePlaca, SERVIDOR } from './posiciones.js'
@@ -38,7 +39,7 @@ export function Particulas({ placas }) {
     let n = 0
     for (let i = 0; i < Math.min(placas, PLACAS_COMO_MAXIMO); i += 1) {
       const [px, , pz] = posicionDePlaca(i, placas)
-      const ocupada = estados[i] === 'ocupada'
+      const ocupada = estaLevantada(estados[i])
       for (let k = 0; k < GOTAS_POR_PLACA; k += 1) {
         const [x, y, z] = ocupada
           ? posicionDeLaGota(k, tiempo.current, SERVIDOR.altoOcupado)

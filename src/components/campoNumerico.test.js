@@ -7,6 +7,7 @@ import {
   interpretarNumero,
   mensajeDeError,
   RANGOS,
+  valorConPaso,
 } from './campoNumerico.js'
 
 const llegadas = RANGOS.llegadas
@@ -38,21 +39,41 @@ describe('interpretarNumero', () => {
   it('rechaza los negativos y lo que sale del rango, y acepta los extremos', () => {
     expect(interpretarNumero('-3', llegadas)).toEqual({ valido: false })
     expect(interpretarNumero('-0,5', RANGOS.proporcion)).toEqual({ valido: false })
-    expect(interpretarNumero('80', llegadas)).toEqual({ valido: false })
+    expect(interpretarNumero('201', llegadas)).toEqual({ valido: false })
     expect(interpretarNumero('0,99', llegadas)).toEqual({ valido: false })
-    expect(interpretarNumero('40,0001', llegadas)).toEqual({ valido: false })
+    expect(interpretarNumero('200,0001', llegadas)).toEqual({ valido: false })
     expect(interpretarNumero('1', llegadas)).toEqual({ valido: true, valor: 1 })
-    expect(interpretarNumero('40', llegadas)).toEqual({ valido: true, valor: 40 })
+    expect(interpretarNumero('200', llegadas)).toEqual({ valido: true, valor: 200 })
+    expect(interpretarNumero('0,4', RANGOS.acabado)).toEqual({ valido: false })
+    expect(interpretarNumero('0,5', RANGOS.acabado)).toEqual({ valido: true, valor: 0.5 })
+    expect(interpretarNumero('120', RANGOS.lavado)).toEqual({ valido: true, valor: 120 })
+    expect(interpretarNumero('120,1', RANGOS.lavado)).toEqual({ valido: false })
     expect(interpretarNumero('0', RANGOS.proporcion)).toEqual({ valido: true, valor: 0 })
     expect(interpretarNumero('100', RANGOS.proporcion)).toEqual({ valido: true, valor: 100 })
   })
 
   it('usa los rangos de los deslizadores y ninguno nuevo', () => {
-    expect(RANGOS.llegadas).toMatchObject({ minimo: 1, maximo: 40 })
-    expect(RANGOS.lavado).toMatchObject({ minimo: 1, maximo: 30 })
-    expect(RANGOS.acabado).toMatchObject({ minimo: 1, maximo: 40 })
+    expect(RANGOS.llegadas).toMatchObject({ minimo: 1, maximo: 200 })
+    expect(RANGOS.lavado).toMatchObject({ minimo: 0.5, maximo: 120 })
+    expect(RANGOS.acabado).toMatchObject({ minimo: 0.5, maximo: 120 })
     expect(RANGOS.proporcion).toMatchObject({ minimo: 0, maximo: 100 })
+    expect(RANGOS.placas).toMatchObject({ minimo: 1, maximo: 14, entero: true })
+    expect(RANGOS.puestos).toMatchObject({ minimo: 1, maximo: 7, entero: true })
+    expect(RANGOS.velocidad).toMatchObject({ minimo: 0.25, maximo: 120 })
     expect(RANGOS.semilla).toMatchObject({ minimo: 0, maximo: 4294967295, entero: true })
+  })
+
+  it('las placas y los puestos son enteros en su rango', () => {
+    expect(interpretarNumero('1', RANGOS.placas)).toEqual({ valido: true, valor: 1 })
+    expect(interpretarNumero('14', RANGOS.placas)).toEqual({ valido: true, valor: 14 })
+    for (const texto of ['0', '15', '2,5', '-1']) {
+      expect(interpretarNumero(texto, RANGOS.placas), texto).toEqual({ valido: false })
+    }
+    expect(interpretarNumero('1', RANGOS.puestos)).toEqual({ valido: true, valor: 1 })
+    expect(interpretarNumero('7', RANGOS.puestos)).toEqual({ valido: true, valor: 7 })
+    for (const texto of ['0', '8', '2,5']) {
+      expect(interpretarNumero(texto, RANGOS.puestos), texto).toEqual({ valido: false })
+    }
   })
 
   it('la semilla es un entero de 0 a 4 294 967 295', () => {
@@ -124,9 +145,9 @@ describe('mensajeDeError', () => {
   it('trae el mínimo, el máximo y el último valor válido, con coma decimal', () => {
     const mensaje = mensajeDeError(llegadas, 14.1935)
     expect(mensaje).toBe(
-      'Escribe un número entre 1 y 40. La simulación sigue con 14,1935 hasta que el valor sea válido.',
+      'Escribe un número entre 1 y 200. La simulación sigue con 14,1935 hasta que el valor sea válido.',
     )
-    expect(mensaje).toMatch(/^Escribe un número entre 1 y 40/)
+    expect(mensaje).toMatch(/^Escribe un número entre 1 y 200/)
   })
 
   it('para la semilla pide un número entero', () => {
@@ -137,5 +158,24 @@ describe('mensajeDeError', () => {
 
   it('no habla de código ni de rangos internos', () => {
     expect(mensajeDeError(RANGOS.lavado, 10.7391)).not.toMatch(/NaN|undefined|null|\bint\b/)
+  })
+})
+
+describe('valorConPaso (los botones − y +)', () => {
+  it('suma o resta uno', () => {
+    expect(valorConPaso(6, RANGOS.placas, 1)).toBe(7)
+    expect(valorConPaso(6, RANGOS.placas, -1)).toBe(5)
+  })
+
+  it('no sale del rango: en el mínimo − no cambia nada y en el máximo + tampoco', () => {
+    expect(valorConPaso(1, RANGOS.placas, -1)).toBe(1)
+    expect(valorConPaso(14, RANGOS.placas, 1)).toBe(14)
+    expect(valorConPaso(7, RANGOS.puestos, 1)).toBe(7)
+    expect(valorConPaso(1, RANGOS.puestos, -1)).toBe(1)
+  })
+
+  it('llega a los extremos desde uno antes', () => {
+    expect(valorConPaso(2, RANGOS.placas, -1)).toBe(1)
+    expect(valorConPaso(13, RANGOS.placas, 1)).toBe(14)
   })
 })
