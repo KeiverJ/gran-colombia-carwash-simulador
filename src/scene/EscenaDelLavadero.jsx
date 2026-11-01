@@ -26,6 +26,7 @@ import { sobrantesDe, TOPE_DE_MOTOS_DIBUJADAS } from './posiciones.js'
 import { Servidores, Sobrantes } from './Servidores.jsx'
 import Sombras from './Sombras.jsx'
 import Terreno from './Terreno.jsx'
+import Vegetacion from './Vegetacion.jsx'
 
 /**
  * ¿Puede este navegador dibujar en 3D?
@@ -161,6 +162,7 @@ export function EscenaDelLavadero() {
           <Terreno />
           <Local />
           <Cafeteria />
+          <Vegetacion />
           <Avenidas />
           {/* Primero las motos: las losas y las gotas siguen a lo que ellas hacen en este cuadro. */}
           <Motos />
