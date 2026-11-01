@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react'
 
+import { CREDITOS_DE_FUENTES, LICENCIA_DE_LAS_FUENTES } from '../data/creditosDeFuentes.js'
 import { CREDITOS_DE_MODELOS, LICENCIA_DE_LOS_MODELOS } from '../data/creditosDeModelos.js'
 import { NOMBRE_DE_PLAN } from '../estilos/colores.js'
 import { useInterfaz } from '../store/interfaz.js'
 import { IconoDeCerrar } from './iconos.jsx'
+import LogoDeMarca from './LogoDeMarca.jsx'
 import { usePresencia } from './usePresencia.js'
 
 /** Lo que se puede enfocar con el teclado dentro del recuadro. */
@@ -80,17 +82,27 @@ export function RecuadroDeAyuda() {
         aria-modal="true"
         aria-labelledby="ayuda-titulo"
       >
-        <header className="ayuda-cabecera">
-          <h2 id="ayuda-titulo">Ayuda</h2>
-          <button type="button" className="boton-barra" onClick={cerrarAyuda}>
-            <IconoDeCerrar />
-            <span>Cerrar</span>
-          </button>
-        </header>
+        <EncabezadoDeLaAyuda onCerrar={cerrarAyuda} />
 
         <ContenidoDeLaAyuda />
       </div>
     </div>
+  )
+}
+
+/** El encabezado del recuadro: el logo y el título a la izquierda, y el botón Cerrar. */
+export function EncabezadoDeLaAyuda({ onCerrar }) {
+  return (
+    <header className="ayuda-cabecera">
+      <div className="ayuda-marca">
+        <LogoDeMarca />
+        <h2 id="ayuda-titulo">Ayuda</h2>
+      </div>
+      <button type="button" className="boton-barra" onClick={onCerrar}>
+        <IconoDeCerrar />
+        <span>Cerrar</span>
+      </button>
+    </header>
   )
 }
 
@@ -233,6 +245,24 @@ export function ContenidoDeLaAyuda() {
             <li key={n}>
               <a href={url} target="_blank" rel="noopener noreferrer">
                 {titulo}
+              </a>{' '}
+              de {autor}
+            </li>
+          ))}
+        </ul>
+        <p className="ayuda-parrafo">
+          El texto del logo del lavadero se dibujó con las fuentes Anton y Pacifico, ambas con
+          licencia{' '}
+          <a href={LICENCIA_DE_LAS_FUENTES.url} target="_blank" rel="noopener noreferrer">
+            {LICENCIA_DE_LAS_FUENTES.nombre}
+          </a>
+          . Ya vienen convertidas en trazos dentro del logo: la aplicación no las carga.
+        </p>
+        <ul className="ayuda-creditos">
+          {CREDITOS_DE_FUENTES.map(({ nombre, autor, url }) => (
+            <li key={nombre}>
+              <a href={url} target="_blank" rel="noopener noreferrer">
+                {nombre}
               </a>{' '}
               de {autor}
             </li>

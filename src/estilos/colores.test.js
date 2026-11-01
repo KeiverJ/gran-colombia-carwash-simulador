@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
   COLORES_COMPARTIDOS,
   COLOR_DE_ESCENA,
+  COLOR_DE_MARCA,
   COLOR_DE_ESTADO,
   COLOR_DE_OCUPADO,
   COLOR_DE_RESERVADO,
@@ -50,7 +51,7 @@ describe('tema.css y colores.js dicen lo mismo', () => {
   it('tema.css no tiene colores compartidos que falten en colores.js', () => {
     // El otro sentido: añadir un plan o una serie solo al CSS también falla.
     const compartidosEnElCss = Object.keys(tema).filter((nombre) =>
-      /^(plan-\d+|estado-libre|estado-reservada-[\w-]+|serie-[\w-]+|escena-[\w-]+)$/.test(nombre),
+      /^(marca-[\w-]+|plan-\d+|estado-libre|estado-reservada-[\w-]+|serie-[\w-]+|escena-[\w-]+)$/.test(nombre),
     )
     for (const nombre of compartidosEnElCss) {
       expect(
@@ -212,7 +213,7 @@ describe('la paleta del rediseño', () => {
       'etapa-2': '#6d4fc2',
       advertencia: '#d98a00',
       peligro: '#c8322f',
-      'boton-principal': '#f2b600',
+      'boton-principal': '#ffd21f',
       'boton-principal-texto': '#1a1a1a',
     })
   })
@@ -253,8 +254,82 @@ describe('la paleta del rediseño', () => {
       }
     })
 
-    it('el texto del botón principal se lee sobre su fondo', () => {
+    it('el texto del botón principal se lee sobre su fondo, en reposo, con el mouse encima y pulsado', () => {
       expect(contraste(tema['boton-principal-texto'], tema['boton-principal'])).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it('el botón principal toma el amarillo del logo, con el borde de siempre', () => {
+      expect(tema).toMatchObject({
+        'boton-principal': '#ffd21f',
+        'boton-principal-hover': '#f2be00',
+        'boton-principal-activo': '#dba800',
+        'boton-principal-borde': '#b88a04',
+      })
+    })
+
+    it.each([
+      ['boton-principal', 12.01],
+      ['boton-principal-hover', 10.06],
+      ['boton-principal-activo', 7.97],
+    ])('el texto #1A1A1A sobre --%s da %s : 1, por encima de 7', (nombre, esperado) => {
+      const real = contraste(tema['boton-principal-texto'], tema[nombre])
+      expect(real).toBeGreaterThanOrEqual(7)
+      expect(real).toBeCloseTo(esperado, 1)
+    })
+
+    it('el botón se oscurece al pasar el mouse y más al pulsar', () => {
+      expect(luminancia(tema['boton-principal-hover'])).toBeLessThan(luminancia(tema['boton-principal']))
+      expect(luminancia(tema['boton-principal-activo'])).toBeLessThan(luminancia(tema['boton-principal-hover']))
+    })
+
+    it('el botón se separa de la tarjeta blanca por su borde (3 : 1 o más), no por su relleno', () => {
+      expect(contraste(tema['boton-principal'], tema['fondo-tarjeta'])).toBeCloseTo(1.45, 1)
+      expect(contraste(tema['boton-principal-borde'], tema['fondo-tarjeta'])).toBeGreaterThanOrEqual(3)
     })
   })
 })
+
+describe('la marca del logo en la interfaz', () => {
+  const tema = variablesDelTema()
+  const luminancia = (hex) => {
+    const [r, g, b] = [1, 3, 5].map((i) => {
+      const v = Number.parseInt(hex.slice(i, i + 2), 16) / 255
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+    })
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+  }
+  const contraste = (a, b) => {
+    const [claro, oscuro] = [luminancia(a), luminancia(b)].sort((x, y) => y - x)
+    return (claro + 0.05) / (oscuro + 0.05)
+  }
+
+  it('el azul marino es el del contorno del logo, en el CSS y en JavaScript', () => {
+    expect(tema['marca-azul-marino']).toBe('#0b1f4d')
+    expect(COLOR_DE_MARCA.azulMarino).toBe('#0b1f4d')
+  })
+
+  it('el nombre en azul marino se lee sobre la barra, la página y la escena (15,94 · 14,16 · 13,74)', () => {
+    const esperado = { 'fondo-tarjeta': 15.94, 'fondo-pagina': 14.16, 'fondo-escena': 13.74 }
+    for (const [fondo, valor] of Object.entries(esperado)) {
+      const real = contraste(tema['marca-azul-marino'], tema[fondo])
+      expect(real, fondo).toBeGreaterThanOrEqual(4.5)
+      expect(real, fondo).toBeCloseTo(valor, 1)
+    }
+  })
+
+  it('el rojo del logo (#E11D2A) no está en la interfaz: ni en el tema ni en los colores', () => {
+    const css = readFileSync(RUTA_TEMA, 'utf8')
+    const js = readFileSync(fileURLToPath(new URL('./colores.js', import.meta.url)), 'utf8')
+    expect(css.toLowerCase()).not.toContain('e11d2a')
+    expect(js.toLowerCase()).not.toContain('e11d2a')
+    expect(Object.values(COLORES_COMPARTIDOS).map((c) => c.toLowerCase())).not.toContain('#e11d2a')
+    // El rojo de la interfaz sigue siendo el de siempre.
+    expect(tema.peligro).toBe('#c8322f')
+  })
+
+  it('los colores de las etapas no cambiaron con el logo', () => {
+    expect(tema['etapa-1']).toBe('#0b84ae')
+    expect(tema['etapa-2']).toBe('#6d4fc2')
+  })
+})
+

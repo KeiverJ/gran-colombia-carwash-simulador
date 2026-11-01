@@ -34,6 +34,16 @@ export function opacidadDelTecho(posicion) {
   return t * t * (3 - 2 * t)
 }
 
+/**
+ * Cómo se dibuja algo que se aparta con el techo, según su opacidad: oculto
+ * cuando ya no se ve; transparente mientras se desvanece; y sólido, escribiendo
+ * profundidad, con la opacidad completa (un material transparente no escribe
+ * profundidad y se ordenaría mal con lo de debajo).
+ */
+export function estadoDeLaOpacidad(opacidad) {
+  return { visible: opacidad > 0.01, transparent: opacidad < 0.999, depthWrite: opacidad >= 0.999 }
+}
+
 /** Elevación, en grados, de una cámara vista desde el centro del suelo cubierto. */
 export function elevacionSobreElSuelo(posicion) {
   const [cx, cy, cz] = CENTRO_DEL_SUELO_CUBIERTO

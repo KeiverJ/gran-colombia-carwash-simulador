@@ -56,8 +56,11 @@
  *       encabezados de sección, cifras de ρ y avisos:
  *       --etapa-1-texto #0A6C8C → 5,94 · 5,27 · 5,10 · 5,12
  *       --advertencia-texto #8A5600 → 6,16 · 5,47 · 5,29 · 5,31
- *     · Texto #1A1A1A sobre el botón principal (#F2B600): 9,50. El botón
- *       contra una tarjeta blanca da solo 1,83: por eso lleva su borde.
+ *     · Texto #1A1A1A sobre el botón principal, que toma el amarillo del
+ *       logo: 12,01 en reposo (#FFD21F), 10,06 al pasar el mouse (#F2BE00) y
+ *       7,97 al pulsar (#DBA800). El botón contra una tarjeta blanca da solo
+ *       1,45 (1,29 contra el fondo de página): por eso lleva su borde #B88A04,
+ *       que da 3,15 sobre blanco y no cambió.
  *     · El borde de los campos (#C9D3DA) da 1,52 sobre blanco, por debajo de
  *       3; se compensa con el relleno blanco, la etiqueta visible y un anillo
  *       de foco de 2 px de contraste alto.
@@ -77,6 +80,13 @@
   --texto: #12212c;
   --texto-secundario: #3b4b57;
   --texto-tenue: #5a6b78;
+
+  /* --- Marca ---
+     El azul marino del contorno del logo. Solo para el nombre de la
+     aplicación en la barra superior: da 15,94 : 1 sobre blanco, 14,16 sobre el
+     fondo de página y 13,74 sobre el fondo de la escena (mínimo 4,5). El rojo
+     del logo no entra a la interfaz: el rojo de aquí es --peligro. */
+  --marca-azul-marino: #0b1f4d;
 
   /* --- Etapas del lavadero ---
      La etapa 1 (lavado) y la etapa 2 (acabado) llevan su color en barras,
@@ -101,13 +111,13 @@
   --etapa-1-fondo: rgba(11, 132, 174, 0.08);
   --etapa-1-borde: rgba(11, 132, 174, 0.35);
 
-  /* --- Botón principal: amarillo con texto oscuro --- */
-  --boton-principal: #f2b600;
+  /* --- Botón principal: el amarillo del logo con texto oscuro --- */
+  --boton-principal: #ffd21f;
   --boton-principal-texto: #1a1a1a;
   /* Al pasar el mouse el amarillo se oscurece un poco y, al pulsar, un poco más.
-     Con el texto #1A1A1A dan 8,18 : 1 y 6,52 : 1 (el reposo, 9,50 : 1). */
-  --boton-principal-hover: #e3a800;
-  --boton-principal-activo: #cc9500;
+     Con el texto #1A1A1A dan 10,06 : 1 y 7,97 : 1 (el reposo, 12,01 : 1). */
+  --boton-principal-hover: #f2be00;
+  --boton-principal-activo: #dba800;
   --boton-principal-borde: #b88a04;
 
   /* --- Velo de los elementos que flotan sobre la escena --- */

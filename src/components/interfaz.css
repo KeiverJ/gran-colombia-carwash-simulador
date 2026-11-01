@@ -90,11 +90,27 @@
 
 .marca {
   flex: 1 1 6rem;
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
   min-width: 0;
+}
+
+.marca-texto {
+  min-width: 0;
+}
+
+/* El logo es una imagen de 3 : 2: con el alto fijo el ancho sale solo. */
+.logo-de-marca {
+  display: block;
+  flex: none;
+  width: auto;
+  height: 2rem;
 }
 
 .marca h1 {
   margin: 0;
+  color: var(--marca-azul-marino);
   font-size: var(--letra-titulo);
   font-weight: 600;
   line-height: 1.2;
@@ -1195,6 +1211,13 @@
   justify-content: space-between;
   padding: var(--espacio-3) var(--espacio-4);
   border-bottom: 1px solid var(--borde);
+}
+
+.ayuda-marca {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  min-width: 0;
 }
 
 .ayuda-cabecera h2 {

@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef } from 'react'
 import { COLOR_DE_ESCENA } from '../estilos/colores.js'
 import { juntasDelPiso, tramosConHuecos } from './geometriasDelEntorno.js'
 import Letrero from './Letrero.jsx'
+import { LogoDeLaPared, LogoDelTecho } from './LogoDelLocal.jsx'
+import { queSeDibujaDelLogo } from './logoEnLaEscena.js'
+import { useLogoDelLocal } from './useLogoDelLocal.js'
 import {
   COLUMNAS_DEL_TECHO,
   FRANJA_DE_ESPERA,
@@ -13,7 +16,7 @@ import {
   TECHO,
   ZONA_DE_SERVIDORES,
 } from './posiciones.js'
-import { medidasDelTecho, opacidadDelTecho } from './techo.js'
+import { estadoDeLaOpacidad, medidasDelTecho, opacidadDelTecho } from './techo.js'
 
 /** La zona mojada cubre las dos filas de placas, con un margen alrededor. */
 const ZONA_MOJADA = {
@@ -123,12 +126,13 @@ function Techo() {
   useFrame(({ camera }) => {
     const opacidad = opacidadDelTecho(camera.position.toArray())
     if (!malla.current || !material.current) return
-    malla.current.visible = opacidad > 0.01
+    const { visible, transparent, depthWrite } = estadoDeLaOpacidad(opacidad)
+    malla.current.visible = visible
     material.current.opacity = opacidad
     // Un material transparente no escribe profundidad: con opacidad completa
     // se vuelve sólido para ordenarse bien con lo de debajo.
-    material.current.transparent = opacidad < 0.999
-    material.current.depthWrite = opacidad >= 0.999
+    material.current.transparent = transparent
+    material.current.depthWrite = depthWrite
   })
 
   return (
@@ -141,9 +145,12 @@ function Techo() {
 
 /**
  * La pared del fondo, con la abertura por donde entran y salen las motos de
- * la Av. Gran Colombia, y el letrero del local en la cara de adelante. Se construye con los datos de `PARED_DEL_FONDO`.
+ * la Av. Gran Colombia, y el logo del local en la cara de adelante (o, si el
+ * logo no carga, el letrero de texto). Se construye con los datos de `PARED_DEL_FONDO`.
+ *
+ * @param {{ estado: string, logo: object|null }} props.logoDelLocal
  */
-function Pared() {
+function Pared({ logoDelLocal }) {
   const { z, grosor, alto, altoDeAbertura, aberturas } = PARED_DEL_FONDO
   const huecos = aberturas.map(({ centroX, ancho }) => ({ centro: centroX, ancho }))
   const macizos = tramosConHuecos(-LOCAL.ancho / 2, LOCAL.ancho / 2, huecos)
@@ -152,6 +159,7 @@ function Pared() {
   // El letrero va en el tramo macizo más ancho, sin pisar una abertura.
   const [desde, hasta] = macizos.reduce((mejor, tramo) => (tramo[1] - tramo[0] > mejor[1] - mejor[0] ? tramo : mejor))
   const anchoDelLetrero = Math.min(8, hasta - desde - 1)
+  const dibujo = queSeDibujaDelLogo(logoDelLocal.estado)
 
   return (
     <group>
@@ -167,27 +175,35 @@ function Pared() {
           <meshStandardMaterial color={COLOR_DE_ESCENA.pared} roughness={0.9} />
         </mesh>
       ))}
-      <Letrero
-        texto="Gran Colombia Car Wash Express"
-        position={[(desde + hasta) / 2, alto / 2 + 0.1, z + grosor / 2 + 0.05]}
-        ancho={anchoDelLetrero}
-        alto={anchoDelLetrero / 8}
-        fondo={COLOR_DE_ESCENA.letreroDelLocal}
-        color={COLOR_DE_ESCENA.textoDeLetrero}
-        postes={false}
-      />
+      {dibujo.pared === 'logo' && (
+        <LogoDeLaPared logo={logoDelLocal.logo} pared={PARED_DEL_FONDO} desde={desde} hasta={hasta} />
+      )}
+      {dibujo.pared === 'letrero' && (
+        <Letrero
+          texto="Gran Colombia Car Wash Express"
+          position={[(desde + hasta) / 2, alto / 2 + 0.1, z + grosor / 2 + 0.05]}
+          ancho={anchoDelLetrero}
+          alto={anchoDelLetrero / 8}
+          fondo={COLOR_DE_ESCENA.letreroDelLocal}
+          color={COLOR_DE_ESCENA.textoDeLetrero}
+          postes={false}
+        />
+      )}
     </group>
   )
 }
 
-/** El local: piso, estructura, techo y pared del fondo. Las placas y los puestos van aparte. */
+/** El local: piso, estructura, techo con su logo y pared del fondo. Las placas y los puestos van aparte. */
 export function Local() {
+  const logoDelLocal = useLogoDelLocal()
+  const dibujo = queSeDibujaDelLogo(logoDelLocal.estado)
   return (
     <group>
       <Piso />
       <Estructura />
       <Techo />
-      <Pared />
+      {dibujo.techo && <LogoDelTecho logo={logoDelLocal.logo} />}
+      <Pared logoDelLocal={logoDelLocal} />
     </group>
   )
 }

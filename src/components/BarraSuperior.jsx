@@ -9,10 +9,11 @@ import { RANGOS } from '../store/rangos.js'
 import { comoHoraDeLaTarde, comoNumero, comoReloj } from './formato.js'
 import { RAZON_DE_LA_CORRIDA_LARGA } from './corridaLargaActiva.js'
 import { IconoDeAyuda, IconoDeReiniciar } from './iconos.jsx'
+import LogoDeMarca from './LogoDeMarca.jsx'
 import SelectorDeModo from './SelectorDeModo.jsx'
 
 /**
- * La barra de arriba: el nombre, el modo, el reloj y los mandos de uso
+ * La barra de arriba: el logo y el nombre, el modo, el reloj y los mandos de uso
  * frecuente (reiniciar, iniciar o pausar y la velocidad), más la ayuda.
  *
  * El reloj lee el resumen del store, que se refresca cuatro veces por segundo:
@@ -37,13 +38,16 @@ export function BarraSuperior() {
   return (
     <header className="barra-superior">
       <div className="marca">
-        <h1 translate="no">Gran Colombia Car Wash Express</h1>
-        <p className="subtitulo">
-          Simulador de colas · lavado{' '}
-          <span translate="no">
-            M/M/{placas} → acabado M/M/{puestos}
-          </span>
-        </p>
+        <LogoDeMarca />
+        <div className="marca-texto">
+          <h1 translate="no">Gran Colombia Car Wash Express</h1>
+          <p className="subtitulo">
+            Simulador de colas · lavado{' '}
+            <span translate="no">
+              M/M/{placas} → acabado M/M/{puestos}
+            </span>
+          </p>
+        </div>
       </div>
 
       <SelectorDeModo />

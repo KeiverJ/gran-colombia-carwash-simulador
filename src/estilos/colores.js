@@ -10,6 +10,15 @@
  * El nombre de cada clave es el de la variable CSS sin los dos guiones.
  */
 
+/**
+ * Colores de la marca (el logo del lavadero) que usa la interfaz. Solo el azul
+ * marino del contorno del logo, para el nombre de la aplicación. El rojo del
+ * logo no se usa en la interfaz.
+ */
+export const COLOR_DE_MARCA = {
+  azulMarino: '#0b1f4d',
+}
+
 /** Color de cada plan, para pintar las motos y su leyenda. */
 export const COLOR_DE_PLAN = {
   1: '#2f6fdb',
@@ -114,6 +123,7 @@ const aKebab = (nombre) => nombre.replace(/[A-Z]/g, (letra) => `-${letra.toLower
  * Es lo que compara la prueba de sincronía.
  */
 export const COLORES_COMPARTIDOS = {
+  'marca-azul-marino': COLOR_DE_MARCA.azulMarino,
   'plan-1': COLOR_DE_PLAN[1],
   'plan-2': COLOR_DE_PLAN[2],
   'plan-3': COLOR_DE_PLAN[3],

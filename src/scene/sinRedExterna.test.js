@@ -50,4 +50,13 @@ describe('src/scene no usa nada que pida recursos a internet', () => {
     expect(codigo).toMatch(/from 'three\/examples\/jsm\/loaders\/GLTFLoader\.js'/)
     expect(codigo).toMatch(/from 'three\/examples\/jsm\/libs\/meshopt_decoder\.module\.js'/)
   })
+
+  it('el cargador del logo usa el SVGLoader de three y una ruta con la base de Vite, no una dirección', () => {
+    const codigo = readFileSync(`${CARPETA}/cargaDelLogo.js`, 'utf8')
+    expect(codigo).toMatch(/from 'three\/examples\/jsm\/loaders\/SVGLoader\.js'/)
+    // La ruta sale de `src/data/logo.js`, que parte de la base de Vite.
+    expect(codigo).toMatch(/from '\.\.\/data\/logo\.js'/)
+    expect(sinComentarios(readFileSync('src/data/logo.js', 'utf8'))).toMatch(/import\.meta\.env\.BASE_URL/)
+    expect(sinComentarios(codigo)).not.toMatch(/https?:\/\//)
+  })
 })
