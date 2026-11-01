@@ -35,6 +35,7 @@ import {
   caminoDeSalida,
   caminoHacia,
   caminoReplanificado,
+  caminoReplanificadoEnRuta,
   debeEsperarParaElCorredor,
   distanciaHastaElCorredor,
   duracionDelViaje,
@@ -458,8 +459,10 @@ function recolocarLasMotos(viajes, foto) {
  * curva y su boca; pero si lleva tiempo esperando (estaba más allá de lo que la
  * fila dibuja), sale del final de su fila y no de la avenida. Si el motor la manda
  * a otro sitio antes de que llegue, se traza el camino nuevo **desde donde está**,
- * no desde el principio. Las que ya no están en la foto salen por la avenida por
- * la que entraron.
+ * no desde el principio; y si iba hacia su lugar en una fila y el nuevo destino es
+ * una placa o un puesto, no termina antes el viaje hasta la fila (ver
+ * `caminoReplanificadoEnRuta`). Las que ya no están en la foto salen por la avenida
+ * por la que entraron.
  */
 export function viajeDeLaMoto(n, sitio, { porMoto, ocultas }, { reloj, largoDeLaFila }) {
   const anterior = porMoto.get(n)
@@ -493,9 +496,22 @@ export function viajeDeLaMoto(n, sitio, { porMoto, ocultas }, { reloj, largoDeLa
     anterior.recorrido < anterior.largo &&
     enLaBandaDeAcceso(aqui, sitio.etapa)
   const desdeSuSitio = saliendo ? caminoDeSalida(anterior.sitio, avenida) : caminoHacia(anterior.sitio, sitio)
-  const camino = ajusteEnLaFila
-    ? caminoDeAjusteEnLaFila(aqui, sitio)
-    : caminoReplanificado(anterior.camino, anterior.recorrido, desdeSuSitio)
+  // Todavía va hacia su lugar en una fila y el destino pasa a ser una placa o un puesto
+  // (la tabla de la visita la manda a su placa antes de que llegue a la fila): no termina
+  // antes el viaje hasta la fila, sale de donde está.
+  const enRutaAUnServidor =
+    !saliendo &&
+    anterior.sitio.zona === 'fila' &&
+    anterior.recorrido < anterior.largo &&
+    (sitio.zona === 'placa' || sitio.zona === 'puesto')
+  let camino
+  if (ajusteEnLaFila) {
+    camino = caminoDeAjusteEnLaFila(aqui, sitio)
+  } else if (enRutaAUnServidor) {
+    camino = caminoReplanificadoEnRuta(anterior.camino, anterior.recorrido, desdeSuSitio, caminoDeLlegada(avenida, sitio))
+  } else {
+    camino = caminoReplanificado(anterior.camino, anterior.recorrido, desdeSuSitio)
+  }
   const viaje = viajeNuevo({ camino, sitio, reloj, saliendo, rumbo: anterior.rumbo, plan: anterior.plan })
   porMoto.set(n, viaje)
   return viaje
