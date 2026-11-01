@@ -8,29 +8,25 @@ import {
   ALTURA_DE_LOS_SOPORTES,
   ANCHO_DEL_LOGO,
   altoDelLogo,
-  colocacionDelLogoDeLaPared,
   colocacionDelLogoDelTecho,
   geometriaDeLosSoportes,
   queSeDibujaDelLogo,
 } from './logoEnLaEscena.js'
-import { PARED_DEL_FONDO, TECHO } from './posiciones.js'
+import { TECHO } from './posiciones.js'
 import { CENTRO_DEL_SUELO_CUBIERTO, estadoDeLaOpacidad, medidasDelTecho, opacidadDelTecho } from './techo.js'
 
-describe('qué se dibuja del logo según su estado', () => {
-  it('cargando: nada, ni logo ni letrero (así el letrero negro no parpadea)', () => {
-    expect(queSeDibujaDelLogo('cargando')).toEqual({ pared: 'nada', techo: false })
+describe('cuándo se dibuja el logo', () => {
+  it('listo: el logo va sobre el techo', () => {
+    expect(queSeDibujaDelLogo('listo')).toEqual({ techo: true })
   })
 
-  it('listo: el logo en la pared y en el techo', () => {
-    expect(queSeDibujaDelLogo('listo')).toEqual({ pared: 'logo', techo: true })
+  it('cargando o fallo: no se dibuja nada en el techo', () => {
+    expect(queSeDibujaDelLogo('cargando')).toEqual({ techo: false })
+    expect(queSeDibujaDelLogo('fallo')).toEqual({ techo: false })
   })
 
-  it('fallo: el letrero de texto en la pared y nada en el techo', () => {
-    expect(queSeDibujaDelLogo('fallo')).toEqual({ pared: 'letrero', techo: false })
-  })
-
-  it('con el logo listo ya no queda el letrero negro', () => {
-    expect(queSeDibujaDelLogo('listo').pared).not.toBe('letrero')
+  it('el logo no tiene una copia en la pared: ese lugar es del letrero de texto', () => {
+    expect(queSeDibujaDelLogo('listo')).not.toHaveProperty('pared')
   })
 })
 
@@ -70,32 +66,6 @@ describe('el logo del techo', () => {
   })
 })
 
-describe('el logo de la pared', () => {
-  const [desde, hasta] = [-11, -1.8]
-  const c = colocacionDelLogoDeLaPared(PARED_DEL_FONDO, desde, hasta)
-
-  it('queda en el centro del tramo macizo, más cerca de la cámara que la pared', () => {
-    expect(c.position[0]).toBeCloseTo((desde + hasta) / 2, 9)
-    expect(c.position[2]).toBeGreaterThan(PARED_DEL_FONDO.z + PARED_DEL_FONDO.grosor / 2)
-  })
-
-  it('cabe en el tramo y en la altura de la pared, sin salirse por arriba ni por abajo', () => {
-    expect(c.ancho).toBeLessThanOrEqual(hasta - desde - 1)
-    expect(c.position[1] - c.alto / 2).toBeGreaterThan(0)
-    expect(c.position[1] + c.alto / 2).toBeLessThan(PARED_DEL_FONDO.alto)
-  })
-
-  it('en un tramo angosto se achica para no pisar la abertura', () => {
-    const angosto = colocacionDelLogoDeLaPared(PARED_DEL_FONDO, 0, 2.5)
-    expect(angosto.ancho).toBeCloseTo(1.5, 9)
-  })
-
-  it('los dos anchos de partida son los que dice el diseño', () => {
-    expect(ANCHO_DEL_LOGO.pared).toBeGreaterThan(0)
-    expect(ANCHO_DEL_LOGO.techo).toBeGreaterThan(0)
-  })
-})
-
 describe('el logo del techo se aparta junto con el techo', () => {
   /** Una cámara a la elevación dada (en grados), a 40 m del centro del suelo cubierto. */
   const camaraA = (grados) => {
@@ -123,7 +93,7 @@ describe('el logo del techo se aparta junto con el techo', () => {
   })
 })
 
-describe('las mallas de una copia del logo', () => {
+describe('las mallas del logo', () => {
   const piezas = ['white', 'navy', 'blue', 'gold', 'red'].map((color) => ({
     color,
     geometria: new BoxGeometry(1, 1, 1),
@@ -132,22 +102,16 @@ describe('las mallas de una copia del logo', () => {
   const materiales = crearMaterialesDelLogo(piezas)
   const cuentaMallas = (html) => (html.match(/<mesh\b/g) ?? []).length
 
-  it('la copia de la pared dibuja una malla por color: cinco', () => {
+  it('el logo dibuja una malla por color: cinco', () => {
     const html = renderToStaticMarkup(<LogoDelLocal logo={logo} materiales={materiales} ancho={3} position={[0, 0, 0]} />)
     expect(cuentaMallas(html)).toBe(5)
   })
 
-  it('la copia del techo suma una malla de soportes: seis, el máximo', () => {
+  it('con los soportes suma una malla más: seis, el máximo', () => {
     const soportes = { geometria: new BoxGeometry(1, 1, 1), material: new MeshStandardMaterial(), abajo: -1 }
     const html = renderToStaticMarkup(
       <LogoDelLocal logo={logo} materiales={materiales} ancho={3} position={[0, 0, 0]} soportes={soportes} />,
     )
     expect(cuentaMallas(html)).toBe(6)
-  })
-
-  it('las dos copias comparten las mismas geometrías (cada una trae sus materiales)', () => {
-    const otros = crearMaterialesDelLogo(piezas)
-    expect(otros[0]).not.toBe(materiales[0])
-    expect(logo.piezas[0].geometria).toBe(piezas[0].geometria)
   })
 })

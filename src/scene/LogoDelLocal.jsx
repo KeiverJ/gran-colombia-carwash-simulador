@@ -6,7 +6,6 @@ import { COLOR_DE_ESCENA } from '../estilos/colores.js'
 import { crearMaterialesDelLogo } from './logoDelLocal.js'
 import {
   ALTURA_DE_LOS_SOPORTES,
-  colocacionDelLogoDeLaPared,
   colocacionDelLogoDelTecho,
   geometriaDeLosSoportes,
 } from './logoEnLaEscena.js'
@@ -14,9 +13,9 @@ import { opacidadDelTecho, estadoDeLaOpacidad } from './techo.js'
 
 /**
  * Una copia del logo: una malla por color (los de `logo.piezas`) y, si se le
- * pasan, los soportes. Las geometrías las comparten todas las copias y viven
- * mientras la página esté abierta, por eso las mallas llevan `dispose={null}`:
- * React Three Fiber no debe soltarlas al desmontar una copia.
+ * pasan, los soportes. Las geometrías viven mientras la página esté abierta
+ * (se construyen una vez), por eso las mallas llevan `dispose={null}`: React
+ * Three Fiber no debe soltarlas al desmontar el logo.
  *
  * @param {object} props
  * @param {{ piezas: Array<{ geometria: object }> }} props.logo
@@ -51,13 +50,6 @@ function useMaterialesDelLogo(logo) {
   const materiales = useMemo(() => crearMaterialesDelLogo(logo.piezas), [logo])
   useEffect(() => () => materiales.forEach((m) => m.dispose()), [materiales])
   return materiales
-}
-
-/** El logo en la pared del fondo, en el tramo macizo que va de `desde` a `hasta`. */
-export function LogoDeLaPared({ logo, pared, desde, hasta }) {
-  const materiales = useMaterialesDelLogo(logo)
-  const { ancho, position } = useMemo(() => colocacionDelLogoDeLaPared(pared, desde, hasta), [pared, desde, hasta])
-  return <LogoDelLocal logo={logo} materiales={materiales} ancho={ancho} position={position} />
 }
 
 /**

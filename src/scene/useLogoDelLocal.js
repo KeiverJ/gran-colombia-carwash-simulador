@@ -8,13 +8,12 @@ export const ESTADO_DEL_LOGO = { cargando: 'cargando', listo: 'listo', fallo: 'f
 /**
  * El logo del local: `{ estado, logo }`.
  *
- * Mientras se pide el archivo el estado es `cargando` (la escena no dibuja ni
- * logo ni letrero en ese tramo, para que no parpadee el letrero negro antes
- * del logo); al terminar es `listo`, con el logo construido, o `fallo`, y la
- * escena usa el letrero de texto. Nunca lanza un error hacia la pantalla.
+ * Mientras se pide el archivo el estado es `cargando`; al terminar es `listo`, con
+ * el logo construido, o `fallo`. En los dos casos distintos de `listo` la escena
+ * simplemente no dibuja el logo del techo. Nunca lanza un error hacia la pantalla.
  *
- * El logo se pide una vez y queda en memoria mientras la página esté abierta:
- * lo comparten todas las copias, así que no se libera al desmontar.
+ * El logo se pide una vez y queda en memoria mientras la página esté abierta, así
+ * que no se libera al desmontar.
  */
 export function useLogoDelLocal() {
   const [resultado, setResultado] = useState({ estado: ESTADO_DEL_LOGO.cargando, logo: null })

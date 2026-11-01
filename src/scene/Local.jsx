@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { COLOR_DE_ESCENA } from '../estilos/colores.js'
 import { juntasDelPiso, tramosConHuecos } from './geometriasDelEntorno.js'
 import Letrero from './Letrero.jsx'
-import { LogoDeLaPared, LogoDelTecho } from './LogoDelLocal.jsx'
+import { LogoDelTecho } from './LogoDelLocal.jsx'
 import { queSeDibujaDelLogo } from './logoEnLaEscena.js'
 import { useLogoDelLocal } from './useLogoDelLocal.js'
 import {
@@ -145,12 +145,12 @@ function Techo() {
 
 /**
  * La pared del fondo, con la abertura por donde entran y salen las motos de
- * la Av. Gran Colombia, y el logo del local en la cara de adelante (o, si el
- * logo no carga, el letrero de texto). Se construye con los datos de `PARED_DEL_FONDO`.
+ * la Av. Gran Colombia, y el letrero del local en la cara de adelante. Se construye con los datos de `PARED_DEL_FONDO`.
  *
- * @param {{ estado: string, logo: object|null }} props.logoDelLocal
+ * El logo no va aquí: con la vista general el borde delantero del techo tapa casi
+ * toda esta pared, y un logo grande o alto quedaba escondido. Va sobre el techo.
  */
-function Pared({ logoDelLocal }) {
+function Pared() {
   const { z, grosor, alto, altoDeAbertura, aberturas } = PARED_DEL_FONDO
   const huecos = aberturas.map(({ centroX, ancho }) => ({ centro: centroX, ancho }))
   const macizos = tramosConHuecos(-LOCAL.ancho / 2, LOCAL.ancho / 2, huecos)
@@ -159,7 +159,6 @@ function Pared({ logoDelLocal }) {
   // El letrero va en el tramo macizo más ancho, sin pisar una abertura.
   const [desde, hasta] = macizos.reduce((mejor, tramo) => (tramo[1] - tramo[0] > mejor[1] - mejor[0] ? tramo : mejor))
   const anchoDelLetrero = Math.min(8, hasta - desde - 1)
-  const dibujo = queSeDibujaDelLogo(logoDelLocal.estado)
 
   return (
     <group>
@@ -175,25 +174,20 @@ function Pared({ logoDelLocal }) {
           <meshStandardMaterial color={COLOR_DE_ESCENA.pared} roughness={0.9} />
         </mesh>
       ))}
-      {dibujo.pared === 'logo' && (
-        <LogoDeLaPared logo={logoDelLocal.logo} pared={PARED_DEL_FONDO} desde={desde} hasta={hasta} />
-      )}
-      {dibujo.pared === 'letrero' && (
-        <Letrero
-          texto="Gran Colombia Car Wash Express"
-          position={[(desde + hasta) / 2, alto / 2 + 0.1, z + grosor / 2 + 0.05]}
-          ancho={anchoDelLetrero}
-          alto={anchoDelLetrero / 8}
-          fondo={COLOR_DE_ESCENA.letreroDelLocal}
-          color={COLOR_DE_ESCENA.textoDeLetrero}
-          postes={false}
-        />
-      )}
+      <Letrero
+        texto="Gran Colombia Car Wash Express"
+        position={[(desde + hasta) / 2, alto / 2 + 0.1, z + grosor / 2 + 0.05]}
+        ancho={anchoDelLetrero}
+        alto={anchoDelLetrero / 8}
+        fondo={COLOR_DE_ESCENA.letreroDelLocal}
+        color={COLOR_DE_ESCENA.textoDeLetrero}
+        postes={false}
+      />
     </group>
   )
 }
 
-/** El local: piso, estructura, techo con su logo y pared del fondo. Las placas y los puestos van aparte. */
+/** El local: piso, estructura, techo con su logo y pared del fondo con su letrero. Las placas y los puestos van aparte. */
 export function Local() {
   const logoDelLocal = useLogoDelLocal()
   const dibujo = queSeDibujaDelLogo(logoDelLocal.estado)
@@ -203,7 +197,7 @@ export function Local() {
       <Estructura />
       <Techo />
       {dibujo.techo && <LogoDelTecho logo={logoDelLocal.logo} />}
-      <Pared logoDelLocal={logoDelLocal} />
+      <Pared />
     </group>
   )
 }
