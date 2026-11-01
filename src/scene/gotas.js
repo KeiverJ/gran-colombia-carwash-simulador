@@ -2,8 +2,8 @@ import { POSTE_DE_LOSA } from './posiciones.js'
 
 /** Gotas por placa ocupada. */
 export const GOTAS_POR_PLACA = 14
-/** Cuántas placas puede haber como máximo (el rango de Ajustes es 5-7). */
-export const PLACAS_COMO_MAXIMO = 7
+/** Cuántas placas puede haber como máximo (el rango de Ajustes es de 1 a 14). */
+export const PLACAS_COMO_MAXIMO = 14
 
 /** Dónde sale el agua, respecto del centro de la placa: bajo la boquilla de la manguera. */
 export const BOQUILLA = { x: POSTE_DE_LOSA.x + 0.95, y: 0.85, z: POSTE_DE_LOSA.z }
@@ -21,14 +21,15 @@ const reparto = (k) => {
  * Posición de la gota `k` de una placa en el instante `t`: cae de la boquilla
  * hacia la cara de arriba de la losa, con un poco de dispersión a los lados.
  * Es una función pura y sin azar: `t` y `k` bastan para saber dónde está.
+ * `boquilla` es la de la placa (`boquillaDeLaPlaca`); sin ella, la de siempre.
  */
-export function posicionDeLaGota(k, t, altoDeLaLosa) {
+export function posicionDeLaGota(k, t, altoDeLaLosa, boquilla = BOQUILLA) {
   const fase = (t / SEGUNDOS_DE_CAIDA + k / GOTAS_POR_PLACA) % 1
   const caida = fase * fase // acelera como cae el agua
   return [
-    BOQUILLA.x + (reparto(k) - 0.5) * 0.25 * fase,
-    BOQUILLA.y - (BOQUILLA.y - altoDeLaLosa) * caida,
-    BOQUILLA.z + (reparto(k + 50) - 0.5) * 0.25 * fase,
+    boquilla.x + (reparto(k) - 0.5) * 0.25 * fase,
+    boquilla.y - (boquilla.y - altoDeLaLosa) * caida,
+    boquilla.z + (reparto(k + 50) - 0.5) * 0.25 * fase,
   ]
 }
 
