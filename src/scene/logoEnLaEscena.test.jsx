@@ -8,6 +8,7 @@ import {
   ALTURA_DE_LOS_SOPORTES,
   ANCHO_DEL_LOGO,
   altoDelLogo,
+  ALTO_MINIMO_DEL_LETRERO,
   LETRERO_DE_LA_PARED,
   colocacionDelLetreroDeLaPared,
   colocacionDelLogoDelTecho,
@@ -15,7 +16,8 @@ import {
   queSeDibujaDelLogo,
   queSeDibujaEnLaPared,
 } from './logoEnLaEscena.js'
-import { PARED_DEL_FONDO, TECHO } from './posiciones.js'
+import { elevacionDeLaVistaGeneral, proyectarPunto, vistaGeneral } from './camara.js'
+import { COLUMNAS_DEL_TECHO, PARED_DEL_FONDO, TECHO } from './posiciones.js'
 import { CENTRO_DEL_SUELO_CUBIERTO, estadoDeLaOpacidad, medidasDelTecho, opacidadDelTecho } from './techo.js'
 
 describe('cuándo se dibuja el logo', () => {
@@ -66,9 +68,9 @@ describe('el letrero horizontal de la pared', () => {
     expect(c.position[0] + c.ancho / 2).toBeLessThanOrEqual(hasta)
   })
 
-  it('cabe en la franja que queda a la vista entre los puestos y el borde del techo (de 0,5 a 1,7 m)', () => {
-    expect(c.position[1] - c.alto / 2).toBeGreaterThanOrEqual(0.5)
-    expect(c.position[1] + c.alto / 2).toBeLessThanOrEqual(1.7)
+  it('el borde de abajo queda a 1,0 m del piso o más, y el alto no baja de 0,75 m', () => {
+    expect(c.position[1] - c.alto / 2).toBeGreaterThanOrEqual(1 - 1e-9)
+    expect(c.alto).toBeGreaterThanOrEqual(ALTO_MINIMO_DEL_LETRERO)
     expect(c.alto).toBe(LETRERO_DE_LA_PARED.alto)
   })
 
@@ -81,6 +83,66 @@ describe('el letrero horizontal de la pared', () => {
     const angosto = colocacionDelLetreroDeLaPared(PARED_DEL_FONDO, 0, 3.5)
     expect(angosto.ancho).toBeCloseTo(2.5, 9)
     expect(angosto.ancho / angosto.alto).toBeCloseTo(880 / 210, 6)
+  })
+})
+
+/**
+ * Desde qué altura de la pared (en metros) el techo tapa lo que hay detrás, en la
+ * vista general de una pantalla de `ancho` × `alto` píxeles. El lienzo mide eso
+ * menos la barra lateral (56) y la barra superior (56). Tapan dos cosas, y manda la
+ * que tapa más: el borde de abajo de la losa y el de la viga de adelante, que está
+ * 0,4 m hacia adentro pero 0,12 m más abajo.
+ */
+function alturaDesdeDondeTapaElTecho(ancho, alto) {
+  const aspecto = (ancho - 56) / (alto - 56)
+  const vista = vistaGeneral(aspecto)
+  const { centro, fondo } = medidasDelTecho()
+  const zViga = Math.max(...COLUMNAS_DEL_TECHO.map(([, , z]) => z))
+  const zPared = PARED_DEL_FONDO.z + PARED_DEL_FONDO.grosor / 2 + LETRERO_DE_LA_PARED.separacion
+  const desde = (yDelTecho, zDelTecho) => {
+    const yDelBorde = proyectarPunto([4.5, yDelTecho, zDelTecho], vista, aspecto)[1]
+    let abajo = 0
+    let arriba = TECHO.alto
+    for (let i = 0; i < 50; i += 1) {
+      const medio = (abajo + arriba) / 2
+      if (proyectarPunto([4.5, medio, zPared], vista, aspecto)[1] < yDelBorde) abajo = medio
+      else arriba = medio
+    }
+    return abajo
+  }
+  return Math.min(desde(TECHO.alto, centro[2] + fondo / 2), desde(TECHO.alto - 0.12, zViga))
+}
+
+describe('el letrero de la pared frente al borde del techo en la vista general', () => {
+  const c = colocacionDelLetreroDeLaPared(PARED_DEL_FONDO, -2, 11)
+  const abajo = c.position[1] - c.alto / 2
+  const arriba = c.position[1] + c.alto / 2
+
+  it.each([
+    [1366, 768],
+    [1920, 1080],
+  ])('a %i × %i el borde de arriba queda justo debajo del borde del techo (a menos de 8 cm)', (ancho, alto) => {
+    const tapa = alturaDesdeDondeTapaElTecho(ancho, alto)
+    expect(arriba).toBeLessThan(tapa)
+    expect(tapa - arriba).toBeLessThan(0.08)
+  })
+
+  it('a 1366 × 768 y a 1920 × 1080 el techo no tapa nada del letrero, y el borde de abajo está a 1,0 m o más', () => {
+    for (const [ancho, alto] of [[1366, 768], [1920, 1080], [1280, 720]]) {
+      expect(alturaDesdeDondeTapaElTecho(ancho, alto), `${ancho} × ${alto}`).toBeGreaterThan(arriba)
+    }
+    expect(abajo).toBeGreaterThanOrEqual(1 - 1e-9)
+  })
+
+  it('a 1024 × 768 el techo tapa la parte de arriba, pero deja a la vista más de la mitad', () => {
+    const tapa = alturaDesdeDondeTapaElTecho(1024, 768)
+    const aLaVista = (tapa - abajo) / c.alto
+    expect(tapa).toBeLessThan(arriba)
+    expect(aLaVista).toBeGreaterThan(0.5)
+  })
+
+  it('la vista general mira desde 12° en pantallas anchas, que es de donde salen estas medidas', () => {
+    expect(elevacionDeLaVistaGeneral(1.84)).toBe(12)
   })
 })
 

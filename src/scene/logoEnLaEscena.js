@@ -53,12 +53,22 @@ export function queSeDibujaEnLaPared(estado) {
 
 /**
  * Cómo se ajusta el letrero horizontal a la franja de pared que se ve en la vista
- * general: la que queda entre los puestos y el borde de adelante del techo, que
- * tapa lo de arriba. Mide cerca de 1 m de alto, así que el alto manda y el ancho
- * sale de la proporción del dibujo (880 × 210). El centro va en el del tramo
- * macizo de la pared, donde estaba el letrero de texto.
+ * general: la que queda entre los puestos y el borde de abajo del techo, que está
+ * más cerca de la cámara y tapa lo de arriba.
+ *
+ * Quien tapa la pared es la viga de adelante (su borde de abajo, a 4,08 m, a 6,5 m
+ * del centro) y no la losa: desde los 1,85 m a 1366 × 768, 1,83 m a 1920 × 1080,
+ * 1,70 m a 1440 × 900 y 1,50 m a 1024 × 768 (se calcula con las funciones de la
+ * cámara; ver la prueba). El borde de arriba del letrero queda justo debajo de lo
+ * que tapa en las pantallas anchas (1,80 m) y el de abajo a 1,0 m del piso, así
+ * que el alto es de 0,80 m; no baja de `ALTO_MINIMO_DEL_LETRERO`. A 1024 × 768 el
+ * techo tapa la parte de arriba. El ancho sale de la proporción del dibujo
+ * (880 × 210), y el centro va en el del tramo macizo de la pared.
  */
-export const LETRERO_DE_LA_PARED = { alto: 1, bordeDeAbajo: 0.6, separacion: 0.02 }
+export const LETRERO_DE_LA_PARED = { alto: 0.8, bordeDeAbajo: 1, separacion: 0.02 }
+
+/** Lo más bajo que puede ser el letrero de la pared, en metros, si hay que achicarlo. */
+export const ALTO_MINIMO_DEL_LETRERO = 0.75
 
 /** La proporción del letrero horizontal: 880 × 210. */
 const PROPORCION_DEL_LETRERO = 880 / 210
