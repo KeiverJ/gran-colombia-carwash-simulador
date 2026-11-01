@@ -8,11 +8,14 @@ import {
   ALTURA_DE_LOS_SOPORTES,
   ANCHO_DEL_LOGO,
   altoDelLogo,
+  LETRERO_DE_LA_PARED,
+  colocacionDelLetreroDeLaPared,
   colocacionDelLogoDelTecho,
   geometriaDeLosSoportes,
   queSeDibujaDelLogo,
+  queSeDibujaEnLaPared,
 } from './logoEnLaEscena.js'
-import { TECHO } from './posiciones.js'
+import { PARED_DEL_FONDO, TECHO } from './posiciones.js'
 import { CENTRO_DEL_SUELO_CUBIERTO, estadoDeLaOpacidad, medidasDelTecho, opacidadDelTecho } from './techo.js'
 
 describe('cuándo se dibuja el logo', () => {
@@ -27,6 +30,57 @@ describe('cuándo se dibuja el logo', () => {
 
   it('el logo no tiene una copia en la pared: ese lugar es del letrero de texto', () => {
     expect(queSeDibujaDelLogo('listo')).not.toHaveProperty('pared')
+  })
+})
+
+describe('qué lleva la pared del fondo', () => {
+  it('con el letrero horizontal listo, el letrero en 3D', () => {
+    expect(queSeDibujaEnLaPared('listo')).toBe('letrero-3d')
+  })
+
+  it('si no carga, el letrero de texto de siempre', () => {
+    expect(queSeDibujaEnLaPared('fallo')).toBe('letrero-de-texto')
+  })
+
+  it('mientras carga, nada: así el letrero de texto no parpadea antes del logo', () => {
+    expect(queSeDibujaEnLaPared('cargando')).toBe('nada')
+  })
+})
+
+describe('el letrero horizontal de la pared', () => {
+  const [desde, hasta] = [-2, 11]
+  const c = colocacionDelLetreroDeLaPared(PARED_DEL_FONDO, desde, hasta)
+
+  it('queda en el centro del tramo macizo, un poco por delante de la pared', () => {
+    expect(c.position[0]).toBeCloseTo((desde + hasta) / 2, 9)
+    expect(c.position[2]).toBeGreaterThan(PARED_DEL_FONDO.z + PARED_DEL_FONDO.grosor / 2)
+    expect(c.position[2]).toBeLessThan(PARED_DEL_FONDO.z + PARED_DEL_FONDO.grosor / 2 + 0.1)
+  })
+
+  it('conserva la proporción 880 × 210 del dibujo', () => {
+    expect(c.ancho / c.alto).toBeCloseTo(880 / 210, 6)
+  })
+
+  it('cabe en el tramo macizo y no pisa la abertura', () => {
+    expect(c.position[0] - c.ancho / 2).toBeGreaterThanOrEqual(desde)
+    expect(c.position[0] + c.ancho / 2).toBeLessThanOrEqual(hasta)
+  })
+
+  it('cabe en la franja que queda a la vista entre los puestos y el borde del techo (de 0,5 a 1,7 m)', () => {
+    expect(c.position[1] - c.alto / 2).toBeGreaterThanOrEqual(0.5)
+    expect(c.position[1] + c.alto / 2).toBeLessThanOrEqual(1.7)
+    expect(c.alto).toBe(LETRERO_DE_LA_PARED.alto)
+  })
+
+  it('queda debajo del borde de abajo del techo y de la parte alta de la pared', () => {
+    expect(c.position[1] + c.alto / 2).toBeLessThan(PARED_DEL_FONDO.alto)
+    expect(c.position[1] + c.alto / 2).toBeLessThan(TECHO.alto)
+  })
+
+  it('en un tramo angosto se achica sin deformarse', () => {
+    const angosto = colocacionDelLetreroDeLaPared(PARED_DEL_FONDO, 0, 3.5)
+    expect(angosto.ancho).toBeCloseTo(2.5, 9)
+    expect(angosto.ancho / angosto.alto).toBeCloseTo(880 / 210, 6)
   })
 })
 

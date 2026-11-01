@@ -56,7 +56,12 @@ describe('src/scene no usa nada que pida recursos a internet', () => {
     expect(codigo).toMatch(/from 'three\/examples\/jsm\/loaders\/SVGLoader\.js'/)
     // La ruta sale de `src/data/logo.js`, que parte de la base de Vite.
     expect(codigo).toMatch(/from '\.\.\/data\/logo\.js'/)
-    expect(sinComentarios(readFileSync('src/data/logo.js', 'utf8'))).toMatch(/import\.meta\.env\.BASE_URL/)
+    const rutas = sinComentarios(readFileSync('src/data/logo.js', 'utf8'))
+    expect(rutas).toMatch(/import\.meta\.env\.BASE_URL/)
+    expect(rutas).not.toMatch(/https?:\/\//)
+    // El letrero horizontal de la pared sale del mismo cargador y de la misma base.
+    expect(rutas).toMatch(/RUTA_DEL_LETRERO/)
+    expect(codigo).toMatch(/RUTA_DEL_LETRERO/)
     expect(sinComentarios(codigo)).not.toMatch(/https?:\/\//)
   })
 })

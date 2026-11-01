@@ -6,6 +6,7 @@ import { COLOR_DE_ESCENA } from '../estilos/colores.js'
 import { crearMaterialesDelLogo } from './logoDelLocal.js'
 import {
   ALTURA_DE_LOS_SOPORTES,
+  colocacionDelLetreroDeLaPared,
   colocacionDelLogoDelTecho,
   geometriaDeLosSoportes,
 } from './logoEnLaEscena.js'
@@ -50,6 +51,16 @@ function useMaterialesDelLogo(logo) {
   const materiales = useMemo(() => crearMaterialesDelLogo(logo.piezas), [logo])
   useEffect(() => () => materiales.forEach((m) => m.dispose()), [materiales])
   return materiales
+}
+
+/**
+ * La versión horizontal del logo en la pared del fondo, en el tramo macizo que va
+ * de `desde` a `hasta`, ajustada a la franja de pared que se ve en la vista general.
+ */
+export function LetreroDeLaPared({ logo, pared, desde, hasta }) {
+  const materiales = useMaterialesDelLogo(logo)
+  const { ancho, position } = useMemo(() => colocacionDelLetreroDeLaPared(pared, desde, hasta), [pared, desde, hasta])
+  return <LogoDelLocal logo={logo} materiales={materiales} ancho={ancho} position={position} />
 }
 
 /**

@@ -1,7 +1,15 @@
 import { ShapePath } from 'three'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { RUTA_DEL_LOGO, cargarLogoUnaVez, leerLogo, olvidarElLogo } from './cargaDelLogo.js'
+import {
+  RUTA_DEL_LETRERO,
+  RUTA_DEL_LOGO,
+  cargarLetreroUnaVez,
+  cargarLogoUnaVez,
+  leerLetrero,
+  leerLogo,
+  olvidarElLogo,
+} from './cargaDelLogo.js'
 
 /** Un cargador de mentira: entrega lo que se le diga o falla con lo que se le diga. */
 const cargadorQue = (respuesta) => ({
@@ -84,5 +92,43 @@ describe('cargarLogoUnaVez', () => {
       throw new Error('boom')
     })
     expect(await cargarLogoUnaVez(leer)).toBeNull()
+  })
+})
+
+describe('el letrero horizontal de la pared', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    olvidarElLogo()
+  })
+  afterEach(() => {
+    vi.restoreAllMocks()
+    olvidarElLogo()
+  })
+
+  it('su ruta es local, con la base de Vite, y no es la del logo del techo', () => {
+    expect(RUTA_DEL_LETRERO.startsWith(import.meta.env.BASE_URL)).toBe(true)
+    expect(RUTA_DEL_LETRERO.endsWith('logo-gran-colombia-horizontal.svg')).toBe(true)
+    expect(RUTA_DEL_LETRERO).not.toMatch(/^https?:/)
+    expect(RUTA_DEL_LETRERO).not.toBe(RUTA_DEL_LOGO)
+  })
+
+  it('devuelve null, sin lanzar, si la petición falla o el archivo no trae lo esperado', async () => {
+    await expect(leerLetrero('x.svg', cargadorQue(new Error('404')))).resolves.toBeNull()
+    await expect(leerLetrero('x.svg', cargadorQue({ paths: [] }))).resolves.toBeNull()
+  })
+
+  it('se pide aparte del logo y una sola vez', async () => {
+    const leerElLogo = vi.fn(() => Promise.resolve('logo'))
+    const leerElLetrero = vi.fn(() => Promise.resolve(null))
+    expect(await cargarLogoUnaVez(leerElLogo)).toBe('logo')
+    expect(await cargarLetreroUnaVez(leerElLetrero)).toBeNull()
+    expect(await cargarLetreroUnaVez(leerElLetrero)).toBeNull()
+    expect(leerElLogo).toHaveBeenCalledTimes(1)
+    expect(leerElLetrero).toHaveBeenCalledTimes(1)
+  })
+
+  it('un letrero caído no tumba al logo del techo', async () => {
+    expect(await cargarLetreroUnaVez(() => Promise.resolve(null))).toBeNull()
+    expect(await cargarLogoUnaVez(() => Promise.resolve('logo'))).toBe('logo')
   })
 })

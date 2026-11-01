@@ -6,3 +6,6 @@
  * superior y la Ayuda.
  */
 export const RUTA_DEL_LOGO = `${import.meta.env.BASE_URL}logo-gran-colombia.svg`
+
+/** El mismo logo en versión horizontal (un letrero alargado), para la pared del fondo. */
+export const RUTA_DEL_LETRERO = `${import.meta.env.BASE_URL}logo-gran-colombia-horizontal.svg`

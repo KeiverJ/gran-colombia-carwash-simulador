@@ -5,7 +5,8 @@ import { TECHO } from './posiciones.js'
 import { medidasDelTecho } from './techo.js'
 
 /**
- * Dónde va el logo del local en la escena (sobre el techo) y cuándo se dibuja.
+ * Dónde van el logo del local (sobre el techo) y su versión horizontal (el letrero
+ * de la pared) en la escena, y cuándo se dibuja cada uno.
  *
  * Todo en metros. El logo se construye de 1 m de ancho (ver `logoDelLocal.js`) y
  * la escena lo escala a su `ancho`; su cara de atrás está en z = 0 del grupo y
@@ -35,6 +36,46 @@ export const altoDelLogo = (ancho) => ancho * PROPORCION
  */
 export function queSeDibujaDelLogo(estado) {
   return { techo: estado === 'listo' }
+}
+
+/**
+ * Qué lleva la pared del fondo según el estado del letrero horizontal.
+ *
+ * - cargando: nada, para que el letrero de texto no parpadee antes de dar paso al logo.
+ * - listo: el letrero horizontal en 3D.
+ * - fallo: el letrero de texto de siempre.
+ */
+export function queSeDibujaEnLaPared(estado) {
+  if (estado === 'listo') return 'letrero-3d'
+  if (estado === 'fallo') return 'letrero-de-texto'
+  return 'nada'
+}
+
+/**
+ * Cómo se ajusta el letrero horizontal a la franja de pared que se ve en la vista
+ * general: la que queda entre los puestos y el borde de adelante del techo, que
+ * tapa lo de arriba. Mide cerca de 1 m de alto, así que el alto manda y el ancho
+ * sale de la proporción del dibujo (880 × 210). El centro va en el del tramo
+ * macizo de la pared, donde estaba el letrero de texto.
+ */
+export const LETRERO_DE_LA_PARED = { alto: 1, bordeDeAbajo: 0.6, separacion: 0.02 }
+
+/** La proporción del letrero horizontal: 880 × 210. */
+const PROPORCION_DEL_LETRERO = 880 / 210
+
+/**
+ * Dónde va el letrero horizontal en el tramo macizo de la pared que va de `desde`
+ * a `hasta` (en x). `position` es el centro del letrero y `ancho` lo que mide.
+ */
+export function colocacionDelLetreroDeLaPared({ z, grosor }, desde, hasta) {
+  const { alto, bordeDeAbajo, separacion } = LETRERO_DE_LA_PARED
+  const ancho = Math.min(alto * PROPORCION_DEL_LETRERO, hasta - desde - 1)
+  const altoReal = ancho / PROPORCION_DEL_LETRERO
+  return {
+    ancho,
+    alto: altoReal,
+    position: [(desde + hasta) / 2, bordeDeAbajo + altoReal / 2, z + grosor / 2 + separacion],
+  }
 }
 
 /**

@@ -3,7 +3,10 @@ import { BufferGeometry, Float32BufferAttribute, ShapePath } from 'three'
 import { describe, expect, it } from 'vitest'
 
 import {
+  CAPAS_DEL_LETRERO,
   CAPAS_DEL_LOGO,
+  MEDIDA_DEL_LETRERO,
+  REBAJA_DEL_CONTORNO_DEL_LETRERO,
   EMISION_DEL_LOGO,
   REBAJA_DEL_CONTORNO,
   TOPE_DE_TRIANGULOS,
@@ -320,4 +323,108 @@ describe('el logo no toca la simulación', () => {
       expect(codigo).not.toMatch(/Math\.random/)
     },
   )
+})
+
+describe('la tabla de capas del letrero horizontal', () => {
+  const svg = readFileSync('public/logo-gran-colombia-horizontal.svg', 'utf8')
+  const elementos = [...svg.matchAll(/<(rect|circle|path|polygon)\b/g)].map((m) => m[1])
+  const PAPELES = {
+    borde: 'rect',
+    base: 'rect',
+    burbuja: 'circle',
+    'texto-amarillo': 'path',
+    recuadro: 'polygon',
+    'texto-blanco': 'path',
+    'rojo-grande': 'path',
+    'rojo-pequeno': 'path',
+  }
+
+  it('tiene una capa por cada elemento del SVG, en su orden', () => {
+    expect(CAPAS_DEL_LETRERO.map((c) => PAPELES[c.papel])).toEqual(elementos)
+  })
+
+  it('la medida es la del SVG', () => {
+    expect(svg).toMatch(new RegExp(`viewBox="0 0 ${MEDIDA_DEL_LETRERO.ancho} ${MEDIDA_DEL_LETRERO.alto}"`))
+  })
+
+  it('tiene los mismos papeles y el mismo orden de alturas que el logo redondo', () => {
+    const base = CAPAS_DEL_LETRERO.find((c) => c.papel === 'base')
+    const recuadro = CAPAS_DEL_LETRERO.find((c) => c.papel === 'recuadro')
+    const rojo = CAPAS_DEL_LETRERO.find((c) => c.papel === 'rojo-grande')
+    expect(CAPAS_DEL_LETRERO[0].hasta).toBeGreaterThan(base.hasta)
+    expect(CAPAS_DEL_LETRERO[0].agujero).toBe(1)
+    expect(CAPAS_DEL_LETRERO[0].bisel).toBeGreaterThan(0)
+    for (const capa of CAPAS_DEL_LETRERO.slice(2)) {
+      expect(capa.desde, capa.papel).toBeGreaterThanOrEqual(base.hasta)
+      expect(capa.hasta, capa.papel).toBeGreaterThan(base.hasta)
+    }
+    expect(rojo.desde).toBe(recuadro.hasta)
+    expect(rojo.hasta).toBeGreaterThan(recuadro.hasta)
+  })
+
+  describe('construido con trazados del mismo estilo que el SVG', () => {
+    const ESTILOS = [
+      { fill: '#ffffff', stroke: '#0B1F4D', strokeWidth: 6 },
+      { fill: '#1F3FA6' },
+      ...Array.from({ length: 5 }, () => ({ fill: 'none', stroke: '#ffffff', strokeWidth: 2.5 })),
+      { fill: '#FFD21F', stroke: '#0B1F4D', strokeWidth: 8, strokeLineJoin: 'round' },
+      { fill: '#ffffff', stroke: '#0B1F4D', strokeWidth: 3, strokeLineJoin: 'round' },
+      { fill: '#ffffff', stroke: '#0B1F4D', strokeWidth: 7, strokeLineJoin: 'round' },
+      { fill: '#E11D2A' },
+      { fill: '#E11D2A' },
+    ]
+    const GEOMETRIAS = [
+      [4, 4, 872, 202],
+      [18, 18, 844, 174],
+      ...[[520, 52], [538, 38], [552, 58], [830, 160], [846, 142]].map(([x, y]) => [x - 5, y - 5, 10, 10]),
+      [40, 70, 400, 60],
+      [666, 52, 150, 80],
+      [552, 70, 100, 50],
+      [670, 70, 110, 50],
+      [700, 150, 60, 20],
+    ]
+    const trazados = () =>
+      ESTILOS.map((estilo, i) => {
+        const trazado = new ShapePath()
+        trazado.userData = { style: { strokeWidth: 1, strokeLineJoin: 'miter', strokeLineCap: 'butt', strokeMiterLimit: 4, ...estilo } }
+        const [x, y, ancho, alto] = GEOMETRIAS[i]
+        trazado.moveTo(x, y).lineTo(x + ancho, y).lineTo(x + ancho, y + alto).lineTo(x, y + alto)
+        trazado.currentPath.autoClose = true
+        return trazado
+      })
+    const construir = () =>
+      construirLogo(trazados(), { ancho: 4, capas: CAPAS_DEL_LETRERO, medida: MEDIDA_DEL_LETRERO, rebaja: REBAJA_DEL_CONTORNO_DEL_LETRERO })
+
+    it('da una pieza por cada uno de los cinco colores del logo', () => {
+      expect(construir().piezas.map((p) => p.color).sort()).toEqual(['#0b1f4d', '#1f3fa6', '#e11d2a', '#ffd21f', '#ffffff'])
+    })
+
+    it('mide 4 m de ancho y su alto sale de la proporción 880 × 210', () => {
+      const logo = construir()
+      expect(logo.ancho).toBe(4)
+      expect(logo.alto).toBeCloseTo((4 * 210) / 880, 9)
+    })
+
+    it('cada capa queda entre su «desde» y su «hasta», con el relieve del logo', () => {
+      const escala = 4 / 880
+      const { piezas } = construir()
+      const [, maxAzul] = rangoZ(piezas.find((p) => p.color === '#1f3fa6').geometria)
+      const [minRojo, maxRojo] = rangoZ(piezas.find((p) => p.color === '#e11d2a').geometria)
+      expect(maxAzul).toBeCloseTo(11 * escala, 6)
+      expect(minRojo).toBeCloseTo(11 * escala, 6)
+      expect(maxRojo).toBeCloseTo(30 * escala, 6)
+    })
+
+    it('el contorno oscuro queda por debajo del relleno que tapa', () => {
+      const escala = 4 / 880
+      const [, maxOscuro] = rangoZ(construir().piezas.find((p) => p.color === '#0b1f4d').geometria)
+      expect(maxOscuro).toBeCloseTo((27 - REBAJA_DEL_CONTORNO_DEL_LETRERO) * escala, 6)
+    })
+
+    it('con una malla por color y menos triángulos que el tope', () => {
+      const logo = construir()
+      expect(logo.piezas).toHaveLength(5)
+      expect(logo.triangulos).toBeLessThan(TOPE_DE_TRIANGULOS)
+    })
+  })
 })

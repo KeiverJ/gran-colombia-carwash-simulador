@@ -11,7 +11,8 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 /**
  * El logo del local en 3D, construido a partir de los trazados de
- * `public/logo-gran-colombia.svg` (los que entrega `SVGLoader`).
+ * `public/logo-gran-colombia.svg` (los que entrega `SVGLoader`). El mismo proceso
+ * sirve para la versión horizontal, el letrero de la pared (`CAPAS_DEL_LETRERO`).
  *
  * Este archivo es JavaScript puro con `three`, sin DOM ni red, para poder
  * probarlo con Node. Quien lee el SVG es `cargaDelLogo.js`.
@@ -78,6 +79,34 @@ export const CAPAS_DEL_LOGO = [
 
 /** Lo que mide el SVG: el área del dibujo que se centra en el origen. */
 export const MEDIDA_DEL_SVG = { ancho: 600, alto: 400 }
+
+/**
+ * Las capas de la versión horizontal del logo (`public/logo-gran-colombia-horizontal.svg`),
+ * el letrero alargado de la pared, también **en el orden del SVG**. Es el mismo
+ * dibujo (marco blanco, base azul, burbujas, texto, recuadro de WASH) sin la línea
+ * del carro, en un rectángulo redondeado de 880 × 210. Las profundidades son las del
+ * logo escaladas al ancho del dibujo (880 / 600), para que el relieve se vea igual.
+ */
+export const CAPAS_DEL_LETRERO = [
+  { papel: 'borde', desde: 0, hasta: 20, bisel: 3.5, agujero: 1, segmentos: 12 },
+  { papel: 'base', desde: 0, hasta: 11, segmentos: 12 },
+  { papel: 'burbuja', desde: 11, hasta: 15, segmentos: 12 },
+  { papel: 'burbuja', desde: 11, hasta: 15, segmentos: 12 },
+  { papel: 'burbuja', desde: 11, hasta: 15, segmentos: 12 },
+  { papel: 'burbuja', desde: 11, hasta: 15, segmentos: 12 },
+  { papel: 'burbuja', desde: 11, hasta: 15, segmentos: 12 },
+  { papel: 'texto-amarillo', desde: 11, hasta: 27 },
+  { papel: 'recuadro', desde: 11, hasta: 21 },
+  { papel: 'texto-blanco', desde: 11, hasta: 27 },
+  { papel: 'rojo-grande', desde: 21, hasta: 30 },
+  { papel: 'rojo-pequeno', desde: 11, hasta: 24 },
+]
+
+/** Lo que mide el SVG horizontal. */
+export const MEDIDA_DEL_LETRERO = { ancho: 880, alto: 210 }
+
+/** Cuánto más abajo que su relleno queda el contorno en el letrero horizontal (1 unidad del logo, en las de este dibujo). */
+export const REBAJA_DEL_CONTORNO_DEL_LETRERO = 1.5
 
 /** Dónde queda el hexadecimal `#rrggbb` de un color de estilo SVG. */
 function aHex(texto) {
@@ -166,7 +195,7 @@ function extruirRelleno(formas, { desde, hasta, bisel = 0, segmentos = SEGMENTOS
  *
  * @returns {Array<{ color: string, geometria: BufferGeometry }>} en unidades del SVG
  */
-function piezasDeLaCapa(trazado, capa, trazados) {
+function piezasDeLaCapa(trazado, capa, trazados, rebaja) {
   const estilo = trazado.userData.style
   const segmentos = capa.segmentos ?? SEGMENTOS_DE_CURVA
   const piezas = []
@@ -184,7 +213,7 @@ function piezasDeLaCapa(trazado, capa, trazados) {
     // Con relleno, el contorno va debajo de él (como `paint-order` en el SVG) y
     // un poco más abajo, para que el relleno lo tape por dentro. Sin relleno, el
     // trazo es la propia pieza y llega hasta arriba.
-    const hasta = hayColor(estilo.fill) ? capa.hasta - REBAJA_DEL_CONTORNO : capa.hasta
+    const hasta = hayColor(estilo.fill) ? capa.hasta - rebaja : capa.hasta
     for (const subTrazado of trazado.subPaths) {
       const banda = SVGLoader.pointsToStroke(subTrazado.getPoints(segmentos), estilo, DIVISIONES_DE_LA_UNION)
       if (banda) piezas.push({ color: aHex(estilo.stroke), geometria: extruirBanda(banda, capa.desde, hasta) })
@@ -231,16 +260,20 @@ function aMetros(geometria, escala, medida) {
  * @param {number} [opciones.ancho] el ancho del logo en metros
  * @param {Array} [opciones.capas] la tabla de capas
  * @param {{ ancho: number, alto: number }} [opciones.medida] el área del SVG
+ * @param {number} [opciones.rebaja] cuánto más abajo que su relleno queda el contorno oscuro
  * @returns {{ piezas: Array<{ color: string, geometria: BufferGeometry }>, ancho: number, alto: number, profundidad: number, triangulos: number }}
  */
-export function construirLogo(trazados, { ancho = 1, capas = CAPAS_DEL_LOGO, medida = MEDIDA_DEL_SVG } = {}) {
+export function construirLogo(
+  trazados,
+  { ancho = 1, capas = CAPAS_DEL_LOGO, medida = MEDIDA_DEL_SVG, rebaja = REBAJA_DEL_CONTORNO } = {},
+) {
   if (trazados.length !== capas.length) {
     throw new Error(`El logo trae ${trazados.length} trazados y la tabla espera ${capas.length}`)
   }
   const escala = ancho / medida.ancho
   const porColor = new Map()
   trazados.forEach((trazado, i) => {
-    for (const { color, geometria } of piezasDeLaCapa(trazado, capas[i], trazados)) {
+    for (const { color, geometria } of piezasDeLaCapa(trazado, capas[i], trazados, rebaja)) {
       if (!porColor.has(color)) porColor.set(color, [])
       porColor.get(color).push(aMetros(geometria, escala, medida))
     }

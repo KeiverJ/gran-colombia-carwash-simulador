@@ -9,10 +9,11 @@ import { describe, expect, it } from 'vitest'
  */
 const LOGO = readFileSync('public/logo-gran-colombia.svg', 'utf8')
 const FAVICON = readFileSync('public/favicon.svg', 'utf8')
+const LETRERO = readFileSync('public/logo-gran-colombia-horizontal.svg', 'utf8')
 
 /** Los elementos que dibujan, en orden, con sus atributos. */
 function elementosDelSvg(texto) {
-  return [...texto.matchAll(/<(ellipse|circle|path|polygon)\b([^>]*?)\/?>/g)].map(([, nombre, resto]) => {
+  return [...texto.matchAll(/<(ellipse|circle|path|polygon|rect)\b([^>]*?)\/?>/g)].map(([, nombre, resto]) => {
     const atributos = Object.fromEntries([...resto.matchAll(/([\w:-]+)="([^"]*)"/g)].map(([, k, v]) => [k, v]))
     return { nombre, ...atributos }
   })
@@ -84,5 +85,51 @@ describe('public/favicon.svg', () => {
   it('index.html lo enlaza con una ruta que Vite resuelve con la base', () => {
     const html = readFileSync('index.html', 'utf8')
     expect(html).toMatch(/<link rel="icon" type="image\/svg\+xml" href="\/favicon\.svg"/)
+  })
+})
+
+/** Lo que dibuja el logo horizontal, en su orden: elemento, relleno y contorno. */
+const ESPERADO_DEL_LETRERO = [
+  ['rect', '#ffffff', '#0B1F4D'],
+  ['rect', '#1F3FA6', undefined],
+  ...Array.from({ length: 5 }, () => ['circle', 'none', '#ffffff']),
+  ['path', '#FFD21F', '#0B1F4D'],
+  ['polygon', '#ffffff', '#0B1F4D'],
+  ['path', '#ffffff', '#0B1F4D'],
+  ['path', '#E11D2A', undefined],
+  ['path', '#E11D2A', undefined],
+]
+
+describe('public/logo-gran-colombia-horizontal.svg', () => {
+  it('es un SVG de 880 × 210 sin nada que no dibuje', () => {
+    expect(LETRERO).toMatch(/^<svg [^>]*viewBox="0 0 880 210"/)
+    expect(LETRERO.trimEnd()).toMatch(/<\/svg>$/)
+    for (const prohibido of ['<metadata', '<text', '<image', '<linearGradient', '<radialGradient', '<style', '<script', '<use', '<g ', 'transform=']) {
+      expect(LETRERO, prohibido).not.toContain(prohibido)
+    }
+  })
+
+  it('no pide nada a internet', () => {
+    expect(LETRERO).not.toMatch(/href\s*=/i)
+    expect(LETRERO).not.toMatch(/url\(/i)
+    expect(LETRERO.replace('http://www.w3.org/2000/svg', '')).not.toMatch(/https?:\/\//)
+  })
+
+  it('dibuja 2 rectángulos, 5 círculos, 4 trazados y 1 polígono', () => {
+    const cuenta = (nombre) => elementosDelSvg(LETRERO).filter((e) => e.nombre === nombre).length
+    expect([cuenta('rect'), cuenta('circle'), cuenta('path'), cuenta('polygon')]).toEqual([2, 5, 4, 1])
+  })
+
+  it('los elementos van en el orden y con los colores que espera la escena, los mismos del logo', () => {
+    const real = elementosDelSvg(LETRERO).map((e) => [e.nombre, e.fill, e.stroke])
+    expect(real).toEqual(ESPERADO_DEL_LETRERO)
+    // Mismos colores que el logo redondo.
+    const coloresDe = (texto) => new Set(elementosDelSvg(texto).flatMap((e) => [e.fill, e.stroke]).filter((c) => c && c !== 'none'))
+    expect(coloresDe(LETRERO)).toEqual(coloresDe(LOGO))
+  })
+
+  it('pesa menos que el original con metadatos', () => {
+    const original = readFileSync('docs/referencias/logo-gran-colombia-horizontal.svg', 'utf8')
+    expect(LETRERO.length).toBeLessThan(original.length)
   })
 })
