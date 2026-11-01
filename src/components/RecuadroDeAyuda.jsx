@@ -1,7 +1,12 @@
 import { useEffect, useRef } from 'react'
 
 import { CREDITOS_DE_FUENTES, LICENCIA_DE_LAS_FUENTES } from '../data/creditosDeFuentes.js'
-import { CREDITOS_DE_MODELOS, LICENCIA_DE_LOS_MODELOS } from '../data/creditosDeModelos.js'
+import {
+  CREDITOS_DE_AMBIENTE,
+  CREDITOS_DE_MODELOS,
+  LICENCIA_CC0,
+  LICENCIA_DE_LOS_MODELOS,
+} from '../data/creditosDeModelos.js'
 import { NOMBRE_DE_PLAN } from '../estilos/colores.js'
 import { useInterfaz } from '../store/interfaz.js'
 import { IconoDeCerrar } from './iconos.jsx'
@@ -13,7 +18,7 @@ const ENFOCABLES = 'button, [href], input, select, textarea, [tabindex]:not([tab
 
 /**
  * El recuadro de Ayuda: cómo usar la aplicación, los nombres completos de los
- * planes, qué significa cada vista y los créditos de los modelos 3D de las motos.
+ * planes, qué significa cada vista y los créditos de los modelos 3D (motos y ambiente).
  *
  * Es contenido fijo. Se cierra con el botón, con Escape (lo atiende el estado
  * de la interfaz) y pulsando fuera; mientras está abierto el teclado no sale de
@@ -198,6 +203,14 @@ export function ContenidoDeLaAyuda() {
             solo ilustrativo: la visita no registró por dónde llegaba cada una.
           </li>
           <li>
+            <strong>Los trabajadores.</strong> Son ilustrativos: hasta 2 en el lavado, con
+            manguera, y hasta 3 en el acabado, con trapo, junto a las placas y los puestos que
+            están ocupados (los de número menor primero). El modelo no los toma como
+            servidores y no cambian ninguna cifra. Lo mismo vale para la cafetería de
+            adelante y sus clientes: son de adorno, las motos no pasan por ahí y el pago no
+            es una etapa.
+          </li>
+          <li>
             <strong>La cámara.</strong> Arrastra para girar la vista y usa la rueda para
             acercarte. Los botones llevan a cuatro vistas: «Vista general» (el local completo,
             también sirve para volver a centrarlo), «Lavado» (las placas y su fila de espera),
@@ -247,6 +260,29 @@ export function ContenidoDeLaAyuda() {
                 {titulo}
               </a>{' '}
               de {autor}
+            </li>
+          ))}
+        </ul>
+        <p className="ayuda-parrafo">
+          Los carros, los árboles, la planta, el farol, el semáforo, la señal, el
+          balde, la caja, la nevera y las personas de pie también son modelos de Poly Pizza:
+          casi todos con licencia{' '}
+          <a href={LICENCIA_DE_LOS_MODELOS.url} target="_blank" rel="noopener noreferrer">
+            {LICENCIA_DE_LOS_MODELOS.nombre}
+          </a>{' '}
+          y cuatro con{' '}
+          <a href={LICENCIA_CC0.url} target="_blank" rel="noopener noreferrer">
+            {LICENCIA_CC0.nombre}
+          </a>{' '}
+          (dominio público). También se les cambió el tamaño y se comprimieron.
+        </p>
+        <ul className="ayuda-creditos">
+          {CREDITOS_DE_AMBIENTE.map(({ clave, titulo, autor, licencia, url }) => (
+            <li key={clave}>
+              <a href={url} target="_blank" rel="noopener noreferrer">
+                {titulo}
+              </a>{' '}
+              de {autor} ({licencia})
             </li>
           ))}
         </ul>

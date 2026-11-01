@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { LIMITES_DE_CUADROS_POR_SEGUNDO } from './CalidadAdaptable.jsx'
 import {
+  INTERRUPTORES_DE_CALIDAD,
   NIVEL_MAS_BAJO,
   NIVELES_DE_CALIDAD,
   RESOLUCION_MAXIMA,
@@ -16,32 +17,56 @@ const calidad = () => useCalidad.getState()
 beforeEach(() => calidad().restablecer())
 
 describe('los niveles de calidad', () => {
-  it('el nivel 0 lo tiene todo encendido', () => {
-    expect(NIVELES_DE_CALIDAD[0]).toEqual({ particulas: true, sombras: true, ambiente: true, resolucion: 1 })
+  it('hay ocho niveles y el nivel 0 lo tiene todo encendido', () => {
+    expect(NIVELES_DE_CALIDAD).toHaveLength(8)
+    expect(NIVEL_MAS_BAJO).toBe(7)
+    expect(NIVELES_DE_CALIDAD[0]).toEqual({
+      trafico: true,
+      particulas: true,
+      charcos: true,
+      personas: true,
+      sombras: true,
+      ambiente: true,
+      resolucion: 1,
+    })
+  })
+
+  it('todos los niveles tienen los mismos campos', () => {
+    for (const nivel of NIVELES_DE_CALIDAD) {
+      expect(Object.keys(nivel).sort()).toEqual([...INTERRUPTORES_DE_CALIDAD, 'resolucion'].sort())
+    }
   })
 
   it('cada nivel apaga más que el anterior y nunca vuelve a encender nada', () => {
     for (let i = 1; i < NIVELES_DE_CALIDAD.length; i += 1) {
       const antes = NIVELES_DE_CALIDAD[i - 1]
       const ahora = NIVELES_DE_CALIDAD[i]
-      for (const efecto of ['particulas', 'sombras', 'ambiente']) {
+      for (const efecto of INTERRUPTORES_DE_CALIDAD) {
         expect(ahora[efecto] && !antes[efecto], `${efecto} en el nivel ${i}`).toBe(false)
       }
       expect(ahora.resolucion).toBeLessThanOrEqual(antes.resolucion)
       const algoMenos =
-        ['particulas', 'sombras', 'ambiente'].some((efecto) => antes[efecto] && !ahora[efecto]) ||
+        INTERRUPTORES_DE_CALIDAD.some((efecto) => antes[efecto] && !ahora[efecto]) ||
         ahora.resolucion < antes.resolucion
       expect(algoMenos, `el nivel ${i} no cambia nada`).toBe(true)
     }
   })
 
-  it('se apagan primero las gotas, luego las sombras, luego el entorno, y la resolución al final', () => {
-    expect(NIVELES_DE_CALIDAD[1].particulas).toBe(false)
-    expect(NIVELES_DE_CALIDAD[1].sombras).toBe(true)
-    expect(NIVELES_DE_CALIDAD[2].sombras).toBe(false)
-    expect(NIVELES_DE_CALIDAD[2].ambiente).toBe(true)
-    expect(NIVELES_DE_CALIDAD[3].ambiente).toBe(false)
-    expect(NIVELES_DE_CALIDAD[4].resolucion).toBeLessThan(NIVELES_DE_CALIDAD[3].resolucion)
+  it('cada nivel apaga solo un grupo más que el anterior (el último solo baja la resolución)', () => {
+    for (let i = 1; i < NIVELES_DE_CALIDAD.length; i += 1) {
+      const antes = NIVELES_DE_CALIDAD[i - 1]
+      const ahora = NIVELES_DE_CALIDAD[i]
+      const apagados = INTERRUPTORES_DE_CALIDAD.filter((efecto) => antes[efecto] && !ahora[efecto])
+      expect(apagados.length, `nivel ${i}`).toBe(i === NIVEL_MAS_BAJO ? 0 : 1)
+    }
+  })
+
+  it('el orden es: tráfico, partículas y espuma, charcos, personas, sombras, entorno y, al final, la resolución', () => {
+    const nivelEnQueSeApaga = (efecto) => NIVELES_DE_CALIDAD.findIndex((nivel) => !nivel[efecto])
+    expect(INTERRUPTORES_DE_CALIDAD.map(nivelEnQueSeApaga)).toEqual([1, 2, 3, 4, 5, 6])
+    expect(NIVELES_DE_CALIDAD[6].resolucion).toBe(0.75)
+    expect(NIVELES_DE_CALIDAD[7].resolucion).toBe(0.5)
+    for (let i = 0; i <= 5; i += 1) expect(NIVELES_DE_CALIDAD[i].resolucion).toBe(1)
   })
 
   it('la resolución no pasa de 2× ni baja de media en ninguna pantalla', () => {
@@ -75,14 +100,22 @@ describe('bajar y subir', () => {
     expect(calidad().nivel).toBe(NIVEL_MAS_BAJO)
   })
 
-  it('si mejora, lo devuelve paso a paso, hasta el nivel 0', () => {
-    for (let i = 0; i < 3; i += 1) calidad().empeorar()
-    for (let i = 2; i >= 0; i -= 1) {
+  it('si mejora, lo devuelve paso a paso, en el orden contrario, hasta el nivel 0', () => {
+    for (let i = 0; i < NIVEL_MAS_BAJO; i += 1) calidad().empeorar()
+    for (let i = NIVEL_MAS_BAJO - 1; i >= 0; i -= 1) {
       calidad().mejorar()
       expect(calidad().nivel).toBe(i)
     }
     calidad().mejorar()
     expect(calidad().nivel).toBe(0)
+  })
+
+  it('al subir, lo último que se apagó es lo primero que vuelve', () => {
+    for (let i = 0; i < 5; i += 1) calidad().empeorar() // nivel 5: sin sombras
+    expect(NIVELES_DE_CALIDAD[calidad().nivel].sombras).toBe(false)
+    calidad().mejorar()
+    expect(NIVELES_DE_CALIDAD[calidad().nivel].sombras).toBe(true)
+    expect(NIVELES_DE_CALIDAD[calidad().nivel].personas).toBe(false)
   })
 
   it('si subir hace que vuelva a bajar una y otra vez, deja de subir más allá del nivel donde aguanta', () => {
@@ -122,5 +155,29 @@ describe('los límites de cuadros por segundo', () => {
     const [bajo, alto] = LIMITES_DE_CUADROS_POR_SEGUNDO(144)
     expect(bajo).toBeGreaterThanOrEqual(60)
     expect(alto).toBeGreaterThan(bajo)
+  })
+})
+
+describe('la escena sigue el nivel de calidad', () => {
+  it('el lienzo anota el nivel en el que va', async () => {
+    const { anotarElNivel } = await import('./CalidadAdaptable.jsx')
+    const lienzo = { dataset: {} }
+    for (let nivel = 0; nivel <= NIVEL_MAS_BAJO; nivel += 1) {
+      anotarElNivel(lienzo, nivel)
+      expect(lienzo.dataset.calidad).toBe(String(nivel))
+    }
+  })
+
+  it('en una pantalla normal, los dos últimos niveles dan 0,75 y 0,5 de resolución', () => {
+    expect(resolucionDelNivel(NIVEL_MAS_BAJO - 1, 1)).toBe(0.75)
+    expect(resolucionDelNivel(NIVEL_MAS_BAJO, 1)).toBe(0.5)
+    for (let nivel = 0; nivel <= NIVEL_MAS_BAJO - 2; nivel += 1) {
+      expect(resolucionDelNivel(nivel, 1)).toBe(1)
+    }
+  })
+
+  it('un nivel fuera de rango se acota a los extremos', () => {
+    expect(resolucionDelNivel(-3, 1)).toBe(1)
+    expect(resolucionDelNivel(99, 1)).toBe(0.5)
   })
 })

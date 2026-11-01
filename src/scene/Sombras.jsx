@@ -56,7 +56,7 @@ export function Sombras({ placas, puestos }) {
         map: textura,
         color: COLOR_DE_ESCENA.letreroDelLocal,
         transparent: true,
-        opacity: 0.4,
+        opacity: 0.22,
         depthWrite: false,
         polygonOffset: true,
         polygonOffsetFactor: -1,

@@ -11,12 +11,14 @@
  */
 
 /**
- * Colores de la marca (el logo del lavadero) que usa la interfaz. Solo el azul
- * marino del contorno del logo, para el nombre de la aplicación. El rojo del
- * logo no se usa en la interfaz.
+ * Colores de la marca (el logo del lavadero) que usa la interfaz: el azul marino
+ * del contorno del logo, para el nombre de la aplicación, y el azul de la marca
+ * (#1F3FA6), solo para lo seleccionado y activo (pestañas activas y opciones
+ * elegidas). El rojo del logo no se usa en la interfaz.
  */
 export const COLOR_DE_MARCA = {
   azulMarino: '#0b1f4d',
+  azul: '#1f3fa6',
 }
 
 /** Color de cada plan, para pintar las motos y su leyenda. */
@@ -77,32 +79,48 @@ export const COLOR_DE_RESERVADO = {
  *
  * El verde del letrero de calle (`#1D7348`) da 5,84 : 1 con el texto blanco,
  * por encima del mínimo de 4,5 : 1.
+ *
+ * Los colores del paisaje (cielo, ropa, vegetación, cafetería y los objetos
+ * hechos en código) NO usan los colores con significado —etapas, planes, ámbar
+ * y rojo—: `paisaje.test.js` mide la distancia en Lab de cada uno contra ellos.
  */
 export const COLOR_DE_ESCENA = {
   // Terreno base y su borde
-  terreno: '#dfe6ea',
+  terreno: '#d8d3c7',
   fondo: '#e9eff3',
-  // Avenidas
-  asfalto: '#7b8890',
+  // Cielo (degradado de la cúpula; el borde del terreno termina en el del horizonte) y sol
+  cieloCenit: '#4b86d0',
+  cieloHorizonte: '#c2daee',
+  sol: '#ffd9a0',
+  // Avenidas: asfalto oscuro y aceras de concreto cálido
+  asfalto: '#505c64',
   pinturaVial: '#f3f5f6',
-  bordillo: '#b3bec5',
-  acera: '#d3dbe0',
+  bordillo: '#c2baad',
+  acera: '#dad3c7',
   letreroDeCalle: '#1d7348',
   textoDeLetrero: '#ffffff',
   // Local
-  piso: '#e8eef1',
-  juntaDelPiso: '#d5dee3',
-  pisoMojado: '#c4dce6',
-  zonaDeAcabado: '#e3e0f1',
-  pinturaDeEspera: '#9aa7ae',
+  // Tres tonos: las placas son lo más oscuro del lavadero, el piso es cemento gris medio
+  // y las aceras y el terreno son claros y un poco más cálidos que el piso.
+  piso: '#8a959b',
+  juntaDelPiso: '#79858c',
+  pisoMojado: '#76838b',
+  zonaDeAcabado: '#9a98ad',
+  pinturaDeEspera: '#f3f5f6',
   columna: '#9aa7ae',
   techo: '#e6ecef',
-  pared: '#d4dde2',
+  // La lona blanca del techo y sus arcos de tubo (azul marino de la marca)
+  lona: '#fbfaf6',
+  arco: '#0b1f4d',
+  // La pared del fondo (azul de la marca) con su franja amarilla, y las columnas
+  paredAzul: '#1f3fa6',
+  franjaDePared: '#ffd21f',
+  columnaAzul: '#1f3fa6',
   letreroDelLocal: '#12212c',
-  // Placas y puestos
+  // Placas y puestos: la cubierta de una placa es de metal gris oscuro en todos sus estados
+  placaDeMetal: '#3c464d',
   metal: '#6b7a82',
   manguera: '#2d3a44',
-  bordeDeLosa: '#e8eef1',
   mesa: '#d9dfe3',
   // Servidores fuera de servicio: la losa cerrada (el gris de la pintura de espera)
   // y la barrera y la señal de «cerrándose» (el ámbar de las advertencias)
@@ -113,7 +131,45 @@ export const COLOR_DE_ESCENA = {
   rotuloFondo: '#ffffff',
   rotuloBorde: '#dce3e8',
   rotuloDeAlerta: '#c8322f',
+  // Cafetería: muros, mostrador, mesas, sillas, tanque de agua del techo y sombrilla
+  cafeteria: '#efe3cf',
+  mostrador: '#8a6a4f',
+  mesaDeCafeteria: '#c9a46b',
+  sillaDeCafeteria: '#4a4f54',
+  tanqueDeAgua: '#1c2429',
+  sombrilla: '#f5f1e6',
+  // Personas: los trabajadores van de negro con gorra y botas de caucho, y los clientes
+  // con ropa de estos seis colores (ninguno rojo ni parecido a una etapa o un plan)
+  ropaDeTrabajo: '#1a1d20',
+  botasDeCaucho: '#23282c',
+  ropaDeCliente1: '#7a8f5f',
+  ropaDeCliente2: '#c9b9a0',
+  ropaDeCliente3: '#4a5568',
+  ropaDeCliente4: '#8a6f58',
+  ropaDeCliente5: '#a9b8a0',
+  ropaDeCliente6: '#2f4f4f',
+  pielClara: '#e0b894',
+  pielMedia: '#b98560',
+  pielOscura: '#7a5236',
+  peloOscuro: '#2b2018',
+  peloCastano: '#5a3d28',
+  // Espuma y burbujas de agua, blancas como las del logo
+  espuma: '#f6fafc',
+  // Vegetación y matera, para lo que se hace en código
+  follaje: '#4f8a3c',
+  tronco: '#6b4a34',
+  matera: '#b0694a',
 }
+
+/** La ropa de los clientes, en el orden de `ropaDeCliente1` a `ropaDeCliente6`. */
+export const PALETA_DE_ROPA = [
+  COLOR_DE_ESCENA.ropaDeCliente1,
+  COLOR_DE_ESCENA.ropaDeCliente2,
+  COLOR_DE_ESCENA.ropaDeCliente3,
+  COLOR_DE_ESCENA.ropaDeCliente4,
+  COLOR_DE_ESCENA.ropaDeCliente5,
+  COLOR_DE_ESCENA.ropaDeCliente6,
+]
 
 /** `pinturaVial` → `pintura-vial`, el nombre de la variable CSS sin su prefijo. */
 const aKebab = (nombre) => nombre.replace(/[A-Z]/g, (letra) => `-${letra.toLowerCase()}`)
@@ -124,6 +180,7 @@ const aKebab = (nombre) => nombre.replace(/[A-Z]/g, (letra) => `-${letra.toLower
  */
 export const COLORES_COMPARTIDOS = {
   'marca-azul-marino': COLOR_DE_MARCA.azulMarino,
+  'marca-azul': COLOR_DE_MARCA.azul,
   'plan-1': COLOR_DE_PLAN[1],
   'plan-2': COLOR_DE_PLAN[2],
   'plan-3': COLOR_DE_PLAN[3],

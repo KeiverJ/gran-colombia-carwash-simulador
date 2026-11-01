@@ -6,6 +6,8 @@ import { COLOR_DE_ESCENA, COLOR_DE_ESTADO, COLOR_DE_OCUPADO, COLOR_DE_RESERVADO 
 import {
   barreraDeCierre,
   conoDeCierre,
+  ESTRUCTURA_DE_LA_PLACA,
+  estructuraDeLaPlaca,
   marcoDeLosa,
   posteConManguera,
   posteSencillo,
@@ -17,7 +19,8 @@ import { useServidorSenalado } from '../store/servidorSenalado.js'
 import { MODO_VISITA, useSimulacion } from '../store/simulacion.js'
 import { alHacerClicEnUnServidor, fijarElCursor, textoDelRotulo, tipoDeLaPulsacion } from './interaccionConServidores.js'
 import { estadoDeLasLosas } from './losasPublicadas.js'
-import { estaLevantada } from './losasVisuales.js'
+import { altoDeLaCubierta, colocacionDeLaCubierta } from './losasVisuales.js'
+import { esDeAtras, largoDeLaRampa } from './rampasDeLasPlacas.js'
 import { avanceDelReloj, crearMemoriaDelReloj, pasoDeLaAnimacion } from './relojDeLaEscena.js'
 import {
   posicionDePlaca,
@@ -37,9 +40,6 @@ const VELOCIDAD_DE_LA_LOSA = 9
 const ALTO_DEL_POSTE_DE_PLACA = 1.55
 const ALTO_DEL_POSTE_DE_PUESTO = 1.2
 
-/** La losa de un servidor cerrado queda más baja que la de uno libre: se distingue por la altura. */
-const ALTO_DE_LA_LOSA_CERRADA = 0.04
-
 /** Dónde va el cono de aviso sobre la losa: la esquina de delante, junto a la rejilla o al tablero. */
 const POSICION_DEL_CONO = [0.85, 0, 1.1]
 
@@ -58,6 +58,9 @@ const PIXELES_DEL_ROTULO_DE_ACCION = 30
 /** Alto del rótulo con el número, en metros: se lee desde la vista general. */
 const ALTO_DEL_ROTULO = 0.6
 
+/** Lo menos que mide en pantalla, en píxeles, para que el número se lea también desde «Planta», que está más lejos. */
+const PIXELES_MINIMOS_DEL_NUMERO = 18
+
 /** El material de una losa según su estado visual y la etapa a la que pertenece. */
 function materialDe(estadoVisual, etapa, materiales) {
   if (estadoVisual === 'ocupada' || estadoVisual === 'cerrandose') return materiales[etapa]
@@ -70,7 +73,8 @@ function materialDe(estadoVisual, etapa, materiales) {
 function useFormasDeLosas() {
   const formas = useMemo(
     () => ({
-      marco: marcoDeLosa({ ancho: SERVIDOR.ancho, fondo: SERVIDOR.fondo }),
+      // El borde de una placa o de un puesto es más ancho: lleva el color del estado.
+      marcoDeLosaOcupable: marcoDeLosa({ ancho: SERVIDOR.ancho, fondo: SERVIDOR.fondo, tira: 0.16, alto: 0.06 }),
       resaltado: marcoDeLosa({
         ancho: SERVIDOR.ancho + 2 * VUELO_DEL_RESALTADO,
         fondo: SERVIDOR.fondo + 2 * VUELO_DEL_RESALTADO,
@@ -78,6 +82,20 @@ function useFormasDeLosas() {
         alto: 0.07,
       }),
       rejilla: rejillaDeDesague({}),
+      // Patas y rampa de las placas, del piso a la altura de una ocupada; la rampa de la
+      // fila de atrás es corta porque por delante pasa el carril de las motos.
+      estructuraDeAdelante: estructuraDeLaPlaca({
+        ancho: SERVIDOR.ancho,
+        fondo: SERVIDOR.fondo,
+        alto: SERVIDOR.altoOcupado,
+        largoDeLaRampa: largoDeLaRampa(false),
+      }),
+      estructuraDeAtras: estructuraDeLaPlaca({
+        ancho: SERVIDOR.ancho,
+        fondo: SERVIDOR.fondo,
+        alto: SERVIDOR.altoOcupado,
+        largoDeLaRampa: largoDeLaRampa(true),
+      }),
       postePlaca: posteConManguera({ alto: ALTO_DEL_POSTE_DE_PLACA }),
       posteConPuesto: posteSencillo({ alto: ALTO_DEL_POSTE_DE_PUESTO }),
       tablero: tableroDeHerramientas({ ancho: SERVIDOR.ancho - 0.5 }),
@@ -102,7 +120,9 @@ function useMaterialesDeLosas() {
       resaltadoLavado: new MeshBasicMaterial({ color: COLOR_DE_OCUPADO.lavado }),
       resaltadoAcabado: new MeshBasicMaterial({ color: COLOR_DE_OCUPADO.acabado }),
       cerrada: new MeshStandardMaterial({ color: COLOR_DE_ESCENA.losaCerrada, roughness: 0.9 }),
-      borde: new MeshStandardMaterial({ color: COLOR_DE_ESCENA.bordeDeLosa, roughness: 0.8 }),
+      // La cubierta de una placa o de un puesto es siempre de metal gris oscuro, libre o no: el estado se lee
+      // en la altura y en el color del borde (`materialDe`).
+      placa: new MeshStandardMaterial({ color: COLOR_DE_ESCENA.placaDeMetal, metalness: 0.3, roughness: 0.55 }),
       piezas: new MeshStandardMaterial({ vertexColors: true, metalness: 0.3, roughness: 0.55 }),
     }),
     [],
@@ -125,7 +145,7 @@ function useMaterialesDeLosas() {
  * el cono. La altura y la barrera lo distinguen sin depender del color.
  *
  * Libre y ocupado se distinguen por la altura de la losa y también por el
- * color, pero sin verde ni rojo: libre es un gris azulado neutro y ocupado lleva
+ * color del borde (la cubierta es siempre de metal gris oscuro), pero sin verde ni rojo: libre es un gris azulado neutro y ocupado lleva
  * el color de su etapa (el del lavado en las placas, el del acabado en los
  * puestos). Una placa lleva rejilla de desagüe, un poste con manguera y su
  * número; un puesto es una mesa de acabado con su tablero de herramientas y su
@@ -133,6 +153,10 @@ function useMaterialesDeLosas() {
  */
 export function Servidores({ placas, puestos }) {
   const losas = useRef([])
+  /** La estructura de cada placa (patas y rampa), que se estira en Y con la altura de la cubierta. */
+  const estructuras = useRef([])
+  /** El borde de cada placa, que lleva el color del estado. */
+  const marcos = useRef([])
   const encima = useRef([])
   /** El alto al que va cada losa ahora mismo, mientras sube o baja. */
   const altos = useRef([])
@@ -176,12 +200,7 @@ export function Servidores({ placas, puestos }) {
     estados.forEach((estadoVisual, i) => {
       const losa = losas.current[i]
       if (!losa) return
-      const destino =
-        estadoVisual === 'cerrada'
-          ? ALTO_DE_LA_LOSA_CERRADA
-          : estaLevantada(estadoVisual)
-            ? SERVIDOR.altoOcupado
-            : SERVIDOR.altoLibre
+      const destino = altoDeLaCubierta(estadoVisual)
       // Se levanta poco a poco en vez de dar un salto. El alto de verdad se
       // guarda en la propia losa, no en React: cambiarlo sesenta veces por
       // segundo a través del estado provocaría un render por cuadro.
@@ -192,10 +211,23 @@ export function Servidores({ placas, puestos }) {
       altos.current[i] = alto
       eraCerrada.current[i] = estadoVisual === 'cerrada' || (eraCerrada.current[i] && Math.abs(alto - destino) > 0.002)
 
-      losa.scale.y = alto / SERVIDOR.altoOcupado
-      losa.position.y = alto / 2
       const etapa = i < foto.placas.length ? 'lavado' : 'acabado'
-      losa.material = materialDe(estadoVisual, etapa, materiales)
+      const estructura = estructuras.current[i]
+      if (estructura) {
+        // Una placa es una cubierta delgada sobre patas: la cubierta sube y baja con la altura y la
+        // estructura (patas y rampa) se estira con ella, del piso a la cubierta.
+        const { escalaY, centroY } = colocacionDeLaCubierta(alto, ESTRUCTURA_DE_LA_PLACA.espesorDeLaCubierta)
+        losa.scale.y = escalaY
+        losa.position.y = centroY
+        estructura.scale.y = Math.max(alto / SERVIDOR.altoOcupado, 0.0001)
+      } else {
+        // Un puesto sigue siendo una mesa maciza que se estira entera.
+        losa.scale.y = alto / SERVIDOR.altoOcupado
+        losa.position.y = alto / 2
+      }
+      const colorDelEstado = materialDe(estadoVisual, etapa, materiales)
+      losa.material = materiales.placa
+      if (marcos.current[i]) marcos.current[i].material = colorDelEstado
       // El marco, la rejilla y el tablero van sobre la cara de arriba: suben y
       // bajan con ella.
       const sobre = encima.current[i]
@@ -302,6 +334,8 @@ export function Servidores({ placas, puestos }) {
                 losas.current[i] = nodo
               }}
               material={materiales.libre}
+              castShadow
+              receiveShadow
               position={[0, SERVIDOR.altoLibre / 2, 0]}
               scale={[1, SERVIDOR.altoLibre / SERVIDOR.altoOcupado, 1]}
               onPointerOver={(evento) => alSenalar(evento, etapa, indice)}
@@ -313,6 +347,19 @@ export function Servidores({ placas, puestos }) {
               <boxGeometry args={[SERVIDOR.ancho, SERVIDOR.altoOcupado, SERVIDOR.fondo]} />
             </mesh>
 
+            {/* Las patas y la rampa del frente, solo en las placas de lavado. */}
+            {esPlaca && (
+              <mesh
+                ref={(nodo) => {
+                  estructuras.current[i] = nodo
+                }}
+                geometry={esDeAtras(indice, placas) ? formas.estructuraDeAtras : formas.estructuraDeAdelante}
+                material={materiales.piezas}
+                castShadow
+                receiveShadow
+              />
+            )}
+
             {/* Sobre la losa: el marco del borde y, según el tipo, la rejilla de
                 desagüe (al frente, donde la moto no llega) o el tablero de
                 herramientas (al fondo, en el borde de atrás). */}
@@ -322,7 +369,14 @@ export function Servidores({ placas, puestos }) {
               }}
               position={[0, SERVIDOR.altoLibre, 0]}
             >
-              <mesh geometry={formas.marco} material={materiales.borde} />
+              <mesh
+                ref={(nodo) => {
+                  marcos.current[i] = nodo
+                }}
+                geometry={formas.marcoDeLosaOcupable}
+                material={materiales.libre}
+                receiveShadow
+              />
               <mesh
                 ref={(nodo) => {
                   resaltados.current[i] = nodo
@@ -366,16 +420,19 @@ export function Servidores({ placas, puestos }) {
             <mesh
               geometry={esPlaca ? formas.postePlaca : formas.posteConPuesto}
               material={materiales.piezas}
+              castShadow
               position={[poste.x, 0, poste.z]}
               scale={[poste.escala, 1, poste.escala]}
             />
             <Rotulo
               position={[
                 poste.x,
-                (esPlaca ? ALTO_DEL_POSTE_DE_PLACA : ALTO_DEL_POSTE_DE_PUESTO) + 0.1 + ALTO_DEL_ROTULO / 2,
+                (esPlaca ? ALTO_DEL_POSTE_DE_PLACA : ALTO_DEL_POSTE_DE_PUESTO) + 0.1,
                 poste.z,
               ]}
               alto={ALTO_DEL_ROTULO}
+              pixelesMinimos={PIXELES_MINIMOS_DEL_NUMERO}
+              ancla={[0.5, 0]}
               relleno={esPlaca ? 6 : 8}
               negrita
             >

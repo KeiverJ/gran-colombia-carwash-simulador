@@ -44,6 +44,40 @@
  *   palabras en la leyenda.
  *
  *   Letrero de calle: el texto blanco sobre #1D7348 da 5,84 : 1 (mínimo 4,5).
+   Letrero del local: el texto blanco sobre #12212C da 16,41 : 1.
+
+   Azul de la marca (#1F3FA6), solo para lo seleccionado y activo: el texto
+   blanco da 9,05 : 1 (mínimo 4,5) y el amarillo de la franja (#FFD21F) sobre
+   él, 6,25 : 1. Va siempre con negrita, para que no dependa solo del color.
+   Su distancia en Lab a la etapa 2 (#6D4FC2) es 16,9 (mínimo 15).
+
+   Tres tonos en el lavadero (de más oscuro a más claro), medidos con la fórmula
+   de WCAG:
+     · Placa de metal (#3C464D), lo más oscuro del lavadero y también libre.
+     · Piso de cemento gris medio (#8A959B): la placa se separa de él con
+       3,15 : 1 (libre y todo) y el borde de una placa libre (#C3CFD6) de la
+       cubierta con 6,08 : 1.
+     · Acera (#DAD3C7) y terreno (#D8D3C7), claros y más cálidos: el piso se
+       separa de la acera con 2,06 : 1 y del terreno con 2,05 : 1.
+   El asfalto (#505C64) da 2,24 : 1 contra el piso y 4,62 : 1 contra la acera, y
+   la pintura vial (#F3F5F6) 6,28 : 1 sobre él. Las líneas de las filas (#F3F5F6)
+   dan 2,8 : 1 sobre el piso, y la tarjeta blanca de los números de las placas, 3,06 : 1.
+   Los aros de los planes sobre el piso casi no se separan en luminosidad (1,55 : 1
+   el plan 1, 1,05 : 1 el 2 y 1,16 : 1 el 3) pero sí en color (distancia en Lab de
+   61 a 75): se leen por el color y por el trazo, no por claridad.
+   El borde de una placa ocupada de lavado (#0B84AE) sobre la placa: 2,26 : 1; se
+   distingue además por la altura.
+   Los puestos de acabado llevan la misma cubierta de metal oscuro y su borde de
+   estado: libre 6,08 : 1, reservado (#9C95CD) 3,49 : 1 y ocupado (#6D4FC2) 1,63 : 1
+   (se distingue además por la altura). Los aros de los planes sobre esa cubierta:
+   2,03 : 1 el plan 1, 3,31 : 1 el 2 y 2,72 : 1 el 3, con distancias en Lab de 62 a 83.
+   La tarjeta blanca de los números sobre la franja del acabado (#9A98AD): 2,81 : 1, y
+   su texto oscuro sobre ella, 16,41 : 1.
+
+   Paisaje (cielo, ropa, vegetación, cafetería, objetos en código): ninguno
+   queda a menos de 15 (distancia en Lab) de una etapa, un plan, el ámbar o el
+   rojo; lo vigila `paisaje.test.js`. El cielo del cenit (#4B86D0) está a 23,0
+   de la etapa 1, el más cercano.
  *
  *   Texto (contraste mínimo 4,5 a 1; sobre blanco / fondo de página /
  *   selección / fondo de escena):
@@ -85,8 +119,12 @@
      El azul marino del contorno del logo. Solo para el nombre de la
      aplicación en la barra superior: da 15,94 : 1 sobre blanco, 14,16 sobre el
      fondo de página y 13,74 sobre el fondo de la escena (mínimo 4,5). El rojo
-     del logo no entra a la interfaz: el rojo de aquí es --peligro. */
+     del logo no entra a la interfaz: el rojo de aquí es --peligro.
+     El azul de la marca (#1f3fa6) es para lo seleccionado y activo (pestañas
+     activas y opciones elegidas), con texto blanco: ver su contraste en el
+     encabezado de este archivo. Nunca para etapas, planes ni avisos. */
   --marca-azul-marino: #0b1f4d;
+  --marca-azul: #1f3fa6;
 
   /* --- Etapas del lavadero ---
      La etapa 1 (lavado) y la etapa 2 (acabado) llevan su color en barras,
@@ -133,26 +171,33 @@
   /* --- Entorno de la escena 3D ---
      Gemelos de COLOR_DE_ESCENA en colores.js. El verde del letrero de calle
      (#1d7348) da 5,84 : 1 con el texto blanco. */
-  --escena-terreno: #dfe6ea;
+  --escena-terreno: #d8d3c7;
   --escena-fondo: #e9eff3;
-  --escena-asfalto: #7b8890;
+  --escena-cielo-cenit: #4b86d0;
+  --escena-cielo-horizonte: #c2daee;
+  --escena-sol: #ffd9a0;
+  --escena-asfalto: #505c64;
   --escena-pintura-vial: #f3f5f6;
-  --escena-bordillo: #b3bec5;
-  --escena-acera: #d3dbe0;
+  --escena-bordillo: #c2baad;
+  --escena-acera: #dad3c7;
   --escena-letrero-de-calle: #1d7348;
   --escena-texto-de-letrero: #ffffff;
-  --escena-piso: #e8eef1;
-  --escena-junta-del-piso: #d5dee3;
-  --escena-piso-mojado: #c4dce6;
-  --escena-zona-de-acabado: #e3e0f1;
-  --escena-pintura-de-espera: #9aa7ae;
+  --escena-piso: #8a959b;
+  --escena-junta-del-piso: #79858c;
+  --escena-piso-mojado: #76838b;
+  --escena-zona-de-acabado: #9a98ad;
+  --escena-pintura-de-espera: #f3f5f6;
   --escena-columna: #9aa7ae;
   --escena-techo: #e6ecef;
-  --escena-pared: #d4dde2;
+  --escena-lona: #fbfaf6;
+  --escena-arco: #0b1f4d;
+  --escena-pared-azul: #1f3fa6;
+  --escena-franja-de-pared: #ffd21f;
+  --escena-columna-azul: #1f3fa6;
   --escena-letrero-del-local: #12212c;
+  --escena-placa-de-metal: #3c464d;
   --escena-metal: #6b7a82;
   --escena-manguera: #2d3a44;
-  --escena-borde-de-losa: #e8eef1;
   --escena-mesa: #d9dfe3;
   --escena-losa-cerrada: #9aa7ae;
   --escena-barrera-de-cierre: #d98a00;
@@ -160,6 +205,29 @@
   --escena-rotulo-fondo: #ffffff;
   --escena-rotulo-borde: #dce3e8;
   --escena-rotulo-de-alerta: #c8322f;
+  --escena-cafeteria: #efe3cf;
+  --escena-mostrador: #8a6a4f;
+  --escena-mesa-de-cafeteria: #c9a46b;
+  --escena-silla-de-cafeteria: #4a4f54;
+  --escena-tanque-de-agua: #1c2429;
+  --escena-sombrilla: #f5f1e6;
+  --escena-ropa-de-trabajo: #1a1d20;
+  --escena-botas-de-caucho: #23282c;
+  --escena-ropa-de-cliente1: #7a8f5f;
+  --escena-ropa-de-cliente2: #c9b9a0;
+  --escena-ropa-de-cliente3: #4a5568;
+  --escena-ropa-de-cliente4: #8a6f58;
+  --escena-ropa-de-cliente5: #a9b8a0;
+  --escena-ropa-de-cliente6: #2f4f4f;
+  --escena-piel-clara: #e0b894;
+  --escena-piel-media: #b98560;
+  --escena-piel-oscura: #7a5236;
+  --escena-pelo-oscuro: #2b2018;
+  --escena-pelo-castano: #5a3d28;
+  --escena-espuma: #f6fafc;
+  --escena-follaje: #4f8a3c;
+  --escena-tronco: #6b4a34;
+  --escena-matera: #b0694a;
 
   /* --- Identidad: el plan que contrató cada moto --- */
   --plan-1: #2f6fdb;

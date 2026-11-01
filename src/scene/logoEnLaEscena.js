@@ -1,8 +1,7 @@
 import { BoxGeometry } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
-import { TECHO } from './posiciones.js'
-import { medidasDelTecho } from './techo.js'
+import { crestaDelArcoDelantero } from './lonaDelTecho.js'
 
 /**
  * Dónde van el logo del local (sobre el techo) y su versión horizontal (el letrero
@@ -89,18 +88,18 @@ export function colocacionDelLetreroDeLaPared({ z, grosor }, desde, hasta) {
 }
 
 /**
- * Dónde va el logo del techo: de pie sobre la losa, pegado a su borde delantero
- * y centrado a lo ancho. `position` es el centro del logo.
+ * Dónde va el logo del techo: de pie sobre la cresta del arco delantero de la
+ * lona, centrado a lo ancho. `position` es el centro del logo y
+ * `arribaDeLaLosa`, la altura de la cresta (la parte de arriba del tubo).
  */
 export function colocacionDelLogoDelTecho(ancho = ANCHO_DEL_LOGO.techo) {
-  const { centro, fondo } = medidasDelTecho()
+  const cresta = crestaDelArcoDelantero()
   const alto = altoDelLogo(ancho)
-  const arribaDeLaLosa = TECHO.alto + TECHO.grosor
   return {
     ancho,
     alto,
-    arribaDeLaLosa,
-    position: [centro[0], arribaDeLaLosa + ALTURA_DE_LOS_SOPORTES + alto / 2, centro[2] + fondo / 2 - RETIRO_DEL_BORDE],
+    arribaDeLaLosa: cresta.y,
+    position: [cresta.x, cresta.y + ALTURA_DE_LOS_SOPORTES + alto / 2, cresta.z],
   }
 }
 

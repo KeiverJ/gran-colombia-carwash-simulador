@@ -74,3 +74,18 @@ describe('medidasDelTecho', () => {
     expect(centro[1] - TECHO.grosor / 2).toBeCloseTo(TECHO.alto, 6)
   })
 })
+
+describe('la lona usa la misma opacidad que usaba la losa', () => {
+  // Desde el centro del suelo cubierto, a 20 m de distancia, a la elevación pedida.
+  const aElevacion = (grados) => {
+    const distancia = 20
+    return [2, 0.5 + distancia * Math.tan((grados * Math.PI) / 180), -2 + distancia]
+  }
+
+  it('a 10°, 20° y 30° de elevación vale 1, 0,648 y 0, como antes', () => {
+    expect(ELEVACION_DEL_TECHO).toEqual({ opaco: 16, invisible: 26 })
+    expect(opacidadDelTecho(aElevacion(10))).toBe(1)
+    expect(opacidadDelTecho(aElevacion(20))).toBeCloseTo(0.648, 3)
+    expect(opacidadDelTecho(aElevacion(30))).toBe(0)
+  })
+})

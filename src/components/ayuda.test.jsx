@@ -1,11 +1,16 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { CREDITOS_DE_MODELOS, LICENCIA_DE_LOS_MODELOS } from '../data/creditosDeModelos.js'
+import {
+  CREDITOS_DE_AMBIENTE,
+  CREDITOS_DE_MODELOS,
+  LICENCIA_CC0,
+  LICENCIA_DE_LOS_MODELOS,
+} from '../data/creditosDeModelos.js'
 import { BOTONES_DE_VISTA } from '../scene/camara.js'
 import { useInterfaz } from '../store/interfaz.js'
 import { useSimulacion } from '../store/simulacion.js'
-import { ContenidoDeLaAyuda } from './RecuadroDeAyuda.jsx'
+import { ContenidoDeLaAyuda, EncabezadoDeLaAyuda } from './RecuadroDeAyuda.jsx'
 
 const texto = () => renderToStaticMarkup(<ContenidoDeLaAyuda />)
 
@@ -27,14 +32,67 @@ describe('la sección «Créditos» de la Ayuda', () => {
     }
   })
 
+  it('nombra a los 15 modelos de ambiente: título, autor, licencia y enlace de cada uno', () => {
+    const html = texto()
+    expect(CREDITOS_DE_AMBIENTE).toHaveLength(15)
+    for (const { titulo, autor, licencia, url } of CREDITOS_DE_AMBIENTE) {
+      expect(html, `${titulo} de ${autor}`).toContain(titulo)
+      expect(html).toContain(autor)
+      expect(html).toContain(`href="${url}"`)
+      expect(html).toContain(`${autor} (${licencia})`)
+    }
+    expect(html).toContain(`href="${LICENCIA_CC0.url}"`)
+  })
+
+  it('los de Quaternius y Kay Lousberg figuran como CC0 y ya no dicen «por confirmar»', () => {
+    const html = texto()
+    for (const titulo of ['Police Car', 'Sports Car', 'Can Fridge', 'Streetlight']) {
+      const credito = CREDITOS_DE_AMBIENTE.find((c) => c.titulo === titulo)
+      expect(html).toContain(`${credito.autor} (CC0)`)
+    }
+    expect(html).not.toContain('por confirmar')
+  })
+
   it('los enlaces se abren en otra pestaña sin pasar el origen', () => {
     const html = texto()
     const enlaces = html.match(/<a [^>]*>/g) ?? []
-    expect(enlaces.length).toBeGreaterThanOrEqual(7)
+    expect(enlaces.length).toBeGreaterThanOrEqual(7 + CREDITOS_DE_AMBIENTE.length)
     for (const enlace of enlaces) {
       expect(enlace).toContain('target="_blank"')
       expect(enlace).toContain('rel="noopener noreferrer"')
     }
+  })
+})
+
+describe('los trabajadores y la cafetería en la Ayuda', () => {
+  it('dice que los trabajadores son ilustrativos: hasta 2 en el lavado y 3 en el acabado, junto a lo ocupado', () => {
+    const html = texto()
+    expect(html).toContain('Los trabajadores.')
+    expect(html).toContain('hasta 2 en el lavado')
+    expect(html).toContain('hasta 3 en el acabado')
+    expect(html).toContain('junto a las placas y los puestos que')
+    expect(html).toContain('El modelo no los toma como')
+    expect(html).toContain('no cambian ninguna cifra')
+  })
+
+  it('dice que la cafetería es de adorno y no es una etapa', () => {
+    const html = texto()
+    expect(html).toContain('la cafetería de')
+    expect(html).toContain('el pago no')
+  })
+})
+
+describe('el foco de la Ayuda', () => {
+  it('lo primero enfocable sigue siendo el botón «Cerrar», antes de los enlaces de créditos', () => {
+    const html = renderToStaticMarkup(
+      <>
+        <EncabezadoDeLaAyuda onCerrar={() => {}} />
+        <ContenidoDeLaAyuda />
+      </>,
+    )
+    const primero = html.search(/<button|<a /)
+    expect(html.slice(primero, primero + 7)).toBe('<button')
+    expect(html.slice(primero, html.indexOf('</button>', primero))).toContain('Cerrar')
   })
 })
 

@@ -1,10 +1,15 @@
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
+import { DoubleSide } from 'three'
 
 import { COLOR_DE_ESCENA } from '../estilos/colores.js'
 import { juntasDelPiso, tramosConHuecos } from './geometriasDelEntorno.js'
 import Letrero from './Letrero.jsx'
+import { Charcos } from './Charcos.jsx'
+import { ZONA_MOJADA } from './charcos.js'
+import { franjaDeLaPared } from './franjaDeLaPared.js'
 import { LetreroDeLaPared, LogoDelTecho } from './LogoDelLocal.jsx'
+import { arcosDeLaLona, superficieDeLaLona } from './lonaDelTecho.js'
 import { queSeDibujaDelLogo, queSeDibujaEnLaPared } from './logoEnLaEscena.js'
 import { useLetreroDelLocal, useLogoDelLocal } from './useLogoDelLocal.js'
 import {
@@ -17,13 +22,6 @@ import {
   ZONA_DE_SERVIDORES,
 } from './posiciones.js'
 import { estadoDeLaOpacidad, medidasDelTecho, opacidadDelTecho } from './techo.js'
-
-/** La zona mojada cubre las dos filas de placas, con un margen alrededor. */
-const ZONA_MOJADA = {
-  z: (LOCAL.zPlacasAdelante + LOCAL.zPlacasAtras) / 2,
-  ancho: ZONA_DE_SERVIDORES.ancho + 2,
-  fondo: LOCAL.zPlacasAtras - LOCAL.zPlacasAdelante + SERVIDOR.fondo + 1,
-}
 
 /** Líneas de pintura de la franja de espera: una en cada borde, a un palmo hacia adentro. */
 const GROSOR_DE_LA_LINEA = 0.12
@@ -39,7 +37,7 @@ function Piso() {
 
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[LOCAL.ancho, LOCAL.fondo]} />
         <meshStandardMaterial color={COLOR_DE_ESCENA.piso} roughness={0.9} />
       </mesh>
@@ -51,6 +49,7 @@ function Piso() {
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[FRANJA_DE_ESPERA.x0 + FRANJA_DE_ESPERA.ancho / 2, 0, 0]}
+        receiveShadow
       >
         <planeGeometry args={[FRANJA_DE_ESPERA.ancho, LOCAL.fondo]} />
         <meshStandardMaterial color={COLOR_DE_ESCENA.piso} roughness={0.9} />
@@ -65,13 +64,13 @@ function Piso() {
 
       {/* Piso mojado del lavado: cubre las dos filas de placas. Liso y con
           poca rugosidad: es lo que da el brillo de mojado. */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ZONA_DE_SERVIDORES.centroX, 0.004, ZONA_MOJADA.z]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ZONA_DE_SERVIDORES.centroX, 0.004, ZONA_MOJADA.z]} receiveShadow>
         <planeGeometry args={[ZONA_MOJADA.ancho, ZONA_MOJADA.fondo]} />
         <meshStandardMaterial color={COLOR_DE_ESCENA.pisoMojado} metalness={0.15} roughness={0.18} />
       </mesh>
 
       {/* Franja de la zona de acabado, al fondo */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ZONA_DE_SERVIDORES.centroX, 0.004, LOCAL.zPuestos]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ZONA_DE_SERVIDORES.centroX, 0.004, LOCAL.zPuestos]} receiveShadow>
         <planeGeometry args={[ZONA_DE_SERVIDORES.ancho + 2, SERVIDOR.fondo + 3]} />
         <meshStandardMaterial color={COLOR_DE_ESCENA.zonaDeAcabado} roughness={0.9} />
       </mesh>
@@ -80,16 +79,34 @@ function Piso() {
 }
 
 /**
- * Las columnas y las vigas que las unen por el perímetro. Se quedan siempre a
- * la vista, aunque el techo se aparte, para que se vea dónde está cubierto.
+ * Los cuatro arcos de tubo que sostienen la lona (ver `lonaDelTecho.js`): cada
+ * uno va de una viga lateral a la otra, sobre la lona. Se quedan siempre a la
+ * vista, aunque la lona se aparte. Proyectan sombra (son delgados).
+ */
+function Arcos() {
+  const { centro } = medidasDelTecho()
+  const geometria = useMemo(() => arcosDeLaLona(), [])
+  useEffect(() => () => geometria.dispose(), [geometria])
+  return (
+    <mesh geometry={geometria} position={[centro[0], 0, centro[2]]} castShadow>
+      <meshStandardMaterial color={COLOR_DE_ESCENA.arco} metalness={0.3} roughness={0.6} />
+    </mesh>
+  )
+}
+
+/**
+ * Las columnas, las vigas que las unen por el perímetro y los arcos de la lona.
+ * Se quedan siempre a la vista, aunque la lona se aparte, para que se vea dónde
+ * está cubierto.
  */
 function Estructura() {
   return (
     <group>
+      <Arcos />
       {COLUMNAS_DEL_TECHO.map(([x, , z]) => (
-        <mesh key={`columna-${x}-${z}`} position={[x, TECHO.alto / 2, z]}>
+        <mesh key={`columna-${x}-${z}`} position={[x, TECHO.alto / 2, z]} castShadow>
           <cylinderGeometry args={[0.16, 0.16, TECHO.alto, 10]} />
-          <meshStandardMaterial color={COLOR_DE_ESCENA.columna} metalness={0.3} roughness={0.6} />
+          <meshStandardMaterial color={COLOR_DE_ESCENA.columnaAzul} metalness={0.3} roughness={0.6} />
         </mesh>
       ))}
       {COLUMNAS_DEL_TECHO.map(([x, , z], i) => {
@@ -100,9 +117,10 @@ function Estructura() {
             key={`viga-${x}-${z}`}
             position={[(x + siguiente[0]) / 2, TECHO.alto - 0.06, (z + siguiente[2]) / 2]}
             rotation={[0, Math.atan2(siguiente[0] - x, siguiente[2] - z), 0]}
+            castShadow
           >
             <boxGeometry args={[0.14, 0.12, largo]} />
-            <meshStandardMaterial color={COLOR_DE_ESCENA.columna} metalness={0.3} roughness={0.6} />
+            <meshStandardMaterial color={COLOR_DE_ESCENA.arco} metalness={0.3} roughness={0.6} />
           </mesh>
         )
       })}
@@ -111,7 +129,7 @@ function Estructura() {
 }
 
 /**
- * El techo: una losa fina sobre las columnas.
+ * El techo: una lona blanca curva y tensada sobre los arcos (ver `lonaDelTecho.js`).
  *
  * Se aparta cuando la cámara sube (`opacidadDelTecho`): opaco con la vista de
  * frente, transparente a media subida y invisible desde arriba, para que nunca
@@ -119,7 +137,9 @@ function Estructura() {
  * `useFrame` y se escribe en el material, sin pasar por React.
  */
 function Techo() {
-  const { ancho, fondo, centro } = medidasDelTecho()
+  const { centro } = medidasDelTecho()
+  const lona = useMemo(() => superficieDeLaLona(), [])
+  useEffect(() => () => lona.dispose(), [lona])
   const malla = useRef(null)
   const material = useRef(null)
 
@@ -136,9 +156,15 @@ function Techo() {
   })
 
   return (
-    <mesh ref={malla} position={centro}>
-      <boxGeometry args={[ancho, TECHO.grosor, fondo]} />
-      <meshStandardMaterial ref={material} color={COLOR_DE_ESCENA.techo} roughness={0.85} />
+    <mesh ref={malla} geometry={lona} position={[centro[0], 0, centro[2]]}>
+      <meshStandardMaterial
+        ref={material}
+        color={COLOR_DE_ESCENA.lona}
+        emissive={COLOR_DE_ESCENA.lona}
+        emissiveIntensity={0.35}
+        roughness={0.85}
+        side={DoubleSide}
+      />
     </mesh>
   )
 }
@@ -168,15 +194,22 @@ function Pared({ letrero }) {
   return (
     <group>
       {macizos.map(([a, b]) => (
-        <mesh key={`pared-${a}`} position={[(a + b) / 2, alto / 2, z]}>
+        <mesh key={`pared-${a}`} position={[(a + b) / 2, alto / 2, z]} castShadow receiveShadow>
           <boxGeometry args={[b - a, alto, grosor]} />
-          <meshStandardMaterial color={COLOR_DE_ESCENA.pared} roughness={0.9} />
+          <meshStandardMaterial color={COLOR_DE_ESCENA.paredAzul} roughness={0.9} />
+        </mesh>
+      ))}
+      {/* La franja amarilla del logo, bajo el letrero y sin cruzar la abertura. */}
+      {franjaDeLaPared().map(({ x, y, z: zDeLaFranja, ancho, alto: altoDeLaFranja, fondo }) => (
+        <mesh key={`franja-${x}`} position={[x, y, zDeLaFranja]} receiveShadow>
+          <boxGeometry args={[ancho, altoDeLaFranja, fondo]} />
+          <meshStandardMaterial color={COLOR_DE_ESCENA.franjaDePared} roughness={0.8} />
         </mesh>
       ))}
       {dinteles.map(({ nombre, centroX, ancho }) => (
-        <mesh key={`dintel-${nombre}`} position={[centroX, (alto + altoDeAbertura) / 2, z]}>
+        <mesh key={`dintel-${nombre}`} position={[centroX, (alto + altoDeAbertura) / 2, z]} castShadow receiveShadow>
           <boxGeometry args={[ancho, alto - altoDeAbertura, grosor]} />
-          <meshStandardMaterial color={COLOR_DE_ESCENA.pared} roughness={0.9} />
+          <meshStandardMaterial color={COLOR_DE_ESCENA.paredAzul} roughness={0.9} />
         </mesh>
       ))}
       {enLaPared === 'letrero-3d' && (
@@ -207,6 +240,7 @@ export function Local() {
       <Piso />
       <Estructura />
       <Techo />
+      <Charcos />
       {dibujo.techo && <LogoDelTecho logo={logoDelLocal.logo} />}
       <Pared letrero={letreroDeLaPared} />
     </group>

@@ -16,6 +16,7 @@ import {
   queSeDibujaDelLogo,
   queSeDibujaEnLaPared,
 } from './logoEnLaEscena.js'
+import { crestaDelArcoDelantero, LONA, posicionesDeLosArcos } from './lonaDelTecho.js'
 import { elevacionDeLaVistaGeneral, proyectarPunto, vistaGeneral } from './camara.js'
 import { COLUMNAS_DEL_TECHO, PARED_DEL_FONDO, TECHO } from './posiciones.js'
 import { CENTRO_DEL_SUELO_CUBIERTO, estadoDeLaOpacidad, medidasDelTecho, opacidadDelTecho } from './techo.js'
@@ -161,9 +162,13 @@ describe('el logo del techo', () => {
     expect(c.ancho).toBeLessThan(anchoDelTecho)
   })
 
-  it('está de pie sobre la losa, con sus soportes entre la losa y el óvalo', () => {
+  it('está de pie sobre la cresta del arco delantero, con sus soportes entre el tubo y el óvalo', () => {
     const base = c.position[1] - c.alto / 2
-    expect(base).toBeCloseTo(TECHO.alto + TECHO.grosor + ALTURA_DE_LOS_SOPORTES, 6)
+    const cresta = crestaDelArcoDelantero()
+    expect(base).toBeCloseTo(cresta.y + ALTURA_DE_LOS_SOPORTES, 6)
+    expect(cresta.y).toBeCloseTo(TECHO.alto + LONA.flecha + 2 * LONA.radioDelArco, 6)
+    expect(c.position[2]).toBeCloseTo(posicionesDeLosArcos()[0], 6)
+    expect(c.arribaDeLaLosa).toBeCloseTo(cresta.y, 6)
   })
 
   it('el alto es dos tercios del ancho', () => {

@@ -15,6 +15,7 @@ import {
   elevacionDeVista,
   encuadreParaLasCapas,
   esquinasDeLaCaja,
+  ESQUINAS_DE_LA_CAFETERIA,
   ESQUINAS_DEL_LOCAL,
   LIMITES_DE_CAMARA,
   proyectarPunto,
@@ -24,6 +25,7 @@ import {
   vistaGeneral,
   vistaLavado,
   vistaPlanta,
+  vistaQueEncuadra,
   ZONA_DEL_ACABADO,
   ZONA_DEL_LAVADO,
 } from './camara.js'
@@ -539,6 +541,61 @@ describe.each(Object.entries(ASPECTOS))('14 placas y 7 puestos, con %s', (_nombr
     const vista = vistaAcabado(aspecto)
     for (const punto of puestos) {
       expect(cabe(punto, vista, aspecto), `punto ${punto}`).toBe(true)
+    }
+  })
+})
+
+describe('la planta encuadra también la cafetería', () => {
+  const PANTALLAS = [
+    ['1366 × 768', 1366 / 768],
+    ['1920 × 1080', 1920 / 1080],
+    ['390 × 844', 390 / 844],
+  ]
+
+  it.each(PANTALLAS)('a %s se ven completos el local y la cafetería', (_nombre, aspecto) => {
+    const vista = vistaPlanta(aspecto)
+    const puntos = [...ESQUINAS_DEL_LOCAL.map(([x, , z]) => [x, 0, z]), ...ESQUINAS_DE_LA_CAFETERIA]
+    for (const punto of puntos) {
+      const p = proyectarPunto(punto, vista, aspecto)
+      expect(p, `punto ${punto}`).not.toBeNull()
+      expect(Math.abs(p[0])).toBeLessThanOrEqual(1)
+      expect(Math.abs(p[1])).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('con la cafetería, el local se ve más chico que sin ella, pero entero', () => {
+    const aspecto = 1366 / 768
+    const sinCafeteria = vistaQueEncuadra(
+      ESQUINAS_DEL_LOCAL.map(([x, , z]) => [x, 0, z]),
+      { aspecto, elevacion: 88.9 },
+    )
+    const conCafeteria = vistaPlanta(aspecto)
+    expect(distanciaDe(conCafeteria)).toBeGreaterThan(distanciaDe(sinCafeteria))
+    const ancho = (vista) => {
+      const caja = cajaDelLocalEnPantalla(vista, aspecto)
+      return caja.maxX - caja.minX
+    }
+    const proporcion = ancho(conCafeteria) / ancho(sinCafeteria)
+    expect(proporcion).toBeLessThan(1)
+    expect(proporcion).toBeGreaterThan(0.5)
+  })
+
+  it('las otras tres vistas no cambian: no dependen de la cafetería', () => {
+    // A 1366 × 768 la vista general queda en x ≈ 1,75, y ≈ 6,8, z ≈ 28,3 y a 390 × 844 en y ≈ 58, z ≈ 40.
+    const [x, y, z] = vistaGeneral(1366 / 768).posicion
+    expect(x).toBeCloseTo(1.75, 1)
+    expect(y).toBeCloseTo(6.8, 1)
+    expect(z).toBeCloseTo(28.3, 1)
+    const [, y2, z2] = vistaGeneral(390 / 844).posicion
+    expect(y2).toBeCloseTo(58, 0)
+    expect(z2).toBeCloseTo(40, 0)
+    // el lavado y el acabado encuadran sus zonas, no la cafetería
+    for (const vista of [vistaLavado(16 / 9), vistaAcabado(16 / 9)]) {
+      for (const [px, , pz] of ESQUINAS_DE_LA_CAFETERIA) {
+        const p = proyectarPunto([px, 0, pz], vista, 16 / 9)
+        const fuera = !p || Math.abs(p[0]) > 1 || Math.abs(p[1]) > 1
+        expect(fuera).toBe(true)
+      }
     }
   })
 })

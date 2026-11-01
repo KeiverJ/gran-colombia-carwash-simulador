@@ -40,7 +40,7 @@ const { x0: GUAIMARAL_X0, x1: GUAIMARAL_X1 } = guaimaralNorte
 /** Un plano acostado que cubre de `x0` a `x1` y de `z0` a `z1`, a la altura `y`. */
 function Superficie({ x0, x1, z0, z1, y = 0, color }) {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[(x0 + x1) / 2, y, (z0 + z1) / 2]}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[(x0 + x1) / 2, y, (z0 + z1) / 2]} receiveShadow>
       <planeGeometry args={[x1 - x0, z1 - z0]} />
       <meshStandardMaterial color={color} />
     </mesh>
@@ -132,13 +132,13 @@ export function Avenidas() {
       <Superficie x0={GUAIMARAL_X1} x1={este} z0={gran.z0 - ANCHO_DE_ACERA} z1={gran.z0} {...acera} />
       <Superficie x0={GUAIMARAL_X1} x1={GUAIMARAL_X1 + ANCHO_DE_ACERA} z0={norte} z1={gran.z0 - ANCHO_DE_ACERA} {...acera} />
 
-      <mesh geometry={geometrias.bordillos}>
+      <mesh geometry={geometrias.bordillos} receiveShadow>
         <meshStandardMaterial color={COLOR_DE_ESCENA.bordillo} />
       </mesh>
 
       {/* Pintura de la calzada: línea de carril discontinua y el paso de cebra */}
       {[geometrias.lineaGran, geometrias.lineaGuaimaral, geometrias.cebra].map((geometria) => (
-        <mesh key={geometria.uuid} geometry={geometria}>
+        <mesh key={geometria.uuid} geometry={geometria} receiveShadow>
           <meshStandardMaterial color={COLOR_DE_ESCENA.pinturaVial} />
         </mesh>
       ))}

@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
+import { distanciaDeColor } from './distanciaDeColor.js'
+
 import {
   COLORES_COMPARTIDOS,
   COLOR_DE_ESCENA,
@@ -164,6 +166,77 @@ describe('los colores del entorno de la escena', () => {
   it('el asfalto se distingue de la acera y del piso del local', () => {
     expect(contraste(COLOR_DE_ESCENA.asfalto, COLOR_DE_ESCENA.acera)).toBeGreaterThan(2)
     expect(contraste(COLOR_DE_ESCENA.asfalto, COLOR_DE_ESCENA.piso)).toBeGreaterThan(2)
+  })
+
+  it('los tres tonos del lavadero se separan: la placa es lo más oscuro, el piso está en medio y las aceras y el terreno son claros y más cálidos', () => {
+    const { placaDeMetal, piso, acera, terreno, pisoMojado, zonaDeAcabado } = COLOR_DE_ESCENA
+    expect(contraste(placaDeMetal, piso)).toBeGreaterThan(3)
+    expect(contraste(piso, acera)).toBeGreaterThan(2)
+    expect(contraste(piso, terreno)).toBeGreaterThan(2)
+    // la placa es más oscura que todo lo que la rodea
+    for (const otro of [piso, pisoMojado, zonaDeAcabado, acera, terreno, COLOR_DE_ESTADO.libre, COLOR_DE_ESCENA.losaCerrada]) {
+      expect(luminancia(placaDeMetal)).toBeLessThan(luminancia(otro))
+    }
+    // las aceras y el terreno son más claros que el piso, y más cálidos (más rojo que azul que él)
+    for (const claro of [acera, terreno]) {
+      expect(luminancia(claro)).toBeGreaterThan(luminancia(piso))
+      const calidez = (hex) => Number.parseInt(hex.slice(1, 3), 16) - Number.parseInt(hex.slice(5, 7), 16)
+      expect(calidez(claro)).toBeGreaterThan(calidez(piso))
+    }
+    // el piso mojado es un poco más oscuro que el piso seco
+    expect(luminancia(pisoMojado)).toBeLessThan(luminancia(piso))
+  })
+
+  it('el borde del estado se lee sobre la placa oscura y los números y las líneas sobre el piso', () => {
+    const { placaDeMetal, piso } = COLOR_DE_ESCENA
+    expect(contraste(COLOR_DE_ESTADO.libre, placaDeMetal)).toBeGreaterThan(3)
+    expect(contraste(COLOR_DE_RESERVADO.lavado, placaDeMetal)).toBeGreaterThan(3)
+    expect(contraste(COLOR_DE_OCUPADO.lavado, placaDeMetal)).toBeGreaterThan(2)
+    expect(contraste(COLOR_DE_ESCENA.losaCerrada, placaDeMetal)).toBeGreaterThan(3)
+    // la tarjeta blanca de los números y las líneas de pintura de las filas (blancas) sobre el piso
+    expect(contraste(COLOR_DE_ESCENA.rotuloFondo, piso)).toBeGreaterThan(3)
+    expect(contraste(COLOR_DE_ESCENA.pinturaDeEspera, piso)).toBeGreaterThan(2.5)
+  })
+
+  it('los puestos de acabado también son de metal oscuro: su borde, los aros de los planes y los rótulos se leen sobre él', () => {
+    const { placaDeMetal, rotuloFondo, rotuloTexto, zonaDeAcabado } = COLOR_DE_ESCENA
+    // borde de estado del acabado sobre la cubierta oscura: libre, reservado y cerrado se ven claro; ocupado se distingue además por la altura
+    expect(contraste(COLOR_DE_ESTADO.libre, placaDeMetal)).toBeGreaterThan(3)
+    expect(contraste(COLOR_DE_RESERVADO.acabado, placaDeMetal)).toBeGreaterThan(3)
+    expect(contraste(COLOR_DE_OCUPADO.acabado, placaDeMetal)).toBeGreaterThan(1.5)
+    // los aros de los planes sobre la cubierta oscura: más de 2 : 1 de claridad y muy distintos en color
+    for (const plan of [1, 2, 3]) {
+      expect(contraste(COLOR_DE_PLAN[plan], placaDeMetal), `plan ${plan}`).toBeGreaterThan(2)
+      expect(distanciaDeColor(COLOR_DE_PLAN[plan], placaDeMetal), `plan ${plan} en Lab`).toBeGreaterThan(50)
+    }
+    // la tarjeta blanca de los números se lee sobre la franja del acabado y su texto sobre la tarjeta
+    expect(contraste(rotuloFondo, zonaDeAcabado)).toBeGreaterThan(2.5)
+    expect(contraste(rotuloTexto, rotuloFondo)).toBeGreaterThan(4.5)
+    // y la cubierta oscura se separa de la franja del acabado
+    expect(contraste(placaDeMetal, zonaDeAcabado)).toBeGreaterThan(3)
+  })
+
+  it('la pintura vial se lee sobre el asfalto oscuro (más de 3 : 1)', () => {
+    expect(contraste(COLOR_DE_ESCENA.pinturaVial, COLOR_DE_ESCENA.asfalto)).toBeGreaterThan(3)
+  })
+
+  it('el texto blanco sobre el azul de la marca y sobre el letrero del local llega a 4,5 : 1', () => {
+    expect(COLOR_DE_MARCA.azul).toBe('#1f3fa6')
+    expect(contraste('#ffffff', COLOR_DE_MARCA.azul)).toBeGreaterThanOrEqual(4.5)
+    expect(contraste(COLOR_DE_ESCENA.textoDeLetrero, COLOR_DE_ESCENA.letreroDelLocal)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('la pared y las columnas llevan el azul de la marca, y la franja de la pared el amarillo del logo', () => {
+    expect(COLOR_DE_ESCENA.paredAzul).toBe(COLOR_DE_MARCA.azul)
+    expect(COLOR_DE_ESCENA.columnaAzul).toBe(COLOR_DE_MARCA.azul)
+    expect(COLOR_DE_ESCENA.franjaDePared).toBe('#ffd21f')
+    expect(COLOR_DE_ESCENA.arco).toBe(COLOR_DE_MARCA.azulMarino)
+    expect(COLOR_DE_ESCENA).not.toHaveProperty('pared')
+  })
+
+  it('el borde del terreno y el cielo del horizonte se encuentran: el velo termina en el color del horizonte', () => {
+    expect(tema['escena-cielo-horizonte']).toBe(COLOR_DE_ESCENA.cieloHorizonte)
+    expect(tema['escena-cielo-cenit']).toBe(COLOR_DE_ESCENA.cieloCenit)
   })
 
   it('una losa reservada se distingue de una libre y de una ocupada por color', () => {

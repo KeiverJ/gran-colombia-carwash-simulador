@@ -14,10 +14,14 @@ import { ControlDeCamara } from './ControlesDeCamara.jsx'
 import FilaSuperiorDeLaEscena from './FilaSuperiorDeLaEscena.jsx'
 import { useSimulacion } from '../store/simulacion.js'
 import Avenidas from './Avenidas.jsx'
+import Cafeteria from './Cafeteria.jsx'
+import Cielo from './Cielo.jsx'
+import Espuma from './Espuma.jsx'
 import Iluminacion from './Iluminacion.jsx'
 import Local from './Local.jsx'
 import Motos from './Motos.jsx'
 import Particulas from './Particulas.jsx'
+import Personas from './Personas.jsx'
 import { sobrantesDe, TOPE_DE_MOTOS_DIBUJADAS } from './posiciones.js'
 import { Servidores, Sobrantes } from './Servidores.jsx'
 import Sombras from './Sombras.jsx'
@@ -48,13 +52,18 @@ const DESCRIPCION_DE_LA_ESCENA =
 
 /**
  * Lo que se puede apagar si la escena va lenta (ver `calidad.js`): las gotas de
- * agua y las sombras suaves de contacto de lo fijo.
+ * agua con la espuma, las personas (se ocultan sin desmontarse) y las sombras
+ * suaves de contacto de lo fijo. Los charcos leen su interruptor en `Charcos.jsx`,
+ * el tráfico leerá el suyo cuando se agregue, y la sombra del sol y el entorno de
+ * reflejos lo leen en `Iluminacion.jsx`.
  */
 function EfectosQueSePuedenApagar({ placas, puestos }) {
-  const { particulas, sombras } = useCalidad((estado) => NIVELES_DE_CALIDAD[estado.nivel])
+  const { particulas, personas, sombras } = useCalidad((estado) => NIVELES_DE_CALIDAD[estado.nivel])
   return (
     <>
+      <Personas placas={placas} puestos={puestos} visible={personas} />
       {particulas && <Particulas placas={placas} />}
+      {particulas && <Espuma placas={placas} />}
       {sombras && <Sombras placas={placas} puestos={puestos} />}
     </>
   )
@@ -136,7 +145,7 @@ export function EscenaDelLavadero() {
         <Canvas
           key={intento}
           camera={{ position: VISTA_INICIAL.posicion, fov: CAMPO_DE_VISION }}
-          shadows={false}
+          shadows="soft"
           onCreated={({ gl }) => {
             // El lienzo es una imagen para las ayudas técnicas: se describe qué muestra.
             gl.domElement.setAttribute('role', 'img')
@@ -147,9 +156,11 @@ export function EscenaDelLavadero() {
             })
           }}
         >
+          <Cielo />
           <Iluminacion />
           <Terreno />
           <Local />
+          <Cafeteria />
           <Avenidas />
           {/* Primero las motos: las losas y las gotas siguen a lo que ellas hacen en este cuadro. */}
           <Motos />

@@ -63,6 +63,22 @@ export function LetreroDeLaPared({ logo, pared, desde, hasta }) {
   return <LogoDelLocal logo={logo} materiales={materiales} ancho={ancho} position={position} />
 }
 
+/** El ancho del logo horizontal en el letrero de la cafetería, en metros. */
+const ANCHO_DEL_LOGO_DE_LA_CAFETERIA = 3.6
+
+/**
+ * El logo horizontal en el letrero de la cafetería, mirando al lavadero (hacia −Z):
+ * se gira medio giro, y `position` es el centro de su cara de adelante.
+ */
+export function LogoDeLaCafeteria({ logo, position }) {
+  const materiales = useMaterialesDelLogo(logo)
+  return (
+    <group position={position} rotation={[0, Math.PI, 0]}>
+      <LogoDelLocal logo={logo} materiales={materiales} ancho={ANCHO_DEL_LOGO_DE_LA_CAFETERIA} position={[0, 0, 0]} />
+    </group>
+  )
+}
+
 /**
  * El logo en el borde delantero del techo, con sus soportes. Se aparta junto con
  * el techo: usa su misma opacidad (`opacidadDelTecho`), escrita cada cuadro en

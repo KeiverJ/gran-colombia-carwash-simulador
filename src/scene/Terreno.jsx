@@ -6,12 +6,12 @@ import { TERRENO } from './posiciones.js'
 
 /**
  * El terreno base: un disco amplio bajo el local y las dos avenidas, con un
- * velo del color del fondo encima de su borde. El velo es transparente cerca
- * del centro y opaco lejos, así que el terreno y las calles se disuelven en el
- * fondo de la escena: no hay un borde que se pueda ver desde ninguna vista.
+ * velo del color del horizonte del cielo encima de su borde. El velo es
+ * transparente cerca del centro y opaco lejos, así que el terreno y las calles
+ * se disuelven en el cielo: no hay un borde que se pueda ver desde ninguna vista.
  *
  * El velo se dibuja sin luz y sin pasar por el mapa de tonos, para que su color
- * sea exactamente el del fondo, y antes que lo demás de lo transparente
+ * sea exactamente el del horizonte de `Cielo`, y antes que lo demás de lo transparente
  * (`renderOrder`) para que el techo y las sombras se mezclen por encima de él.
  */
 export function Terreno() {
@@ -24,7 +24,7 @@ export function Terreno() {
 
   return (
     <group position={centro}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
         <circleGeometry args={[radio, 96]} />
         <meshStandardMaterial color={COLOR_DE_ESCENA.terreno} roughness={1} />
       </mesh>

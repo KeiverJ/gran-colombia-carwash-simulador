@@ -111,7 +111,7 @@ export function Motos() {
         map: textura,
         color: COLOR_DE_ESCENA.letreroDelLocal,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.3,
         depthWrite: false,
         polygonOffset: true,
         polygonOffsetFactor: -1,
@@ -236,6 +236,7 @@ export function Motos() {
               if (nodo) (mallasDeModelo.current[modelo] ??= [])[i] = nodo
             }}
             args={[parte.geometry, parte.material, MOTOS_DIBUJADAS_COMO_MAXIMO]}
+            castShadow
           />
         )),
       )}

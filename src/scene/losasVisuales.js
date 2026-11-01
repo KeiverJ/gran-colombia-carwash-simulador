@@ -74,6 +74,31 @@ export function estadoSegunElMotor(servidor) {
 /** ¿Se ve la losa levantada en este estado? Sí si hay una moto en servicio encima. */
 export const estaLevantada = (estadoVisual) => estadoVisual === 'ocupada' || estadoVisual === 'cerrandose'
 
+/** Alto de la losa de un servidor cerrado: más baja que la de uno libre, para distinguirla por la altura. */
+export const ALTO_DE_LA_LOSA_CERRADA = 0.04
+
+/**
+ * A qué altura queda la cara de arriba de la losa (la cubierta que lleva el color
+ * del estado) en cada estado: la de libre y reservada (plana), la de ocupada y
+ * cerrándose (levantada, donde se posa la moto) y la de cerrada (más baja). Es lo
+ * que ve la persona para distinguir los estados sin depender del color.
+ */
+export function altoDeLaCubierta(estadoVisual) {
+  if (estadoVisual === 'cerrada') return ALTO_DE_LA_LOSA_CERRADA
+  return estaLevantada(estadoVisual) ? SERVIDOR.altoOcupado : SERVIDOR.altoLibre
+}
+
+/**
+ * Cómo se coloca la cubierta de una placa cuando su cara de arriba está a `alto`:
+ * un cuerpo de `espesor` (o menos, si la losa es más baja) pegado a la cara de
+ * arriba, con las patas debajo. Devuelve la escala en Y de una caja de
+ * `SERVIDOR.altoOcupado` de alto y la altura de su centro.
+ */
+export function colocacionDeLaCubierta(alto, espesor) {
+  const grueso = Math.min(alto, espesor)
+  return { escalaY: grueso / SERVIDOR.altoOcupado, centroY: alto - grueso / 2 }
+}
+
 /**
  * El estado visual de todas las losas.
  *

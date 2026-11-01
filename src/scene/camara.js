@@ -7,6 +7,7 @@
  * de adelante, y eso se calcula aquí.
  */
 
+import { HUELLA_DE_LA_CAFETERIA } from './cafeteria.js'
 import {
   COLUMNAS_DEL_TECHO,
   FRANJA_DE_ESPERA,
@@ -328,12 +329,25 @@ export function vistaAcabado(aspecto) {
   }
 }
 
-/** La planta: desde arriba, como un plano, con el local completo. */
+/** Las cuatro esquinas de la cafetería, a ras del piso, vistas desde arriba. */
+export const ESQUINAS_DE_LA_CAFETERIA = [
+  [HUELLA_DE_LA_CAFETERIA.x0, 0, HUELLA_DE_LA_CAFETERIA.z0],
+  [HUELLA_DE_LA_CAFETERIA.x1, 0, HUELLA_DE_LA_CAFETERIA.z0],
+  [HUELLA_DE_LA_CAFETERIA.x0, 0, HUELLA_DE_LA_CAFETERIA.z1],
+  [HUELLA_DE_LA_CAFETERIA.x1, 0, HUELLA_DE_LA_CAFETERIA.z1],
+]
+
+/**
+ * La planta: desde arriba, como un plano, con el local completo **y la cafetería**.
+ * Es la única vista que encuadra la cafetería (las otras la dejan fuera o en el
+ * borde: está al lado de la cámara de la vista general), así que el local se ve
+ * más chico que antes.
+ */
 export function vistaPlanta(aspecto) {
   return {
     nombre: 'Planta',
     ...vistaQueEncuadra(
-      ESQUINAS_DEL_LOCAL.map(([x, , z]) => [x, 0, z]),
+      [...ESQUINAS_DEL_LOCAL.map(([x, , z]) => [x, 0, z]), ...ESQUINAS_DE_LA_CAFETERIA],
       { aspecto, elevacion: 88.9 },
     ),
   }
@@ -395,7 +409,8 @@ export function cajaDelLocalSegunLaElevacion(elevacion, aspecto) {
   const deLaGeneral = elevacionDeVista(general)
   const deLaPlanta = elevacionDeVista(planta)
   const foto = cajaDelLocalEnPantalla(general, aspecto)
-  const plano = cajaDelLocalEnPantalla(planta, aspecto)
+  // La planta es la única vista que encuadra también la cafetería: se cuenta como parte de lo que tiene que caber.
+  const plano = cajaDelLocalEnPantalla(planta, aspecto, [...ESQUINAS_DEL_LOCAL, ...ESQUINAS_DE_LA_CAFETERIA])
   const dado = Number.isFinite(elevacion) ? elevacion : deLaGeneral
   const peso = Math.min(1, Math.max(0, (dado - deLaGeneral) / (deLaPlanta - deLaGeneral)))
   const mezcla = (a, b) => a + (b - a) * peso

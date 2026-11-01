@@ -6,9 +6,11 @@ import {
   barreraDeCierre,
   bordillos,
   conoDeCierre,
+  cupulaDelCielo,
   juntasDelPiso,
   lineaDiscontinua,
   marcoDeLosa,
+  mezclaDelCielo,
   opacidadDelBorde,
   pasoDeCebra,
   posteConManguera,
@@ -205,12 +207,12 @@ describe('el velo del borde del terreno', () => {
     }
   })
 
-  it('es un anillo acostado cuya opacidad por vértice sube de 0 a 1 y es del color del fondo', () => {
+  it('es un anillo acostado cuya opacidad por vértice sube de 0 a 1 y es del color del horizonte del cielo', () => {
     const velo = veloDelBorde({ desde: 45, hasta: 90, radioExterior: 130 })
     const posiciones = velo.attributes.position
     const colores = velo.attributes.color
     expect(colores.itemSize).toBe(4)
-    const fondo = new Color(COLOR_DE_ESCENA.fondo)
+    const fondo = new Color(COLOR_DE_ESCENA.cieloHorizonte)
     let minimo = 1
     let maximo = 0
     for (let i = 0; i < posiciones.count; i += 1) {
@@ -227,5 +229,64 @@ describe('el velo del borde del terreno', () => {
     expect(minimo).toBe(0)
     expect(maximo).toBe(1)
     velo.dispose()
+  })
+})
+
+describe('el cielo', () => {
+  it('la mezcla va de 0 en el horizonte (y bajo él) a 1 arriba, sin saltos', () => {
+    expect(mezclaDelCielo(-30)).toBe(0)
+    expect(mezclaDelCielo(0)).toBe(0)
+    expect(mezclaDelCielo(14)).toBe(1)
+    expect(mezclaDelCielo(90)).toBe(1)
+    let anterior = 0
+    for (let grados = 0; grados <= 14; grados += 0.5) {
+      const ahora = mezclaDelCielo(grados)
+      expect(ahora).toBeGreaterThanOrEqual(anterior)
+      expect(ahora - anterior).toBeLessThan(0.08)
+      anterior = ahora
+    }
+  })
+
+  it('la cúpula es azul intenso arriba y claro en el horizonte, con los colores del tema', () => {
+    const cupula = cupulaDelCielo({ radio: 100 })
+    const posiciones = cupula.attributes.position
+    const colores = cupula.attributes.color
+    expect(colores.itemSize).toBe(3)
+    const horizonte = new Color(COLOR_DE_ESCENA.cieloHorizonte)
+    const cenit = new Color(COLOR_DE_ESCENA.cieloCenit)
+    let arriba = null
+    let alMedio = null
+    let abajo = null
+    for (let i = 0; i < posiciones.count; i += 1) {
+      const y = posiciones.getY(i)
+      const color = new Color(colores.getX(i), colores.getY(i), colores.getZ(i))
+      if (y >= 99.9) arriba = color
+      if (Math.abs(y) < 1e-6) alMedio = color
+      if (y <= -99.9) abajo = color
+    }
+    expect(arriba.getHex()).toBe(cenit.getHex())
+    // el color de abajo y el del horizonte son el del horizonte del tema: es con el que termina el velo del terreno
+    expect(alMedio.getHex()).toBe(horizonte.getHex())
+    expect(abajo.getHex()).toBe(horizonte.getHex())
+    cupula.dispose()
+  })
+
+  it('el borde del velo del terreno tiene el mismo color que el horizonte del cielo', () => {
+    const velo = veloDelBorde({ desde: 45, hasta: 90, radioExterior: 130 })
+    const cupula = cupulaDelCielo({ radio: 100 })
+    const alBorde = new Color(velo.attributes.color.getX(0), velo.attributes.color.getY(0), velo.attributes.color.getZ(0))
+    const alHorizonte = new Color(COLOR_DE_ESCENA.cieloHorizonte)
+    expect(alBorde.getHex()).toBe(alHorizonte.getHex())
+    velo.dispose()
+    cupula.dispose()
+  })
+
+  it('es azul: más azul que rojo en todos sus puntos', () => {
+    const cupula = cupulaDelCielo({ radio: 100 })
+    const colores = cupula.attributes.color
+    for (let i = 0; i < colores.count; i += 1) {
+      expect(colores.getZ(i), `vértice ${i}`).toBeGreaterThan(colores.getX(i))
+    }
+    cupula.dispose()
   })
 })

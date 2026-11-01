@@ -22,7 +22,7 @@ export const LIMITES_DE_CUADROS_POR_SEGUNDO = (frecuenciaMaxima) =>
   frecuenciaMaxima > 100 ? [60, 100] : [45, 55]
 
 /** Deja el nivel escrito en el lienzo, para poder ver (y medir) en cuál va la escena. */
-function anotarElNivel(lienzo, nivel) {
+export function anotarElNivel(lienzo, nivel) {
   lienzo.dataset.calidad = String(nivel)
 }
 

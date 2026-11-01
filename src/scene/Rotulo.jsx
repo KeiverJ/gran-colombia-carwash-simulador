@@ -19,6 +19,8 @@ const EN_LA_PANTALLA = new Vector3()
  * @param {number} [props.alto] alto en unidades del mundo
  * @param {number} [props.pixeles] si se da, el rótulo mide siempre este alto en la
  *   pantalla (no crece al acercar la cámara) y `alto` no cuenta
+ * @param {number} [props.pixelesMinimos] el rótulo mide `alto` en el mundo, pero nunca menos de
+ *   este alto en la pantalla: así sigue leyéndose cuando la cámara se aleja (en «Planta»)
  * @param {boolean} [props.sinSalirse] el rótulo se corre lo justo para no salirse del
  *   lienzo (solo con `pixeles`)
  * @param {boolean} [props.encima] se dibuja siempre por encima de la escena: nada
@@ -38,6 +40,7 @@ export function Rotulo({
   relleno,
   negrita,
   pixeles,
+  pixelesMinimos,
   encima = false,
   sinSalirse = false,
   ancla = [0.5, 0.5],
@@ -56,6 +59,16 @@ export function Rotulo({
 
   // De tamaño fijo en pantalla: la escala se rehace cada cuadro con la cámara de ese momento.
   useFrame(({ camera, size }) => {
+    if (pixeles === undefined && pixelesMinimos !== undefined && sprite.current) {
+      // De tamaño del mundo, con un mínimo en pantalla: el alto que da `pixelesMinimos` a esta distancia.
+      sprite.current.getWorldPosition(EN_LA_PANTALLA)
+      const distancia = camera.position.distanceTo(EN_LA_PANTALLA)
+      const minimoDelMundo =
+        (pixelesMinimos * 2 * Math.tan((camera.fov * Math.PI) / 360) * distancia) / altoDelCuadroDe(camera, size.height)
+      const alturaDelMundo = Math.max(alto, minimoDelMundo)
+      sprite.current.scale.set(alturaDelMundo * ancho, alturaDelMundo, 1)
+      return
+    }
     if (pixeles === undefined || !sprite.current) return
     const alturaDelMundo = escalaParaPixeles(pixeles, altoDelCuadroDe(camera, size.height), camera.fov)
     sprite.current.scale.set(alturaDelMundo * ancho, alturaDelMundo, 1)

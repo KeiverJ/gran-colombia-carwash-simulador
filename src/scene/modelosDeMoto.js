@@ -1,4 +1,5 @@
 import { CANTIDAD_DE_MODELOS } from '../data/creditosDeModelos.js'
+import { mezclar } from './hashPropio.js'
 
 /**
  * Qué modelo 3D lleva cada moto.
@@ -20,14 +21,6 @@ import { CANTIDAD_DE_MODELOS } from '../data/creditosDeModelos.js'
 
 /** Cuántas motos forman un grupo: las de cada avenida son la mitad. */
 const MOTOS_POR_GRUPO = 2 * CANTIDAD_DE_MODELOS
-
-/** Mezcla los bits de un entero (rondas de multiplicación y desplazamiento). */
-function mezclar(entero) {
-  let x = entero >>> 0
-  x = Math.imul(x ^ (x >>> 16), 0x45d9f3b)
-  x = Math.imul(x ^ (x >>> 16), 0x45d9f3b)
-  return (x ^ (x >>> 16)) >>> 0
-}
 
 /** Un orden de los modelos que depende solo de `semilla` (Fisher-Yates). */
 function ordenDeLosModelos(semilla) {

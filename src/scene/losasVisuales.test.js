@@ -272,3 +272,38 @@ describe('de dónde sale el estado que dibuja la escena', () => {
     expect(estadoSegunElMotor({ libre: false, estado: 'activo' })).toBe('ocupada')
   })
 })
+
+describe('la altura de la cubierta de la placa (patas y rampa debajo)', () => {
+  it('es la de antes en libre, reservada, ocupada, cerrándose y cerrada', async () => {
+    const { altoDeLaCubierta, ALTO_DE_LA_LOSA_CERRADA, colocacionDeLaCubierta } = await import('./losasVisuales.js')
+    const { SERVIDOR } = await import('./posiciones.js')
+    expect(altoDeLaCubierta('libre')).toBe(SERVIDOR.altoLibre)
+    expect(altoDeLaCubierta('reservada')).toBe(SERVIDOR.altoLibre)
+    expect(altoDeLaCubierta('ocupada')).toBe(SERVIDOR.altoOcupado)
+    expect(altoDeLaCubierta('cerrandose')).toBe(SERVIDOR.altoOcupado)
+    expect(altoDeLaCubierta('cerrada')).toBe(ALTO_DE_LA_LOSA_CERRADA)
+    expect(SERVIDOR.altoLibre).toBe(0.12)
+    expect(SERVIDOR.altoOcupado).toBe(0.5)
+    expect(ALTO_DE_LA_LOSA_CERRADA).toBe(0.04)
+    // la moto se posa a la misma altura de siempre: la de la cara de arriba de la losa ocupada
+    expect(altoDeLaCubierta('ocupada')).toBe(0.5)
+    // la cubierta es una cara delgada pegada a la altura pedida, en cualquier estado
+    for (const estado of ['libre', 'reservada', 'ocupada', 'cerrandose', 'cerrada']) {
+      const alto = altoDeLaCubierta(estado)
+      const { escalaY, centroY } = colocacionDeLaCubierta(alto, 0.12)
+      expect(centroY + (escalaY * SERVIDOR.altoOcupado) / 2).toBeCloseTo(alto, 9)
+      expect(centroY - (escalaY * SERVIDOR.altoOcupado) / 2).toBeGreaterThanOrEqual(-1e-9)
+    }
+  })
+
+  it('con las patas: una placa libre no deja ver patas y una ocupada sí', async () => {
+    const { altoDeLaCubierta, colocacionDeLaCubierta } = await import('./losasVisuales.js')
+    const patasQueSeVen = (estado) => {
+      const alto = altoDeLaCubierta(estado)
+      const { escalaY, centroY } = colocacionDeLaCubierta(alto, 0.12)
+      return centroY - (escalaY * 0.5) / 2
+    }
+    expect(patasQueSeVen('libre')).toBeCloseTo(0, 9)
+    expect(patasQueSeVen('ocupada')).toBeGreaterThan(0.3)
+  })
+})

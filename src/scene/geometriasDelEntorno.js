@@ -7,6 +7,7 @@ import {
   Float32BufferAttribute,
   PlaneGeometry,
   RingGeometry,
+  SphereGeometry,
   TubeGeometry,
   Vector3,
 } from 'three'
@@ -245,13 +246,13 @@ export function opacidadDelBorde(r, desde, hasta) {
 
 /**
  * El velo que desvanece el borde del terreno: un anillo acostado, del color del
- * fondo de la escena, cuya opacidad (color de vértice con alfa) sube de 0 en
+ * horizonte del cielo (`cieloHorizonte`), cuya opacidad (color de vértice con alfa) sube de 0 en
  * `desde` a 1 en `hasta` y se queda en 1 hasta `radioExterior`. Dibujado con
  * un material sin luz, el terreno y las calles se van disolviendo en el fondo.
  */
 export function veloDelBorde({ desde, hasta, radioExterior, segmentos = 96, anillos = 48 }) {
   const geometria = new RingGeometry(desde, radioExterior, segmentos, anillos).rotateX(-Math.PI / 2)
-  const { r, g, b } = new Color(COLOR_DE_ESCENA.fondo)
+  const { r, g, b } = new Color(COLOR_DE_ESCENA.cieloHorizonte)
   const posiciones = geometria.attributes.position
   const colores = new Float32Array(posiciones.count * 4)
   for (let i = 0; i < posiciones.count; i += 1) {
@@ -260,4 +261,99 @@ export function veloDelBorde({ desde, hasta, radioExterior, segmentos = 96, anil
   }
   geometria.setAttribute('color', new Float32BufferAttribute(colores, 4))
   return geometria
+}
+
+/**
+ * Cuánto del cielo es del color del cenit a la altura `elevacion` (en grados
+ * sobre el horizonte): 0 en el horizonte y bajo él, 1 desde `hastaElCenit`, y
+ * en medio una curva suave. El cielo se alcanza a ver poco desde la vista
+ * general (la cámara mira hacia abajo), por eso el degradado se completa a
+ * pocos grados y no a los 90.
+ */
+export function mezclaDelCielo(elevacion, hastaElCenit = 14) {
+  const t = Math.min(1, Math.max(0, elevacion / hastaElCenit))
+  return t * t * (3 - 2 * t)
+}
+
+/**
+ * La cúpula del cielo: una esfera (se mira desde dentro) con el color por
+ * vértice: el del horizonte (`cieloHorizonte`) en el horizonte y por debajo de
+ * él, y el del cenit (`cieloCenit`) arriba, con un degradado suave entre los
+ * dos. No lleva imágenes ni pide nada a internet.
+ *
+ * @param {object} [opciones]
+ * @param {number} [opciones.radio] radio de la cúpula, en metros
+ * @param {number} [opciones.hastaElCenit] a cuántos grados sobre el horizonte se completa el cenit
+ */
+export function cupulaDelCielo({ radio = 500, hastaElCenit = 14, segmentos = 40, anillos = 32 } = {}) {
+  const geometria = new SphereGeometry(radio, segmentos, anillos)
+  const horizonte = new Color(COLOR_DE_ESCENA.cieloHorizonte)
+  const cenit = new Color(COLOR_DE_ESCENA.cieloCenit)
+  const mezcla = new Color()
+  const posiciones = geometria.attributes.position
+  const colores = new Float32Array(posiciones.count * 3)
+  for (let i = 0; i < posiciones.count; i += 1) {
+    const elevacion = (Math.asin(Math.max(-1, Math.min(1, posiciones.getY(i) / radio))) * 180) / Math.PI
+    mezcla.copy(horizonte).lerp(cenit, mezclaDelCielo(elevacion, hastaElCenit))
+    colores.set([mezcla.r, mezcla.g, mezcla.b], i * 3)
+  }
+  geometria.setAttribute('color', new Float32BufferAttribute(colores, 3))
+  return geometria
+}
+
+/**
+ * La estructura metálica de una placa de lavado: cuatro patas bajo la cubierta y
+ * una rampa en el frente, por donde sube la moto. Medidas en metros.
+ *
+ * - `pata`: el lado de cada pata (cuadrada) y `retiro`, cuánto se mete desde el borde.
+ * - `anchoDeLaRampa`: más ancha que la moto (0,75 m).
+ * - `espesorDeLaCubierta`: lo que mide de grueso la cubierta (la parte de arriba
+ *   que lleva el color del estado) cuando la placa está levantada.
+ */
+export const ESTRUCTURA_DE_LA_PLACA = { pata: 0.12, retiro: 0.14, anchoDeLaRampa: 1.1, espesorDeLaCubierta: 0.12 }
+
+/**
+ * Dónde caen las patas y la rampa de una placa de `ancho` por `fondo`, medido
+ * desde el centro de la placa (+Z es el frente, por donde entra la moto).
+ *
+ * @returns {{ patas: Array<{ x: number, z: number, lado: number }>, rampa: { x0: number, x1: number, z0: number, z1: number } | null }}
+ */
+export function medidasDeLaEstructura({ ancho, fondo, largoDeLaRampa }) {
+  const { pata, retiro, anchoDeLaRampa } = ESTRUCTURA_DE_LA_PLACA
+  const x = ancho / 2 - retiro - pata / 2
+  const z = fondo / 2 - retiro - pata / 2
+  return {
+    patas: [
+      [-x, -z],
+      [x, -z],
+      [-x, z],
+      [x, z],
+    ].map(([px, pz]) => ({ x: px, z: pz, lado: pata })),
+    // Sin rampa (largo 0): `null`.
+    rampa: largoDeLaRampa > 0 ? { x0: -anchoDeLaRampa / 2, x1: anchoDeLaRampa / 2, z0: fondo / 2, z1: fondo / 2 + largoDeLaRampa } : null,
+  }
+}
+
+/**
+ * La estructura de una placa levantada a `alto` metros: cuatro patas y la
+ * rampa del frente, juntas en una sola geometría de color de vértice (`metal`).
+ * Va del piso (y = 0) a `alto`: la escena la estira en Y con la altura de la
+ * cubierta, así las patas y la rampa suben y bajan con ella.
+ */
+export function estructuraDeLaPlaca({ ancho, fondo, alto, largoDeLaRampa }) {
+  const { patas, rampa } = medidasDeLaEstructura({ ancho, fondo, largoDeLaRampa })
+  const piezas = patas.map(({ x, z, lado }) => conColor(new BoxGeometry(lado, alto, lado).translate(x, alto / 2, z), COLOR_DE_ESCENA.metal))
+
+  // La rampa es una caja a la que se le baja al piso el borde de arriba del lado de afuera: queda una cuna.
+  if (rampa) {
+    const largo = rampa.z1 - rampa.z0
+    const cuna = new BoxGeometry(rampa.x1 - rampa.x0, alto, largo).translate(0, alto / 2, rampa.z0 + largo / 2)
+    const posiciones = cuna.attributes.position
+    for (let i = 0; i < posiciones.count; i += 1) {
+      if (posiciones.getY(i) > alto / 2 && posiciones.getZ(i) > rampa.z0 + largo / 2) posiciones.setY(i, 0)
+    }
+    cuna.computeVertexNormals()
+    piezas.push(conColor(cuna, COLOR_DE_ESCENA.metal))
+  }
+  return juntar(piezas)
 }

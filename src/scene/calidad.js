@@ -14,22 +14,35 @@ import { create } from 'zustand'
  */
 
 /**
- * Los niveles, del 0 (todo) hacia abajo. Cada uno apaga algo más que el anterior:
+ * Los niveles, del 0 (todo) hacia abajo. Cada uno apaga algo más que el anterior,
+ * en este orden (lo que más pesa y menos se echa de menos, primero):
  *
  * - 0: todo encendido, con la resolución de la pantalla (hasta 2×).
- * - 1: sin las gotas de agua de las placas.
- * - 2: además, sin las sombras suaves de contacto (de las motos y de lo fijo).
- * - 3: además, sin el entorno de reflejos (las luces directas siguen) y con
- *   tres cuartos de la resolución.
- * - 4: la mitad de la resolución.
+ * - 1: sin tráfico de ambiente (`trafico`).
+ * - 2: además, sin gotas, chorro, burbujas ni espuma (`particulas`).
+ * - 3: además, sin charcos (`charcos`).
+ * - 4: además, sin personas (`personas`).
+ * - 5: además, sin sombras (`sombras`: la del sol y las suaves de contacto).
+ * - 6: además, sin el entorno de reflejos (`ambiente`; las luces directas
+ *   siguen) y con tres cuartos de la resolución.
+ * - 7: la mitad de la resolución.
+ *
+ * Cada pieza de la escena lee su interruptor con `useCalidad` (o `calidadActual`)
+ * y se oculta; no se desmonta, salvo la sombra del sol, que se quita de la luz.
  */
 export const NIVELES_DE_CALIDAD = [
-  { particulas: true, sombras: true, ambiente: true, resolucion: 1 },
-  { particulas: false, sombras: true, ambiente: true, resolucion: 1 },
-  { particulas: false, sombras: false, ambiente: true, resolucion: 1 },
-  { particulas: false, sombras: false, ambiente: false, resolucion: 0.75 },
-  { particulas: false, sombras: false, ambiente: false, resolucion: 0.5 },
+  { trafico: true, particulas: true, charcos: true, personas: true, sombras: true, ambiente: true, resolucion: 1 },
+  { trafico: false, particulas: true, charcos: true, personas: true, sombras: true, ambiente: true, resolucion: 1 },
+  { trafico: false, particulas: false, charcos: true, personas: true, sombras: true, ambiente: true, resolucion: 1 },
+  { trafico: false, particulas: false, charcos: false, personas: true, sombras: true, ambiente: true, resolucion: 1 },
+  { trafico: false, particulas: false, charcos: false, personas: false, sombras: true, ambiente: true, resolucion: 1 },
+  { trafico: false, particulas: false, charcos: false, personas: false, sombras: false, ambiente: true, resolucion: 1 },
+  { trafico: false, particulas: false, charcos: false, personas: false, sombras: false, ambiente: false, resolucion: 0.75 },
+  { trafico: false, particulas: false, charcos: false, personas: false, sombras: false, ambiente: false, resolucion: 0.5 },
 ]
+
+/** Los interruptores que se apagan, en el orden en que se apagan. */
+export const INTERRUPTORES_DE_CALIDAD = ['trafico', 'particulas', 'charcos', 'personas', 'sombras', 'ambiente']
 
 export const NIVEL_MAS_BAJO = NIVELES_DE_CALIDAD.length - 1
 

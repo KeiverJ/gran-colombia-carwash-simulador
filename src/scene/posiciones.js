@@ -368,7 +368,7 @@ export const SEPARACION_DE_CARRILES = 2.5
 /** La rejilla de desagüe, al frente de las placas y a lo ancho de su zona. */
 export const REJILLA_DE_DESAGUE = {
   centroX: ZONA_DE_SERVIDORES.centroX,
-  z: 6.2,
+  z: 6.7,
   ancho: ZONA_DE_SERVIDORES.ancho,
   fondo: 0.7,
 }
