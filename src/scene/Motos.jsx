@@ -21,6 +21,7 @@ import {
 } from './recursosDeMoto.js'
 import { calidadActual } from './calidad.js'
 import { publicarLasLosas } from './losasPublicadas.js'
+import { publicarLasMotosEnLaCalle } from './motosEnLaCalle.js'
 import { animarLaEscena, crearViajes } from './viajes.js'
 import { crearTexturaDeSombra } from './texturaDeSombra.js'
 import { useModelosDeMoto } from './useModelosDeMoto.js'
@@ -151,6 +152,8 @@ export function Motos() {
     const motosDelCuadro = animarLaEscena(viajes.current, useSimulacion.getState(), delta)
     // Las losas y las gotas de agua siguen a las motos de la escena, no al motor.
     publicarLasLosas(viajes.current.losas)
+    // El tráfico de ambiente lee dónde están las motos para esperar ante las bocas.
+    publicarLasMotosEnLaCalle(motosDelCuadro)
     if (motosDelCuadro === null) {
       vaciar()
       return

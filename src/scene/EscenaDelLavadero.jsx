@@ -26,6 +26,7 @@ import { sobrantesDe, TOPE_DE_MOTOS_DIBUJADAS } from './posiciones.js'
 import { Servidores, Sobrantes } from './Servidores.jsx'
 import Sombras from './Sombras.jsx'
 import Terreno from './Terreno.jsx'
+import Trafico from './Trafico.jsx'
 import Vegetacion from './Vegetacion.jsx'
 
 /**
@@ -55,13 +56,14 @@ const DESCRIPCION_DE_LA_ESCENA =
  * Lo que se puede apagar si la escena va lenta (ver `calidad.js`): las gotas de
  * agua con la espuma, las personas (se ocultan sin desmontarse) y las sombras
  * suaves de contacto de lo fijo. Los charcos leen su interruptor en `Charcos.jsx`,
- * el tráfico leerá el suyo cuando se agregue, y la sombra del sol y el entorno de
+ * el tráfico lee el suyo en `Trafico.jsx`, y la sombra del sol y el entorno de
  * reflejos lo leen en `Iluminacion.jsx`.
  */
 function EfectosQueSePuedenApagar({ placas, puestos }) {
-  const { particulas, personas, sombras } = useCalidad((estado) => NIVELES_DE_CALIDAD[estado.nivel])
+  const { trafico, particulas, personas, sombras } = useCalidad((estado) => NIVELES_DE_CALIDAD[estado.nivel])
   return (
     <>
+      <Trafico visible={trafico} />
       <Personas placas={placas} puestos={puestos} visible={personas} />
       {particulas && <Particulas placas={placas} />}
       {particulas && <Espuma placas={placas} />}
