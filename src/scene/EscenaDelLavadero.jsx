@@ -20,6 +20,7 @@ import Detalles from './Detalles.jsx'
 import Edificios from './Edificios.jsx'
 import Espuma from './Espuma.jsx'
 import Iluminacion from './Iluminacion.jsx'
+import LavaderoDeCarros from './LavaderoDeCarros.jsx'
 import Local from './Local.jsx'
 import Motos from './Motos.jsx'
 import Particulas from './Particulas.jsx'
@@ -27,6 +28,7 @@ import Personas from './Personas.jsx'
 import { sobrantesDe, TOPE_DE_MOTOS_DIBUJADAS } from './posiciones.js'
 import { Servidores, Sobrantes } from './Servidores.jsx'
 import Sombras from './Sombras.jsx'
+import Suelos from './Suelos.jsx'
 import Terreno from './Terreno.jsx'
 import Trafico from './Trafico.jsx'
 import Vegetacion from './Vegetacion.jsx'
@@ -67,6 +69,7 @@ function EfectosQueSePuedenApagar({ placas, puestos }) {
     <>
       <Trafico visible={trafico} />
       <Edificios visible={edificios} />
+      <LavaderoDeCarros visible={edificios} />
       <Personas placas={placas} puestos={puestos} visible={personas} />
       {particulas && <Particulas placas={placas} />}
       {particulas && <Espuma placas={placas} />}
@@ -167,6 +170,7 @@ export function EscenaDelLavadero() {
           <Terreno />
           <Local />
           <Cafeteria />
+          <Suelos />
           <Vegetacion />
           <Detalles />
           <Avenidas />

@@ -86,11 +86,15 @@ export const COLOR_DE_RESERVADO = {
  */
 export const COLOR_DE_ESCENA = {
   // Terreno base y su borde
-  terreno: '#d8d3c7',
+  // El terreno es arena clara y cálida; encima van franjas de pasto, lotes de tierra y parqueaderos
+  terreno: '#e0d2ab',
+  pasto: '#9cc25f',
+  tierraDeLote: '#b99d73',
+  parqueadero: '#9a9b97',
   fondo: '#e9eff3',
   // Cielo (degradado de la cúpula; el borde del terreno termina en el del horizonte) y sol
   cieloCenit: '#4b86d0',
-  cieloHorizonte: '#c2daee',
+  cieloHorizonte: '#8fc3ec',
   sol: '#ffd9a0',
   // Avenidas: asfalto oscuro y aceras de concreto cálido
   asfalto: '#505c64',
@@ -132,22 +136,33 @@ export const COLOR_DE_ESCENA = {
   rotuloBorde: '#dce3e8',
   rotuloDeAlerta: '#c8322f',
   // Cafetería: muros, mostrador, mesas, sillas, tanque de agua del techo y sombrilla
-  cafeteria: '#efe3cf',
+  cafeteria: '#1f3fa6',
   mostrador: '#8a6a4f',
   mesaDeCafeteria: '#c9a46b',
   sillaDeCafeteria: '#4a4f54',
   tanqueDeAgua: '#1c2429',
   sombrilla: '#f5f1e6',
-  // Los edificios bajos de la esquina: colores apagados (crema, gris cálido, terracota suave y verde
-  // grisáceo), con techo, vidrio y letrero grises; se mezclan con el horizonte según la distancia
-  edificioCrema: '#d6cfbf',
-  edificioGrisCalido: '#bdb7ad',
-  edificioTerracota: '#bf9f8c',
-  edificioVerdeGris: '#aab6aa',
-  edificioTecho: '#8f9293',
-  edificioVidrio: '#7d909b',
-  edificioPuerta: '#5b6469',
-  edificioLetrero: '#55646e',
+  // Las casas y los locales de las manzanas vecinas: fachadas de colores fuertes como las de Cúcuta (amarillo
+  // ocre, terracota, turquesa, salmón, verde claro, blanco y azul cielo); solo lo más lejano se mezcla con el horizonte
+  casaOcre: '#e3b13b',
+  casaTerracota: '#bb6a4a',
+  casaTurquesa: '#2fb7b0',
+  casaSalmon: '#f29b82',
+  casaVerdeClaro: '#a8d37c',
+  casaBlanca: '#f5f1e7',
+  casaAzulCielo: '#72b4e2',
+  // Marcos, toldos y balcones de colores
+  acentoAzul: '#26469c',
+  acentoVerde: '#2f9461',
+  acentoRosa: '#d4588f',
+  acentoTurquesa: '#1f9aa0',
+  acentoMostaza: '#e8c23f',
+  edificioTecho: '#b9b3a8',
+  edificioVidrio: '#6f8794',
+  edificioPuerta: '#4d565b',
+  edificioLetrero: '#2a3a46',
+  // El toldo rojo y blanco de la cafetería, como en la foto del lavadero real (el único rojo del paisaje, a pedido)
+  toldoRojo: '#b83a32',
   // Personas: los trabajadores van de negro con gorra y botas de caucho, y los clientes
   // con ropa de estos seis colores (ninguno rojo ni parecido a una etapa o un plan)
   ropaDeTrabajo: '#1a1d20',

@@ -15,15 +15,19 @@ import {
   zonasDeExclusion,
 } from './colocacion.js'
 import {
+  ALTO_DE_LA_PLANTA_BAJA,
   ALTO_DE_UN_PISO,
   ALTO_MAXIMO,
   altoDelCuerpo,
   altoDelEdificio,
   cajaDelEdificio,
+  centroDelEdificio,
   colorConNiebla,
   distanciaAlCentro,
   EDIFICIOS,
   huellaDelEdificio,
+  largoDeLaFachada,
+  LARGO_MINIMO_DE_LA_FACHADA,
   letreroDelEdificio,
   mezclaConElHorizonte,
   mezclarColores,
@@ -32,35 +36,55 @@ import {
   piezasDelEdificio,
 } from './edificios.js'
 import { Edificios } from './Edificios.jsx'
-import { geometriaDelEdificio } from './geometriasDeLosEdificios.js'
+import { geometriaDeLosEdificios, geometriaDeLosLetreros } from './geometriasDeLosEdificios.js'
 
 const por = (clave) => EDIFICIOS.find((e) => e.clave === clave)
+const dondeQueda = (e) => {
+  const [x, z] = centroDelEdificio(e)
+  return { x, z }
+}
 
-describe('los edificios de la esquina', () => {
-  it('son el concesionario, la perfumería y la clínica veterinaria, y un cuarto genérico (tres o cuatro en total)', () => {
-    expect(EDIFICIOS.length).toBeGreaterThanOrEqual(3)
-    expect(EDIFICIOS.length).toBeLessThanOrEqual(4)
+describe('las manzanas vecinas', () => {
+  it('son de 8 a 12 edificios, con el concesionario, la perfumería y la clínica veterinaria', () => {
+    expect(EDIFICIOS.length).toBeGreaterThanOrEqual(8)
+    expect(EDIFICIOS.length).toBeLessThanOrEqual(12)
     for (const clave of ['concesionario', 'perfumeria', 'clinica']) expect(por(clave), clave).toBeDefined()
+    expect(new Set(EDIFICIOS.map((e) => e.clave)).size).toBe(EDIFICIOS.length)
   })
 
-  it('son bajos: de 1 a 3 pisos y de no más de unos 10 m (con su techo y su letrero)', () => {
+  it('están a los dos lados del lavadero, detrás y al otro lado de la Guaimaral, en los lotes vecinos', () => {
+    const izquierda = EDIFICIOS.filter((e) => e.x1 <= -22)
+    const detras = EDIFICIOS.filter((e) => e.z1 <= -22)
+    const derecha = EDIFICIOS.filter((e) => e.x0 >= 17)
+    expect(izquierda.length, 'al otro lado de la Guaimaral').toBeGreaterThanOrEqual(3)
+    expect(detras.length, 'al otro lado de la Gran Colombia').toBeGreaterThanOrEqual(4)
+    expect(derecha.length, 'a la derecha del lavadero').toBeGreaterThanOrEqual(2)
+    // y no a lo lejos: el más lejano queda a menos de 55 m del centro de la escena
     for (const e of EDIFICIOS) {
-      expect(e.pisos).toBeGreaterThanOrEqual(1)
-      expect(e.pisos).toBeLessThanOrEqual(3)
-      expect(altoDelCuerpo(e)).toBeCloseTo(e.pisos * ALTO_DE_UN_PISO, 9)
-      expect(cajaDelEdificio(e).max[1], e.clave).toBeLessThanOrEqual(ALTO_MAXIMO)
-      expect(altoDelEdificio(e)).toBeLessThanOrEqual(10.2)
+      const { x, z } = dondeQueda(e)
+      expect(distanciaAlCentro(x, z), e.clave).toBeLessThan(55)
     }
   })
 
-  it('están del otro lado de las dos avenidas: más allá de sus aceras, con 2 m de retiro', () => {
-    const acera = CALZADAS.guaimaral.x0 - ANCHO_DE_ACERA
+  it('son bajos: de 1 a 3 pisos y de unos 10 m como mucho, con su techo', () => {
+    for (const e of EDIFICIOS) {
+      expect(e.pisos).toBeGreaterThanOrEqual(1)
+      expect(e.pisos).toBeLessThanOrEqual(3)
+      expect(altoDelCuerpo(e)).toBeCloseTo(ALTO_DE_LA_PLANTA_BAJA + (e.pisos - 1) * ALTO_DE_UN_PISO + 0.5, 9)
+      expect(altoDelEdificio(e), e.clave).toBeLessThanOrEqual(ALTO_MAXIMO)
+    }
+    expect(Math.max(...EDIFICIOS.map((e) => e.pisos))).toBe(3)
+    expect(Math.min(...EDIFICIOS.map((e) => e.pisos))).toBe(1)
+  })
+
+  it('quedan del otro lado de las avenidas, más allá de sus aceras con retiro, o a los lados del lavadero', () => {
+    const aceraDeLaGuaimaral = CALZADAS.guaimaral.x0 - ANCHO_DE_ACERA
     const aceraDelFondo = CALZADAS.granColombia.z0 - ANCHO_DE_ACERA
     for (const e of EDIFICIOS) {
-      const h = huellaDelEdificio(e)
-      const ladoDeLaGuaimaral = h.x1 <= acera - 2
-      const ladoDeLaGranColombia = h.z1 <= aceraDelFondo - 2
-      expect(ladoDeLaGuaimaral || ladoDeLaGranColombia, `${e.clave} al otro lado de una avenida`).toBe(true)
+      const alOtroLadoDeLaGuaimaral = e.x1 <= aceraDeLaGuaimaral - 2
+      const alOtroLadoDeLaGranColombia = e.z1 <= aceraDelFondo - 2
+      const alLadoDelLavadero = e.x0 >= 17 && e.z0 >= -12 + 1
+      expect(alOtroLadoDeLaGuaimaral || alOtroLadoDeLaGranColombia || alLadoDelLavadero, e.clave).toBe(true)
     }
   })
 
@@ -97,13 +121,77 @@ describe('los edificios de la esquina', () => {
     const sobreElLocal = { x0: -5, x1: 5, z0: -5, z1: 5 }
     expect(zonasDeExclusion(14, 7).some((zona) => seSolapan(sobreElLocal, zona))).toBe(true)
   })
+
+  it('la calzada de la Gran Colombia sigue entre los edificios: ninguno la cruza', () => {
+    for (const e of EDIFICIOS) {
+      const h = huellaDelEdificio(e)
+      expect(h.z1 <= CALZADAS.granColombia.z0 - ANCHO_DE_ACERA || h.z0 >= CALZADAS.granColombia.z1, e.clave).toBe(true)
+    }
+  })
 })
 
-describe('los letreros son genéricos', () => {
-  it('dicen solo el tipo de negocio', () => {
-    expect(por('concesionario').letrero).toBe('Venta de autos')
-    expect(por('perfumeria').letrero).toBe('Perfumería')
-    expect(por('clinica').letrero).toBe('Clínica veterinaria')
+describe('las fachadas son de colores fuertes y llevan sus detalles', () => {
+  const FACHADAS = ['casaOcre', 'casaTerracota', 'casaTurquesa', 'casaSalmon', 'casaVerdeClaro', 'casaBlanca', 'casaAzulCielo']
+
+  it('cada fachada es de uno de los colores de las casas de Cúcuta, y hay variedad', () => {
+    for (const e of EDIFICIOS) expect(FACHADAS, e.clave).toContain(e.fachada)
+    expect(new Set(EDIFICIOS.map((e) => e.fachada)).size).toBeGreaterThanOrEqual(6)
+    // los marcos y toldos son otros colores de la paleta, no grises
+    expect(new Set(EDIFICIOS.map((e) => e.acento)).size).toBeGreaterThanOrEqual(4)
+  })
+
+  it('las fachadas son de colores vivos (no deslavados) salvo el blanco', () => {
+    for (const e of EDIFICIOS.filter((x) => x.fachada !== 'casaBlanca')) {
+      const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(COLOR_DE_ESCENA[e.fachada].slice(i, i + 2), 16))
+      expect(Math.max(r, g, b) - Math.min(r, g, b), e.clave).toBeGreaterThan(45)
+    }
+  })
+
+  it('cada edificio tiene vitrina, puerta, toldo, letrero, ventanas con marco y, los de varios pisos, balcones', () => {
+    for (const e of EDIFICIOS) {
+      const nombres = piezasDelEdificio(e).map((p) => p.nombre)
+      for (const parte of ['cuerpo', 'techo', 'vitrina', 'puerta', 'toldo 0', 'fondo del letrero']) expect(nombres, `${e.clave}: ${parte}`).toContain(parte)
+      if (e.pisos > 1) {
+        expect(nombres.some((n) => n.startsWith('ventana 1.')), `${e.clave}: ventanas de arriba`).toBe(true)
+        expect(nombres.some((n) => n.startsWith('balcón 1.')), `${e.clave}: balcones`).toBe(true)
+        expect(nombres.some((n) => n.startsWith('baranda')), `${e.clave}: barandas`).toBe(true)
+      }
+    }
+    // las rejas de las ventanas de abajo
+    expect(EDIFICIOS.filter((e) => piezasDelEdificio(e).some((p) => p.nombre.startsWith('reja'))).length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('el toldo es de rayas de dos colores', () => {
+    for (const e of EDIFICIOS) {
+      const colores = new Set(piezasDelEdificio(e).filter((p) => p.nombre.startsWith('toldo')).map((p) => p.color))
+      expect(colores.size, e.clave).toBe(2)
+    }
+  })
+
+  it('las piezas de la fachada quedan sobre la cara del edificio y dentro de su caja', () => {
+    for (const e of EDIFICIOS) {
+      const caja = cajaDelEdificio(e)
+      for (const p of piezasDelEdificio(e)) {
+        expect(p.x0, `${e.clave} ${p.nombre}`).toBeGreaterThanOrEqual(caja.min[0] - 1e-6)
+        expect(p.x1, `${e.clave} ${p.nombre}`).toBeLessThanOrEqual(caja.max[0] + 1e-6)
+        expect(p.z0, `${e.clave} ${p.nombre}`).toBeGreaterThanOrEqual(caja.min[2] - 1e-6)
+        expect(p.z1, `${e.clave} ${p.nombre}`).toBeLessThanOrEqual(caja.max[2] + 1e-6)
+        expect(p.y1, `${e.clave} ${p.nombre}`).toBeLessThanOrEqual(caja.max[1] + 1e-6)
+        expect(p.x1).toBeGreaterThan(p.x0)
+        expect(p.y1).toBeGreaterThan(p.y0)
+        expect(p.z1).toBeGreaterThan(p.z0)
+      }
+    }
+  })
+})
+
+describe('los letreros pintados son genéricos y miran a la vista general', () => {
+  it('dicen el tipo de negocio, en español', () => {
+    const textos = EDIFICIOS.map((e) => e.letrero)
+    for (const texto of ['Panadería', 'Droguería', 'Ferretería', 'Tienda', 'Restaurante', 'Venta de autos', 'Perfumería', 'Clínica veterinaria']) {
+      expect(textos, texto).toContain(texto)
+    }
+    expect(new Set(textos).size).toBe(textos.length)
   })
 
   it('ninguno repite el nombre de un negocio real del mapa', () => {
@@ -112,21 +200,50 @@ describe('los letreros son genéricos', () => {
     }
   })
 
-  it('cada letrero va pegado a la cara de adelante de su tablero, con la proporción del tablero', () => {
+  it('cada letrero va pegado a la fachada, centrado y cabe en ella', () => {
     for (const e of EDIFICIOS) {
       const l = letreroDelEdificio(e)
-      const tablero = piezasDelEdificio(e).find((p) => p.nombre === 'tablero')
-      expect(l.alto).toBeCloseTo(tablero.y1 - tablero.y0, 9)
-      expect(l.ancho).toBeGreaterThan(l.alto)
-      expect(l.y).toBeCloseTo((tablero.y0 + tablero.y1) / 2, 9)
+      expect(largoDeLaFachada(e), e.clave).toBeGreaterThanOrEqual(LARGO_MINIMO_DE_LA_FACHADA)
+      expect(l.ancho / l.alto).toBeCloseTo(8, 9)
+      expect(l.ancho).toBeLessThan(largoDeLaFachada(e))
+      const [cx, cz] = centroDelEdificio(e)
+      if (e.frente === 'x') {
+        expect(l.z).toBeCloseTo(cz, 9)
+        expect(l.x).toBeGreaterThan(e.x1)
+        expect(l.giro).toBeCloseTo(Math.PI / 2, 9)
+      } else {
+        expect(l.x).toBeCloseTo(cx, 9)
+        expect(l.z).toBeGreaterThan(e.z1)
+        expect(l.giro).toBe(0)
+      }
     }
+  })
+
+  it('la mayoría mira a +Z, hacia la cámara de la vista general, para leerse bien desde ahí', () => {
+    expect(EDIFICIOS.filter((e) => e.frente === 'z').length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('el atlas lleva una fila por edificio y la geometría de los letreros es una sola, con una coordenada de textura por fila', () => {
+    const g = geometriaDeLosLetreros()
+    const uv = g.getAttribute('uv')
+    expect(g.getAttribute('position').count).toBe(EDIFICIOS.length * 4)
+    for (let i = 0; i < uv.count; i += 1) {
+      expect(uv.getY(i)).toBeGreaterThanOrEqual(-1e-9)
+      expect(uv.getY(i)).toBeLessThanOrEqual(1 + 1e-9)
+    }
+    // cada cartel usa una franja distinta del atlas
+    const franjas = new Set()
+    for (let i = 0; i < EDIFICIOS.length; i += 1) franjas.add(Math.floor(uv.getY(i * 4) * EDIFICIOS.length + 1e-6))
+    expect(franjas.size).toBe(EDIFICIOS.length)
+    g.dispose()
   })
 })
 
-describe('se desvanecen con la distancia', () => {
-  it('la mezcla con el horizonte va de un cuarto (cerca) a la mitad (lejos) y crece con la distancia', () => {
-    const { cerca, lejos, desde, hasta } = NIEBLA_DE_LOS_EDIFICIOS
-    expect(mezclaConElHorizonte(0)).toBeCloseTo(cerca, 9)
+describe('solo se desvanece lo más lejano', () => {
+  it('hasta 38 m del centro no se mezcla nada con el horizonte; lejos, hasta la mitad', () => {
+    const { lejos, desde, hasta } = NIEBLA_DE_LOS_EDIFICIOS
+    expect(mezclaConElHorizonte(0)).toBe(0)
+    expect(mezclaConElHorizonte(desde)).toBe(0)
     expect(mezclaConElHorizonte(hasta + 50)).toBeCloseTo(lejos, 9)
     let antes = mezclaConElHorizonte(desde)
     for (let d = desde + 1; d <= hasta; d += 1) {
@@ -136,54 +253,62 @@ describe('se desvanecen con la distancia', () => {
     }
   })
 
-  it('un edificio lejano queda más cerca del color del horizonte que el mismo cerca', () => {
+  it('los edificios cercanos conservan sus colores tal cual y ninguno se deslava más de un 15 %', () => {
+    expect(colorConNiebla('casaOcre', 20)).toBe(COLOR_DE_ESCENA.casaOcre)
+    for (const e of EDIFICIOS) {
+      const { x, z } = dondeQueda(e)
+      expect(mezclaConElHorizonte(distanciaAlCentro(x, z)), e.clave).toBeLessThanOrEqual(0.15)
+    }
+    const sinNiebla = EDIFICIOS.filter((e) => mezclaConElHorizonte(distanciaAlCentro(dondeQueda(e).x, dondeQueda(e).z)) === 0)
+    expect(sinNiebla.length).toBeGreaterThanOrEqual(5)
+  })
+
+  it('un color lejano queda más cerca del horizonte que el mismo cerca', () => {
     const horizonte = COLOR_DE_ESCENA.cieloHorizonte
-    const cerca = colorConNiebla('edificioCrema', 15)
-    const lejos = colorConNiebla('edificioCrema', 50)
-    expect(distanciaDeColor(lejos, horizonte)).toBeLessThan(distanciaDeColor(cerca, horizonte))
-    expect(distanciaDeColor(cerca, horizonte)).toBeLessThan(distanciaDeColor(COLOR_DE_ESCENA.edificioCrema, horizonte))
+    expect(distanciaDeColor(colorConNiebla('casaOcre', 120), horizonte)).toBeLessThan(distanciaDeColor(colorConNiebla('casaOcre', 45), horizonte))
+    expect(distanciaDeColor(colorConNiebla('casaOcre', 45), horizonte)).toBeLessThanOrEqual(distanciaDeColor(COLOR_DE_ESCENA.casaOcre, horizonte))
   })
 
   it('mezclar del todo da el color del horizonte, y nada, el mismo color', () => {
     const h = COLOR_DE_ESCENA.cieloHorizonte
-    expect(mezclarColores(COLOR_DE_ESCENA.edificioCrema, h, 1)).toBe(h)
-    expect(mezclarColores(COLOR_DE_ESCENA.edificioCrema, h, 0)).toBe(COLOR_DE_ESCENA.edificioCrema)
+    expect(mezclarColores(COLOR_DE_ESCENA.casaOcre, h, 1)).toBe(h)
+    expect(mezclarColores(COLOR_DE_ESCENA.casaOcre, h, 0)).toBe(COLOR_DE_ESCENA.casaOcre)
   })
 
-  it('la geometría de cada edificio es una sola, con un color por vértice, y cae dentro de su caja', () => {
-    for (const e of EDIFICIOS) {
-      const g = geometriaDelEdificio(e)
-      const colores = g.getAttribute('color')
-      const posicion = g.getAttribute('position')
-      expect(colores.count).toBe(posicion.count)
-      g.computeBoundingBox()
-      const caja = cajaDelEdificio(e)
-      expect(g.boundingBox.min.x).toBeGreaterThanOrEqual(caja.min[0] - 1e-6)
-      expect(g.boundingBox.max.x).toBeLessThanOrEqual(caja.max[0] + 1e-6)
-      expect(g.boundingBox.max.y).toBeLessThanOrEqual(caja.max[1] + 1e-6)
-      expect(g.boundingBox.min.z).toBeGreaterThanOrEqual(caja.min[2] - 1e-6)
-      expect(g.boundingBox.max.z).toBeLessThanOrEqual(caja.max[2] + 1e-6)
-      g.dispose()
-    }
-  })
-
-  it('un edificio más lejos del centro tiene su distancia mayor', () => {
-    const d = (e) => distanciaAlCentro((e.x0 + e.x1) / 2, (e.z0 + e.z1) / 2)
-    expect(d(por('apartamentos'))).toBeGreaterThan(d(por('perfumeria')))
+  it('el horizonte es azul y no blanco, y la niebla toma ese color', () => {
+    const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(COLOR_DE_ESCENA.cieloHorizonte.slice(i, i + 2), 16))
+    expect(b).toBeGreaterThan(r + 40)
+    expect(b).toBeGreaterThan(g)
+    expect(Math.min(r, g, b)).toBeLessThan(170)
   })
 })
 
 describe('se dibujan con pocas llamadas, sin clics ni sombra, y sin tocar la simulación', () => {
   const componente = readFileSync('src/scene/Edificios.jsx', 'utf8')
 
-  it('una malla por edificio más su letrero, sin sombra propia y sin recibir clics', () => {
+  it('todas las fachadas en una sola geometría de color de vértice, y cada edificio cabe en su caja', () => {
+    const g = geometriaDeLosEdificios()
+    expect(g.getAttribute('color').count).toBe(g.getAttribute('position').count)
+    g.computeBoundingBox()
+    const cajas = EDIFICIOS.map(cajaDelEdificio)
+    expect(g.boundingBox.min.x).toBeGreaterThanOrEqual(Math.min(...cajas.map((c) => c.min[0])) - 1e-6)
+    expect(g.boundingBox.max.x).toBeLessThanOrEqual(Math.max(...cajas.map((c) => c.max[0])) + 1e-6)
+    expect(g.boundingBox.max.y).toBeLessThanOrEqual(ALTO_MAXIMO + 1e-6)
+    // pocos triángulos: unos miles, no cientos de miles
+    const triangulos = g.index ? g.index.count / 3 : g.getAttribute('position').count / 3
+    expect(triangulos).toBeLessThan(20000)
+    g.dispose()
+  })
+
+  it('dos mallas en total (fachadas y letreros), sin sombra propia y sin recibir clics', () => {
+    expect(componente.match(/<mesh /g)).toHaveLength(2)
     expect(componente).not.toMatch(/castShadow|receiveShadow/)
-    expect(componente.match(/raycast=\{SIN_CLICS\}/g).length).toBeGreaterThanOrEqual(2)
+    expect(componente.match(/raycast=\{SIN_CLICS\}/g)).toHaveLength(2)
     expect(componente).toContain('visible={visible}')
     expect(componente).not.toMatch(/Math\.random|https?:\/\//)
   })
 
-  it('el componente se monta sin error', () => {
+  it('el componente se monta sin error, visible o no', () => {
     expect(typeof renderToStaticMarkup(<Edificios />)).toBe('string')
     expect(typeof renderToStaticMarkup(<Edificios visible={false} />)).toBe('string')
   })

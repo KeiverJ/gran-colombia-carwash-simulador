@@ -13,7 +13,7 @@ import { conColor, juntar } from './geometriasDelEntorno.js'
 /**
  * Las formas de la cafetería hechas en código, con formas facetadas y colores
  * planos (el mismo estilo de las motos): el cuerpo con sus ventanas, el techo, el
- * toldo, el tanque de agua negro, el mostrador con la cafetera, las mesas y las
+ * toldo rojo y blanco, el tanque de agua negro, el mostrador con la cafetera, las mesas y las
  * sillas. Todo va **junto en una sola geometría de color de vértice**: una sola
  * llamada de dibujo. Medidas en el mundo (los datos salen de `cafeteria.js`).
  *
@@ -41,8 +41,9 @@ function ventanas() {
 function cuerpo() {
   return [
     cajaEn(ANCHO, altoDelCuerpo, zFondo - zCuerpo, CENTRO_X, altoDelCuerpo / 2, (zCuerpo + zFondo) / 2, COLOR_DE_ESCENA.cafeteria),
-    // El zócalo: una franja baja y un poco más oscura al pie de la pared de adelante.
-    cajaEn(ANCHO + 0.02, 0.4, 0.06, CENTRO_X, 0.2, zCuerpo - 0.02, COLOR_DE_ESCENA.mostrador),
+    // Los colores de la marca: el cuerpo es azul, con el zócalo y una franja ancha amarillos en la pared de adelante.
+    cajaEn(ANCHO + 0.02, 0.4, 0.06, CENTRO_X, 0.2, zCuerpo - 0.02, COLOR_DE_ESCENA.franjaDePared),
+    cajaEn(ANCHO + 0.02, 0.3, 0.06, CENTRO_X, altoDelCuerpo - 0.5, zCuerpo - 0.02, COLOR_DE_ESCENA.franjaDePared),
     cajaEn(
       ANCHO + 2 * vueloDelTecho,
       altoDelTecho,
@@ -50,33 +51,42 @@ function cuerpo() {
       CENTRO_X,
       altoDelCuerpo + altoDelTecho / 2,
       (zCuerpo + zFondo) / 2,
-      COLOR_DE_ESCENA.techo,
+      COLOR_DE_ESCENA.arco,
     ),
     ...ventanas(),
   ]
 }
 
+/** Cuántas rayas rojas y blancas lleva el toldo a lo ancho (un número par: empieza roja y termina blanca). */
+export const RAYAS_DEL_TOLDO = 10
+
 /**
  * El toldo: una lámina inclinada que sale de la pared de adelante y baja hacia el
- * frente, azul de la marca con una tira amarilla en el borde. No tiene postes
- * delante: se sostiene de la pared con tirantes (así no estorba la vista de quien
- * está sentado debajo).
+ * frente, de rayas rojas y blancas como el de la foto del lavadero real, con un faldón
+ * de las mismas rayas en el borde. No tiene postes delante: se sostiene de la pared con
+ * tirantes (así no estorba la vista de quien está sentado debajo).
  */
 function toldo() {
   const largo = zCuerpo - zToldo
   const subida = CAFETERIA.altoDelToldoAtras - CAFETERIA.altoDelToldoAdelante
   const angulo = Math.atan2(subida, largo)
   const centroY = (CAFETERIA.altoDelToldoAtras + CAFETERIA.altoDelToldoAdelante) / 2
-  const lamina = conColor(
-    new BoxGeometry(ANCHO + 2 * vueloDelTecho, CAFETERIA.grosorDelToldo, Math.hypot(largo, subida))
-      .rotateX(angulo)
-      .translate(CENTRO_X, centroY, (zCuerpo + zToldo) / 2),
-    COLOR_DE_ESCENA.paredAzul,
-  )
-  const tira = conColor(
-    new BoxGeometry(ANCHO + 2 * vueloDelTecho, 0.22, 0.05).translate(CENTRO_X, CAFETERIA.altoDelToldoAdelante - 0.1, zToldo + 0.02),
-    COLOR_DE_ESCENA.franjaDePared,
-  )
+  const anchoTotal = ANCHO + 2 * vueloDelTecho
+  const anchoDeLaRaya = anchoTotal / RAYAS_DEL_TOLDO
+  const piezas = []
+  for (let i = 0; i < RAYAS_DEL_TOLDO; i += 1) {
+    const color = i % 2 === 0 ? COLOR_DE_ESCENA.toldoRojo : COLOR_DE_ESCENA.lona
+    const x = CENTRO_X - anchoTotal / 2 + anchoDeLaRaya * (i + 0.5)
+    piezas.push(
+      conColor(
+        new BoxGeometry(anchoDeLaRaya, CAFETERIA.grosorDelToldo, Math.hypot(largo, subida))
+          .rotateX(angulo)
+          .translate(x, centroY, (zCuerpo + zToldo) / 2),
+        color,
+      ),
+      cajaEn(anchoDeLaRaya, 0.22, 0.05, x, CAFETERIA.altoDelToldoAdelante - 0.1, zToldo + 0.02, color),
+    )
+  }
   const tirantes = [x0 - 0.05, x1 + 0.05].map((x) =>
     conColor(
       new CylinderGeometry(0.025, 0.025, Math.hypot(largo, 0.9), 6)
@@ -85,7 +95,7 @@ function toldo() {
       COLOR_DE_ESCENA.metal,
     ),
   )
-  return [lamina, tira, ...tirantes]
+  return [...piezas, ...tirantes]
 }
 
 /** El tanque de agua negro sobre el techo, con sus patas y su tapa. */

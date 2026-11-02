@@ -211,6 +211,12 @@ export function ContenidoDeLaAyuda() {
             es una etapa.
           </li>
           <li>
+            <strong>El lavado de carros.</strong> Los techos grandes que se ven a la derecha del
+            lavadero de motos son la zona de lavado de carros del mismo local. Se muestra como
+            referencia del lugar y no forma parte del estudio: el modelo sigue siendo solo de motos,
+            y los carros que se ven ahí, quietos, no cambian ninguna cifra.
+          </li>
+          <li>
             <strong>La cámara.</strong> Arrastra para girar la vista y usa la rueda para
             acercarte. Los botones llevan a cuatro vistas: «Vista general» (el local completo,
             también sirve para volver a centrarlo), «Lavado» (las placas y su fila de espera),

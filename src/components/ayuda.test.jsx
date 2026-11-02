@@ -82,6 +82,16 @@ describe('los trabajadores y la cafetería en la Ayuda', () => {
   })
 })
 
+describe('el lavado de carros en la Ayuda', () => {
+  it('dice que se muestra como referencia del lugar y que no forma parte del estudio', () => {
+    const html = texto()
+    expect(html).toContain('El lavado de carros.')
+    expect(html).toContain('referencia del lugar')
+    expect(html).toContain('no forma parte del estudio')
+    expect(html).toContain('solo de motos')
+  })
+})
+
 describe('el foco de la Ayuda', () => {
   it('lo primero enfocable sigue siendo el botón «Cerrar», antes de los enlaces de créditos', () => {
     const html = renderToStaticMarkup(

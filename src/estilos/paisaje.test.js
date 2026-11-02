@@ -38,7 +38,8 @@ const RESERVADOS = {
 const NOMBRES_DEL_PAISAJE = [
   'cieloCenit', 'cieloHorizonte', 'sol', 'lona', 'arco', 'paredAzul', 'franjaDePared', 'columnaAzul',
   'asfalto', 'acera', 'bordillo', 'terreno', 'piso', 'pisoMojado', 'juntaDelPiso', 'zonaDeAcabado', 'pinturaDeEspera', 'placaDeMetal', 'cafeteria', 'mostrador', 'mesaDeCafeteria', 'sillaDeCafeteria',
-  'tanqueDeAgua', 'sombrilla', 'edificioCrema', 'edificioGrisCalido', 'edificioTerracota', 'edificioVerdeGris',
+  'tanqueDeAgua', 'sombrilla', 'casaOcre', 'casaTerracota', 'casaTurquesa', 'casaSalmon', 'casaVerdeClaro', 'casaBlanca', 'casaAzulCielo',
+  'acentoAzul', 'acentoVerde', 'acentoRosa', 'acentoTurquesa', 'acentoMostaza', 'pasto', 'tierraDeLote', 'parqueadero',
   'edificioTecho', 'edificioVidrio', 'edificioPuerta', 'edificioLetrero', 'ropaDeTrabajo', 'botasDeCaucho', 'ropaDeCliente1', 'ropaDeCliente2',
   'ropaDeCliente3', 'ropaDeCliente4', 'ropaDeCliente5', 'ropaDeCliente6', 'pielClara', 'pielMedia',
   'pielOscura', 'peloOscuro', 'peloCastano', 'espuma', 'follaje', 'tronco', 'matera',
@@ -101,15 +102,16 @@ describe('el paisaje no usurpa los colores con significado', () => {
 
 describe('los edificios de la esquina, ya mezclados con el horizonte, tampoco usurpan los colores con significado', () => {
   const NOMBRES = [
-    'edificioCrema', 'edificioGrisCalido', 'edificioTerracota', 'edificioVerdeGris',
+    'casaOcre', 'casaTerracota', 'casaTurquesa', 'casaSalmon', 'casaVerdeClaro', 'casaBlanca', 'casaAzulCielo',
+    'acentoAzul', 'acentoVerde', 'acentoRosa', 'acentoTurquesa', 'acentoMostaza',
     'edificioTecho', 'edificioVidrio', 'edificioPuerta', 'edificioLetrero', 'textoDeLetrero',
   ]
   const mezclado = (nombre, cantidad) => mezclarColores(COLOR_DE_ESCENA[nombre], COLOR_DE_ESCENA.cieloHorizonte, cantidad)
 
   it.each([
     ['sin mezclar', 0],
-    ['cerca (un cuarto)', 0.25],
-    ['lejos (la mitad)', 0.5],
+    ['un poco lejos (un cuarto)', 0.25],
+    ['lo más lejano (la mitad)', 0.5],
   ])('%s: ninguno queda a menos del mínimo de una etapa, un plan, el ámbar o el rojo', (_, cantidad) => {
     const colores = Object.fromEntries(NOMBRES.map((nombre) => [nombre, mezclado(nombre, cantidad)]))
     expect(coloresQueUsurpan(colores, RESERVADOS, MINIMO)).toEqual([])
@@ -118,5 +120,15 @@ describe('los edificios de la esquina, ya mezclados con el horizonte, tampoco us
   it('la prueba falla si un edificio se pinta a propósito con un color de plan', () => {
     const intruso = coloresQueUsurpan({ ...PAISAJE, edificioPlan: COLOR_DE_PLAN[1] }, RESERVADOS, MINIMO)
     expect(intruso.map((f) => f.nombre)).toContain('edificioPlan')
+  })
+})
+
+describe('el único rojo del paisaje: el toldo de la cafetería, como en la foto', () => {
+  it('es la excepción pedida y queda a más de 6 m de cualquier losa o indicador (lo vigila detalles.test)', () => {
+    // A pedido de Keiver y fiel a la foto del lavadero real: toldo rojo y blanco. No se usa en nada más.
+    expect(COLOR_DE_ESCENA.toldoRojo).toMatch(/^#[0-9a-f]{6}$/i)
+    expect(COLOR_DE_ESCENA.toldoRojo).not.toBe(RESERVADOS['rojo de los errores'])
+    const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(COLOR_DE_ESCENA.toldoRojo.slice(i, i + 2), 16))
+    expect(r > g * 1.4 && r > b * 1.4).toBe(true)
   })
 })

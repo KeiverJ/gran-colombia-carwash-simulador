@@ -171,10 +171,13 @@
   /* --- Entorno de la escena 3D ---
      Gemelos de COLOR_DE_ESCENA en colores.js. El verde del letrero de calle
      (#1d7348) da 5,84 : 1 con el texto blanco. */
-  --escena-terreno: #d8d3c7;
+  --escena-terreno: #e0d2ab;
+  --escena-pasto: #9cc25f;
+  --escena-tierra-de-lote: #b99d73;
+  --escena-parqueadero: #9a9b97;
   --escena-fondo: #e9eff3;
   --escena-cielo-cenit: #4b86d0;
-  --escena-cielo-horizonte: #c2daee;
+  --escena-cielo-horizonte: #8fc3ec;
   --escena-sol: #ffd9a0;
   --escena-asfalto: #505c64;
   --escena-pintura-vial: #f3f5f6;
@@ -205,20 +208,29 @@
   --escena-rotulo-fondo: #ffffff;
   --escena-rotulo-borde: #dce3e8;
   --escena-rotulo-de-alerta: #c8322f;
-  --escena-cafeteria: #efe3cf;
+  --escena-cafeteria: #1f3fa6;
   --escena-mostrador: #8a6a4f;
   --escena-mesa-de-cafeteria: #c9a46b;
   --escena-silla-de-cafeteria: #4a4f54;
   --escena-tanque-de-agua: #1c2429;
   --escena-sombrilla: #f5f1e6;
-  --escena-edificio-crema: #d6cfbf;
-  --escena-edificio-gris-calido: #bdb7ad;
-  --escena-edificio-terracota: #bf9f8c;
-  --escena-edificio-verde-gris: #aab6aa;
-  --escena-edificio-techo: #8f9293;
-  --escena-edificio-vidrio: #7d909b;
-  --escena-edificio-puerta: #5b6469;
-  --escena-edificio-letrero: #55646e;
+  --escena-casa-ocre: #e3b13b;
+  --escena-casa-terracota: #bb6a4a;
+  --escena-casa-turquesa: #2fb7b0;
+  --escena-casa-salmon: #f29b82;
+  --escena-casa-verde-claro: #a8d37c;
+  --escena-casa-blanca: #f5f1e7;
+  --escena-casa-azul-cielo: #72b4e2;
+  --escena-acento-azul: #26469c;
+  --escena-acento-verde: #2f9461;
+  --escena-acento-rosa: #d4588f;
+  --escena-acento-turquesa: #1f9aa0;
+  --escena-acento-mostaza: #e8c23f;
+  --escena-edificio-techo: #b9b3a8;
+  --escena-edificio-vidrio: #6f8794;
+  --escena-edificio-puerta: #4d565b;
+  --escena-edificio-letrero: #2a3a46;
+  --escena-toldo-rojo: #b83a32;
   --escena-ropa-de-trabajo: #1a1d20;
   --escena-botas-de-caucho: #23282c;
   --escena-ropa-de-cliente1: #7a8f5f;

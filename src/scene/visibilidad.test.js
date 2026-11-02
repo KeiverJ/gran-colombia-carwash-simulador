@@ -11,6 +11,7 @@ import {
 } from './cafeteria.js'
 import { cajasDeLaVegetacion, cajasDeLosDetalles } from './colocacion.js'
 import { cajaDelEdificio, EDIFICIOS } from './edificios.js'
+import { cajaDelLavaderoDeCarros } from './lavaderoDeCarros.js'
 import { AVENIDAS, CURVAS_DE_ENTRADA, LOCAL } from './posiciones.js'
 import {
   CLAVES_DE_LAS_VISTAS,
@@ -275,5 +276,41 @@ describe('los edificios de la esquina no tapan nada del lavadero', () => {
     const [x, , z] = placa.punto
     const edificio = { nombre: 'un edificio mal puesto', min: [x - 3, 0, z + 3], max: [x + 3, 7, z + 9] }
     expect(puntosTapados(origen, [placa], [edificio])).toHaveLength(1)
+  })
+})
+
+describe('el lavado de carros de la derecha no tapa nada del lavadero de motos', () => {
+  const LAVADO_DE_CARROS = [cajaDelLavaderoDeCarros()]
+  const CONFIGURACIONES = [
+    [1, 1],
+    [6, 3],
+    [10, 5],
+    [14, 7],
+  ]
+
+  describe.each(PANTALLAS_DE_LA_PRUEBA)('a $nombre', (pantalla) => {
+    it.each(CLAVES_DE_LAS_VISTAS)('desde «%s» ningún rayo lo cruza', (clave) => {
+      const origen = camaraDeLaVista(clave, pantalla)
+      for (const [placas, puestos] of CONFIGURACIONES) {
+        const tapados = puntosTapados(origen, puntosClave(placas, puestos), LAVADO_DE_CARROS)
+        expect(tapados.slice(0, 5), `${placas} placas y ${puestos} puestos`).toEqual([])
+      }
+    })
+  })
+
+  it('desde los asientos de la cafetería tampoco', () => {
+    for (const asiento of ASIENTOS_OCUPADOS) {
+      for (const [placas, puestos] of CONFIGURACIONES) {
+        expect(puntosTapados(ojosDelAsiento(asiento), puntosClave(placas, puestos), LAVADO_DE_CARROS).slice(0, 5)).toEqual([])
+      }
+    }
+  })
+
+  it('el detector sí lo encuentra si estuviera sobre el lavadero de motos', () => {
+    const origen = camaraDeLaVista('general', PANTALLAS_DE_LA_PRUEBA[0])
+    const placa = puntosClave(6, 3).find(({ nombre }) => nombre === 'placa 2 (moto)')
+    const [x, , z] = placa.punto
+    const puesto = { nombre: 'un techo mal puesto', min: [x - 4, 0, z + 2], max: [x + 4, 4.5, z + 8] }
+    expect(puntosTapados(origen, [placa], [puesto])).toHaveLength(1)
   })
 })
