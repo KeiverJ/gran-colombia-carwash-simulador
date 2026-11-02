@@ -329,8 +329,10 @@ npm run dev        # servidor de desarrollo
 npm test           # corre las pruebas (Vitest)
 npm run build      # compila para producción en dist/
 npm run preview    # sirve lo compilado para probarlo
-npm run deploy     # publica dist/ en la rama gh-pages (GitHub Pages)
+npm run deploy     # publicación manual de dist/ en la rama gh-pages (alternativa)
 ```
+
+**Publicación.** Cada vez que se sube algo a `main`, un flujo de GitHub Actions (`.github/workflows/pages.yml`) corre `npm ci`, `npm test` y `npm run build` y publica `dist/` en GitHub Pages; si una prueba falla, no publica. En Settings → Pages la fuente debe ser «GitHub Actions».
 
 La aplicación se sirve bajo `/gran-colombia-carwash-simulador/` (la base de `vite.config.js`), así que en desarrollo y en `preview` se abre en `http://localhost:<puerto>/gran-colombia-carwash-simulador/`.
 
