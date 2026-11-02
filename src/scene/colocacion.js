@@ -1,14 +1,23 @@
-import { HUELLA_DE_LA_CAFETERIA } from './cafeteria.js'
-import { cajasDeLosa, puntosDeLosCaminos } from './charcos.js'
+import { ASIENTOS_OCUPADOS, HUELLA_DE_LA_CAFETERIA, OBJETOS_DEL_MOSTRADOR } from './cafeteria.js'
+import { cajasDeLosa, postesDeLasLosas, puntosDeLosCaminos } from './charcos.js'
 import { entreDe, fraccionDe } from './hashPropio.js'
 import {
   ANCHO_DE_BOCA,
   AVENIDAS,
+  COLUMNAS_DEL_TECHO,
   CURVAS_DE_ENTRADA,
   FRANJA_DE_ESPERA,
   LOCAL,
   TERRENO,
 } from './posiciones.js'
+import {
+  CLAVES_DE_LAS_VISTAS,
+  camaraDeLaVista,
+  ojosDelAsiento,
+  PANTALLAS_DE_LA_PRUEBA,
+  puntosClave,
+  puntosTapados,
+} from './visibilidad.js'
 
 /**
  * Dónde van los árboles y las plantas de la calle (y, en las partes siguientes,
@@ -226,5 +235,159 @@ export function cajasDeLaVegetacion(sitios = sitiosDeLaVegetacion()) {
     const { alto, radioDeLaCopa } = MODELOS_DE_VEGETACION[modelo]
     const r = radioDeLaCopa * escala
     return { nombre: `${modelo} ${i + 1}`, min: [x - r, 0, z - r], max: [x + r, alto * escala, z + r] }
+  })
+}
+
+/* ------------------------------------------------------------------------- *
+ * Los detalles de la calle y de la cafetería
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Lo que mide cada detalle (su alto y la mitad de lo que ocupa desde arriba, en metros),
+ * para comprobar con rayos y con distancias que no estorba. `modelo` es el archivo de
+ * `public/modelos/ambiente/` y `forma` lo que se hace en código.
+ */
+export const FORMAS_DE_DETALLE = {
+  farol: { modelo: 'farol', alto: 4.5, radio: 0.7 },
+  semaforo: { modelo: 'semaforo', alto: 3.5, radio: 0.35 },
+  stop: { modelo: 'stop', alto: 2.2, radio: 0.4 },
+  cono: { modelo: 'cono', alto: 0.5, radio: 0.25 },
+  balde: { modelo: 'balde', alto: 0.35, radio: 0.25 },
+  matera: { modelo: 'planta', alto: 1.6, radio: 0.45 },
+  caja: { modelo: 'caja', alto: 0.3, radio: 0.2 },
+  nevera: { modelo: 'nevera', alto: 1, radio: 0.3 },
+  caneca: { forma: 'caneca', alto: 0.8, radio: 0.25 },
+  banca: { forma: 'banca', alto: 0.9, radio: 0.9 },
+  sombrilla: { forma: 'sombrilla', alto: 2.65, radio: 1.1 },
+}
+
+/** Los roles de la calle (los de la cafetería van en `ROLES_DE_LA_CAFETERIA`). */
+export const ROLES_DE_LA_CALLE = ['farol', 'caneca', 'semaforo', 'stop', 'cono', 'balde']
+
+/** Los roles que van en la cafetería, adentro o bajo su toldo. */
+export const ROLES_DE_LA_CAFETERIA = ['banca', 'matera', 'sombrilla', 'caja', 'nevera']
+
+/** Los objetos rojos o ámbar, que no pueden parecer un aviso: van lejos de lo que avisa (D12). */
+export const ROLES_ROJOS = ['stop', 'semaforo']
+
+/** Lo más cerca que puede estar un objeto rojo o ámbar de una losa, un rótulo o un indicador, en metros. */
+export const DISTANCIA_A_LO_QUE_AVISA = 6
+
+/** Lo más cerca que puede estar un cono decorativo de una placa o un puesto, en metros. */
+export const DISTANCIA_DE_UN_CONO_A_UNA_LOSA = 1.5
+
+/** A qué distancia de una columna se prueba un balde. */
+const RADIOS_DEL_BALDE = [0.8, 1.1]
+
+const SEMILLA_DE_LOS_DETALLES = 70707
+
+/** Distancia de un punto a una caja `{ x0, x1, z0, z1 }` (0 si está dentro). */
+export const distanciaAUnaCaja = (x, z, c) => Math.hypot(Math.max(c.x0 - x, 0, x - c.x1), Math.max(c.z0 - z, 0, z - c.z1))
+
+/** Desde dónde se mira: las cámaras de las cuatro vistas y los ojos de quienes están sentados en la cafetería. */
+const OJOS_QUE_MIRAN = () => [
+  ...PANTALLAS_DE_LA_PRUEBA.flatMap((pantalla) => CLAVES_DE_LAS_VISTAS.map((clave) => camaraDeLaVista(clave, pantalla))),
+  ...ASIENTOS_OCUPADOS.map(ojosDelAsiento),
+]
+
+/**
+ * Dónde caen los baldes: junto a una columna, fuera de los caminos, de las losas y de los
+ * postes (con 14 placas y 7 puestos) y sin tapar, desde ninguna vista ni desde los asientos de
+ * la cafetería, un solo punto del lavadero (un balde bajo, en el piso, tapa lo que queda detrás).
+ */
+function sitiosDeLosBaldes() {
+  const caminos = puntosDeLosCaminosMaximos()
+  const cajas = cajasDeLosa(14, 7)
+  const postes = postesDeLasLosas(14, 7)
+  const ojos = OJOS_QUE_MIRAN()
+  const puntos = puntosClave(14, 7)
+  const tapaAlgo = (x, z) => {
+    const { alto, radio } = FORMAS_DE_DETALLE.balde
+    const caja = { nombre: 'balde', min: [x - radio, 0, z - radio], max: [x + radio, alto, z + radio] }
+    return ojos.some((origen) => puntosTapados(origen, puntos, [caja]).length > 0)
+  }
+  const sitios = []
+  for (const [cx, , cz] of COLUMNAS_DEL_TECHO) {
+    let elegido = null
+    for (const radio of RADIOS_DEL_BALDE) {
+      for (let k = 0; k < 8 && !elegido; k += 1) {
+        const x = cx + radio * Math.cos((k * Math.PI) / 4)
+        const z = cz + radio * Math.sin((k * Math.PI) / 4)
+        const libre =
+          caminos.every(([px, pz]) => Math.hypot(x - px, z - pz) >= 1.2) &&
+          cajas.every((caja) => distanciaAUnaCaja(x, z, caja) >= 0.5) &&
+          postes.every(([px, pz]) => Math.hypot(x - px, z - pz) >= 0.8) &&
+          !tapaAlgo(x, z)
+        if (libre) elegido = [x, z]
+      }
+    }
+    if (elegido) {
+      sitios.push({ rol: 'balde', x: elegido[0], y: 0, z: elegido[1], giro: entreDe(SEMILLA_DE_LOS_DETALLES, sitios.length, 0, Math.PI * 2), escala: 1 })
+    }
+  }
+  return sitios
+}
+
+/**
+ * Los sitios de los detalles: `[{ rol, x, y, z, giro, escala }]`, siempre los mismos.
+ * `giro` es el giro sobre Y de los modelos, que miran a +Z (un farol mira con su brazo).
+ *
+ * - **Calle:** faroles y canecas en las aceras del otro lado de las dos avenidas (con el
+ *   farol de brazo hacia la calzada), el semáforo y la señal «Stop» en la esquina de las
+ *   dos avenidas, conos en las aceras frente a las dos bocas y baldes junto a las columnas.
+ * - **Cafetería:** bancas a su costado, materas con la planta junto a la sala de espera,
+ *   la sombrilla junto a las mesas, y la caja registradora y la nevera en el mostrador.
+ *
+ * Todo lo de la calle queda fuera de las calzadas, del local, de las bocas y de las losas
+ * (lo comprueba `colocacion.test.jsx`); los objetos rojos o ámbar, a 6 m o más de lo que avisa.
+ */
+export function sitiosDeLosDetalles() {
+  const sitios = []
+  const poner = (rol, x, z, giro = 0, y = 0, escala = 1) => sitios.push({ rol, x, y, z, giro, escala })
+  const acera = { guaimaral: CALZADAS.guaimaral.x0 - 0.7, granColombia: CALZADAS.granColombia.z0 - 0.7 }
+
+  // Faroles: a lo largo de las aceras, con el brazo hacia la calzada.
+  for (const z of [14, 32, -24]) poner('farol', acera.guaimaral, z, Math.PI / 2)
+  for (const x of [10, 28, -26]) poner('farol', x, acera.granColombia, 0)
+  // Canecas: entre los faroles, junto a la calzada.
+  for (const z of [22, -27]) poner('caneca', acera.guaimaral + 0.1, z)
+  for (const x of [-9, 19]) poner('caneca', x, acera.granColombia + 0.1)
+  // La esquina de las dos avenidas: el semáforo (mira a los carros de la Guaimaral) y la «Stop» (mira a los de la Gran Colombia).
+  poner('semaforo', CALZADAS.guaimaral.x0 - 0.4, CALZADAS.granColombia.z0 - 0.4, 0)
+  poner('stop', CALZADAS.guaimaral.x0 - 2.7, CALZADAS.granColombia.z0 - 0.3, Math.PI / 2)
+  // Conos en las aceras frente a las dos bocas.
+  const [bocaGuaimaral, bocaGranColombia] = [AVENIDAS.guaimaral.posicion, AVENIDAS.granColombia.posicion]
+  for (const dz of [-1.2, 1.2]) poner('cono', CALZADAS.guaimaral.x0 - 1.1, bocaGuaimaral[2] + dz, 0.3 + dz)
+  for (const dx of [-1.2, 1.2]) poner('cono', bocaGranColombia[0] + dx, CALZADAS.granColombia.z0 - 1.1, 1.1 + dx)
+  sitios.push(...sitiosDeLosBaldes())
+
+  // La cafetería: bancas a su costado (miran a la pared), materas junto a la sala de espera,
+  // la sombrilla junto a las mesas y la caja y la nevera en el mostrador (miran al cliente, hacia −Z).
+  for (const z of [28, 29.9]) poner('banca', HUELLA_DE_LA_CAFETERIA.x1 + 1.1, z, -Math.PI / 2)
+  poner('matera', HUELLA_DE_LA_CAFETERIA.x0 - 0.05, 26.3, 0.8)
+  poner('matera', HUELLA_DE_LA_CAFETERIA.x1 + 0.5, 26.3, 2.2)
+  poner('sombrilla', HUELLA_DE_LA_CAFETERIA.x1 + 1.45, 24.9)
+  const { caja, nevera } = OBJETOS_DEL_MOSTRADOR
+  poner('caja', caja.x, caja.z, Math.PI, caja.y)
+  poner('nevera', nevera.x, nevera.z, Math.PI, nevera.y)
+  return sitios
+}
+
+/**
+ * Las cajas que ocupa cada detalle, para comprobar con rayos que no tapa nada. La
+ * sombrilla son dos: el palo y el toldo, que está por encima de los ojos de una persona sentada.
+ */
+export function cajasDeLosDetalles(sitios = sitiosDeLosDetalles()) {
+  return sitios.flatMap(({ rol, x, y, z, escala }, i) => {
+    const { alto, radio } = FORMAS_DE_DETALLE[rol]
+    const r = radio * escala
+    const nombre = `${rol} ${i + 1}`
+    if (rol === 'sombrilla') {
+      return [
+        { nombre: `${nombre} (palo)`, min: [x - 0.06, 0, z - 0.06], max: [x + 0.06, alto, z + 0.06] },
+        { nombre: `${nombre} (toldo)`, min: [x - r, 2.1, z - r], max: [x + r, alto, z + r] },
+      ]
+    }
+    return [{ nombre, min: [x - r, y, z - r], max: [x + r, y + alto * escala, z + r] }]
   })
 }

@@ -16,6 +16,7 @@ import { useSimulacion } from '../store/simulacion.js'
 import Avenidas from './Avenidas.jsx'
 import Cafeteria from './Cafeteria.jsx'
 import Cielo from './Cielo.jsx'
+import Detalles from './Detalles.jsx'
 import Espuma from './Espuma.jsx'
 import Iluminacion from './Iluminacion.jsx'
 import Local from './Local.jsx'
@@ -165,6 +166,7 @@ export function EscenaDelLavadero() {
           <Local />
           <Cafeteria />
           <Vegetacion />
+          <Detalles />
           <Avenidas />
           {/* Primero las motos: las losas y las gotas siguen a lo que ellas hacen en este cuadro. */}
           <Motos />

@@ -9,7 +9,7 @@ import {
   HUELLA_DE_LA_CAFETERIA,
   seSolapan,
 } from './cafeteria.js'
-import { cajasDeLaVegetacion } from './colocacion.js'
+import { cajasDeLaVegetacion, cajasDeLosDetalles } from './colocacion.js'
 import { AVENIDAS, CURVAS_DE_ENTRADA, LOCAL } from './posiciones.js'
 import {
   CLAVES_DE_LAS_VISTAS,
@@ -183,5 +183,55 @@ describe('la vegetación no tapa nada del lavadero', () => {
     const [x, , z] = placa.punto
     const arbol = { nombre: 'un árbol mal puesto', min: [x - 1.5, 0, z + 3], max: [x + 1.5, 5, z + 6] }
     expect(puntosTapados(origen, [placa], [arbol])).toHaveLength(1)
+  })
+})
+
+describe('los detalles de la calle y de la cafetería no tapan nada del lavadero', () => {
+  const DETALLES = cajasDeLosDetalles()
+  const CONFIGURACIONES = [
+    [1, 1],
+    [6, 3],
+    [10, 5],
+    [14, 7],
+  ]
+
+  it('hay detalles que revisar', () => {
+    expect(DETALLES.length).toBeGreaterThan(20)
+  })
+
+  describe.each(PANTALLAS_DE_LA_PRUEBA)('a $nombre', (pantalla) => {
+    it.each(CLAVES_DE_LAS_VISTAS)('desde «%s» ningún rayo cruza un detalle', (clave) => {
+      const origen = camaraDeLaVista(clave, pantalla)
+      for (const [placas, puestos] of CONFIGURACIONES) {
+        const tapados = puntosTapados(origen, puntosClave(placas, puestos), DETALLES)
+        expect(tapados.slice(0, 5), `${placas} placas y ${puestos} puestos`).toEqual([])
+      }
+    })
+  })
+
+  it('desde los asientos de la cafetería tampoco (la sombrilla queda por encima de los ojos)', () => {
+    for (const asiento of ASIENTOS_OCUPADOS) {
+      for (const [placas, puestos] of CONFIGURACIONES) {
+        const tapados = puntosTapados(ojosDelAsiento(asiento), puntosClave(placas, puestos), DETALLES)
+        expect(tapados.slice(0, 5), `asiento (${asiento.x}, ${asiento.z}) con ${placas}/${puestos}`).toEqual([])
+      }
+    }
+  })
+
+  it('el detector sí encuentra un detalle que estorbe: un farol puesto delante de una placa', () => {
+    const origen = camaraDeLaVista('general', PANTALLAS_DE_LA_PRUEBA[0])
+    const placa = puntosClave(6, 3).find(({ nombre }) => nombre === 'placa 2 (moto)')
+    const [x, , z] = placa.punto
+    const farol = { nombre: 'un farol mal puesto', min: [x - 0.7, 0, z + 3], max: [x + 0.7, 4.5, z + 4.4] }
+    expect(puntosTapados(origen, [placa], [farol])).toHaveLength(1)
+  })
+
+  it('la caja registradora y la nevera, sobre y junto al mostrador, tampoco tapan la vista desde la sala de espera', () => {
+    const propios = DETALLES.filter(({ nombre }) => /^(caja|nevera|sombrilla|matera|banca) /.test(nombre))
+    expect(propios.length).toBeGreaterThan(6)
+    for (const asiento of ASIENTOS_OCUPADOS) {
+      const tapados = puntosTapados(ojosDelAsiento(asiento), puntosClave(14, 7), [...CAJAS_DEL_EDIFICIO, ...propios])
+      expect(tapados.slice(0, 5)).toEqual([])
+    }
   })
 })
