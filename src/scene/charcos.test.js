@@ -131,8 +131,8 @@ describe('la geometría de los charcos', () => {
 })
 
 describe('los charcos y la calidad adaptable', () => {
-  it('desaparecen en el nivel 3 y no antes', () => {
-    expect(NIVELES_DE_CALIDAD[2].charcos).toBe(true)
-    expect(NIVELES_DE_CALIDAD[3].charcos).toBe(false)
+  it('desaparecen en el nivel 4 y no antes', () => {
+    expect(NIVELES_DE_CALIDAD[3].charcos).toBe(true)
+    expect(NIVELES_DE_CALIDAD[4].charcos).toBe(false)
   })
 })

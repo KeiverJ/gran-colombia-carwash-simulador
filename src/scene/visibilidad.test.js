@@ -10,6 +10,7 @@ import {
   seSolapan,
 } from './cafeteria.js'
 import { cajasDeLaVegetacion, cajasDeLosDetalles } from './colocacion.js'
+import { cajaDelEdificio, EDIFICIOS } from './edificios.js'
 import { AVENIDAS, CURVAS_DE_ENTRADA, LOCAL } from './posiciones.js'
 import {
   CLAVES_DE_LAS_VISTAS,
@@ -233,5 +234,46 @@ describe('los detalles de la calle y de la cafetería no tapan nada del lavadero
       const tapados = puntosTapados(ojosDelAsiento(asiento), puntosClave(14, 7), [...CAJAS_DEL_EDIFICIO, ...propios])
       expect(tapados.slice(0, 5)).toEqual([])
     }
+  })
+})
+
+describe('los edificios de la esquina no tapan nada del lavadero', () => {
+  const EDIFICIOS_DE_LA_ESQUINA = EDIFICIOS.map(cajaDelEdificio)
+  const CONFIGURACIONES = [
+    [1, 1],
+    [6, 3],
+    [10, 5],
+    [14, 7],
+  ]
+
+  it('hay edificios que revisar', () => {
+    expect(EDIFICIOS_DE_LA_ESQUINA.length).toBeGreaterThanOrEqual(3)
+  })
+
+  describe.each(PANTALLAS_DE_LA_PRUEBA)('a $nombre', (pantalla) => {
+    it.each(CLAVES_DE_LAS_VISTAS)('desde «%s» ningún rayo cruza un edificio', (clave) => {
+      const origen = camaraDeLaVista(clave, pantalla)
+      for (const [placas, puestos] of CONFIGURACIONES) {
+        const tapados = puntosTapados(origen, puntosClave(placas, puestos), EDIFICIOS_DE_LA_ESQUINA)
+        expect(tapados.slice(0, 5), `${placas} placas y ${puestos} puestos`).toEqual([])
+      }
+    })
+  })
+
+  it('desde los asientos de la cafetería tampoco', () => {
+    for (const asiento of ASIENTOS_OCUPADOS) {
+      for (const [placas, puestos] of CONFIGURACIONES) {
+        const tapados = puntosTapados(ojosDelAsiento(asiento), puntosClave(placas, puestos), EDIFICIOS_DE_LA_ESQUINA)
+        expect(tapados.slice(0, 5), `asiento (${asiento.x}, ${asiento.z}) con ${placas}/${puestos}`).toEqual([])
+      }
+    }
+  })
+
+  it('el detector sí encuentra un edificio que estorbe: uno puesto delante de una placa', () => {
+    const origen = camaraDeLaVista('general', PANTALLAS_DE_LA_PRUEBA[0])
+    const placa = puntosClave(6, 3).find(({ nombre }) => nombre === 'placa 2 (moto)')
+    const [x, , z] = placa.punto
+    const edificio = { nombre: 'un edificio mal puesto', min: [x - 3, 0, z + 3], max: [x + 3, 7, z + 9] }
+    expect(puntosTapados(origen, [placa], [edificio])).toHaveLength(1)
   })
 })

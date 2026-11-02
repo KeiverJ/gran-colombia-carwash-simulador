@@ -132,8 +132,8 @@ describe('los blobs de espuma', () => {
 })
 
 describe('la espuma y la calidad adaptable', () => {
-  it('se apaga con el interruptor de las partículas (nivel 2)', () => {
-    expect(NIVELES_DE_CALIDAD[1].particulas).toBe(true)
-    expect(NIVELES_DE_CALIDAD[2].particulas).toBe(false)
+  it('se apaga con el interruptor de las partículas (nivel 3)', () => {
+    expect(NIVELES_DE_CALIDAD[2].particulas).toBe(true)
+    expect(NIVELES_DE_CALIDAD[3].particulas).toBe(false)
   })
 })

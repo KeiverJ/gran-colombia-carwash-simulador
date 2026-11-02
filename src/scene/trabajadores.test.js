@@ -120,8 +120,8 @@ describe('con las filas apretadas: nadie se mete entre las losas', () => {
 })
 
 describe('los trabajadores y la calidad adaptable', () => {
-  it('se apagan con el interruptor de las personas (nivel 4)', () => {
-    expect(NIVELES_DE_CALIDAD[3].personas).toBe(true)
-    expect(NIVELES_DE_CALIDAD[4].personas).toBe(false)
+  it('se apagan con el interruptor de las personas (nivel 5)', () => {
+    expect(NIVELES_DE_CALIDAD[4].personas).toBe(true)
+    expect(NIVELES_DE_CALIDAD[5].personas).toBe(false)
   })
 })

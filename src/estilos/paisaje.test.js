@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import { COLOR_DE_ESCENA, COLOR_DE_PLAN, COLOR_DE_SERIE, PALETA_DE_ROPA } from './colores.js'
 import { coloresQueUsurpan, distanciaDeColor, hexALab } from './distanciaDeColor.js'
+import { mezclarColores } from '../scene/edificios.js'
 
 /**
  * El paisaje de la escena (cielo, ropa, vegetación, cafetería y los objetos
@@ -37,7 +38,8 @@ const RESERVADOS = {
 const NOMBRES_DEL_PAISAJE = [
   'cieloCenit', 'cieloHorizonte', 'sol', 'lona', 'arco', 'paredAzul', 'franjaDePared', 'columnaAzul',
   'asfalto', 'acera', 'bordillo', 'terreno', 'piso', 'pisoMojado', 'juntaDelPiso', 'zonaDeAcabado', 'pinturaDeEspera', 'placaDeMetal', 'cafeteria', 'mostrador', 'mesaDeCafeteria', 'sillaDeCafeteria',
-  'tanqueDeAgua', 'sombrilla', 'ropaDeTrabajo', 'botasDeCaucho', 'ropaDeCliente1', 'ropaDeCliente2',
+  'tanqueDeAgua', 'sombrilla', 'edificioCrema', 'edificioGrisCalido', 'edificioTerracota', 'edificioVerdeGris',
+  'edificioTecho', 'edificioVidrio', 'edificioPuerta', 'edificioLetrero', 'ropaDeTrabajo', 'botasDeCaucho', 'ropaDeCliente1', 'ropaDeCliente2',
   'ropaDeCliente3', 'ropaDeCliente4', 'ropaDeCliente5', 'ropaDeCliente6', 'pielClara', 'pielMedia',
   'pielOscura', 'peloOscuro', 'peloCastano', 'espuma', 'follaje', 'tronco', 'matera',
 ]
@@ -94,5 +96,27 @@ describe('el paisaje no usurpa los colores con significado', () => {
     const [fallo] = coloresQueUsurpan({ camisaAzul: '#3a74d9' }, RESERVADOS, MINIMO)
     expect(fallo).toMatchObject({ nombre: 'camisaAzul', reservado: 'plan 1' })
     expect(fallo.distancia).toBeLessThan(MINIMO)
+  })
+})
+
+describe('los edificios de la esquina, ya mezclados con el horizonte, tampoco usurpan los colores con significado', () => {
+  const NOMBRES = [
+    'edificioCrema', 'edificioGrisCalido', 'edificioTerracota', 'edificioVerdeGris',
+    'edificioTecho', 'edificioVidrio', 'edificioPuerta', 'edificioLetrero', 'textoDeLetrero',
+  ]
+  const mezclado = (nombre, cantidad) => mezclarColores(COLOR_DE_ESCENA[nombre], COLOR_DE_ESCENA.cieloHorizonte, cantidad)
+
+  it.each([
+    ['sin mezclar', 0],
+    ['cerca (un cuarto)', 0.25],
+    ['lejos (la mitad)', 0.5],
+  ])('%s: ninguno queda a menos del mínimo de una etapa, un plan, el ámbar o el rojo', (_, cantidad) => {
+    const colores = Object.fromEntries(NOMBRES.map((nombre) => [nombre, mezclado(nombre, cantidad)]))
+    expect(coloresQueUsurpan(colores, RESERVADOS, MINIMO)).toEqual([])
+  })
+
+  it('la prueba falla si un edificio se pinta a propósito con un color de plan', () => {
+    const intruso = coloresQueUsurpan({ ...PAISAJE, edificioPlan: COLOR_DE_PLAN[1] }, RESERVADOS, MINIMO)
+    expect(intruso.map((f) => f.nombre)).toContain('edificioPlan')
   })
 })

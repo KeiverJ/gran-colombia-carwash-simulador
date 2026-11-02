@@ -17,11 +17,12 @@ const calidad = () => useCalidad.getState()
 beforeEach(() => calidad().restablecer())
 
 describe('los niveles de calidad', () => {
-  it('hay ocho niveles y el nivel 0 lo tiene todo encendido', () => {
-    expect(NIVELES_DE_CALIDAD).toHaveLength(8)
-    expect(NIVEL_MAS_BAJO).toBe(7)
+  it('hay nueve niveles y el nivel 0 lo tiene todo encendido', () => {
+    expect(NIVELES_DE_CALIDAD).toHaveLength(9)
+    expect(NIVEL_MAS_BAJO).toBe(8)
     expect(NIVELES_DE_CALIDAD[0]).toEqual({
       trafico: true,
+      edificios: true,
       particulas: true,
       charcos: true,
       personas: true,
@@ -61,12 +62,12 @@ describe('los niveles de calidad', () => {
     }
   })
 
-  it('el orden es: tráfico, partículas y espuma, charcos, personas, sombras, entorno y, al final, la resolución', () => {
+  it('el orden es: tráfico, edificios, partículas y espuma, charcos, personas, sombras, entorno y, al final, la resolución', () => {
     const nivelEnQueSeApaga = (efecto) => NIVELES_DE_CALIDAD.findIndex((nivel) => !nivel[efecto])
-    expect(INTERRUPTORES_DE_CALIDAD.map(nivelEnQueSeApaga)).toEqual([1, 2, 3, 4, 5, 6])
-    expect(NIVELES_DE_CALIDAD[6].resolucion).toBe(0.75)
-    expect(NIVELES_DE_CALIDAD[7].resolucion).toBe(0.5)
-    for (let i = 0; i <= 5; i += 1) expect(NIVELES_DE_CALIDAD[i].resolucion).toBe(1)
+    expect(INTERRUPTORES_DE_CALIDAD.map(nivelEnQueSeApaga)).toEqual([1, 2, 3, 4, 5, 6, 7])
+    expect(NIVELES_DE_CALIDAD[7].resolucion).toBe(0.75)
+    expect(NIVELES_DE_CALIDAD[8].resolucion).toBe(0.5)
+    for (let i = 0; i <= 6; i += 1) expect(NIVELES_DE_CALIDAD[i].resolucion).toBe(1)
   })
 
   it('la resolución no pasa de 2× ni baja de media en ninguna pantalla', () => {
@@ -111,7 +112,7 @@ describe('bajar y subir', () => {
   })
 
   it('al subir, lo último que se apagó es lo primero que vuelve', () => {
-    for (let i = 0; i < 5; i += 1) calidad().empeorar() // nivel 5: sin sombras
+    for (let i = 0; i < 6; i += 1) calidad().empeorar() // nivel 6: sin sombras
     expect(NIVELES_DE_CALIDAD[calidad().nivel].sombras).toBe(false)
     calidad().mejorar()
     expect(NIVELES_DE_CALIDAD[calidad().nivel].sombras).toBe(true)
@@ -179,5 +180,23 @@ describe('la escena sigue el nivel de calidad', () => {
   it('un nivel fuera de rango se acota a los extremos', () => {
     expect(resolucionDelNivel(-3, 1)).toBe(1)
     expect(resolucionDelNivel(99, 1)).toBe(0.5)
+  })
+})
+
+describe('los edificios de la esquina en la calidad', () => {
+  it('se apagan en el nivel 2, justo después del tráfico y antes de las partículas', () => {
+    expect(NIVELES_DE_CALIDAD[1].edificios).toBe(true)
+    expect(NIVELES_DE_CALIDAD[2].edificios).toBe(false)
+    expect(NIVELES_DE_CALIDAD[2].particulas).toBe(true)
+    expect(NIVELES_DE_CALIDAD[1].trafico).toBe(false)
+  })
+
+  it('al bajar y subir de nivel con ellos en medio no hay errores y vuelven en el orden contrario', () => {
+    calidad().empeorar()
+    calidad().empeorar()
+    expect(NIVELES_DE_CALIDAD[calidad().nivel].edificios).toBe(false)
+    calidad().mejorar()
+    expect(NIVELES_DE_CALIDAD[calidad().nivel].edificios).toBe(true)
+    expect(NIVELES_DE_CALIDAD[calidad().nivel].trafico).toBe(false)
   })
 })

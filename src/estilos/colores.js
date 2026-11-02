@@ -138,6 +138,16 @@ export const COLOR_DE_ESCENA = {
   sillaDeCafeteria: '#4a4f54',
   tanqueDeAgua: '#1c2429',
   sombrilla: '#f5f1e6',
+  // Los edificios bajos de la esquina: colores apagados (crema, gris cálido, terracota suave y verde
+  // grisáceo), con techo, vidrio y letrero grises; se mezclan con el horizonte según la distancia
+  edificioCrema: '#d6cfbf',
+  edificioGrisCalido: '#bdb7ad',
+  edificioTerracota: '#bf9f8c',
+  edificioVerdeGris: '#aab6aa',
+  edificioTecho: '#8f9293',
+  edificioVidrio: '#7d909b',
+  edificioPuerta: '#5b6469',
+  edificioLetrero: '#55646e',
   // Personas: los trabajadores van de negro con gorra y botas de caucho, y los clientes
   // con ropa de estos seis colores (ninguno rojo ni parecido a una etapa o un plan)
   ropaDeTrabajo: '#1a1d20',
