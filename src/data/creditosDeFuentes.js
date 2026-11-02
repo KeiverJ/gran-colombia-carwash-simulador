@@ -31,3 +31,18 @@ export const CREDITOS_DE_FUENTES = [
     urlDeLaLicencia: LICENCIA_DE_LAS_FUENTES.url,
   },
 ]
+
+/**
+ * Inter, la fuente de toda la interfaz. A diferencia de Anton y Pacifico, esta sí se carga
+ * (desde `public/fuentes/`, sin pedir nada a internet), así que no va en el arreglo de arriba:
+ * la Ayuda dice que esas dos dibujaron el texto del logo y Inter no. Se acredita en el README.
+ * El autor y el enlace son los de la primera línea del `OFL.txt` que viaja con la fuente
+ * (`public/fuentes/OFL.txt`): «Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)».
+ */
+export const CREDITO_DE_INTER = {
+  nombre: 'Inter',
+  autor: 'The Inter Project Authors',
+  url: 'https://github.com/rsms/inter',
+  licencia: LICENCIA_DE_LAS_FUENTES.nombre,
+  urlDeLaLicencia: LICENCIA_DE_LAS_FUENTES.url,
+}

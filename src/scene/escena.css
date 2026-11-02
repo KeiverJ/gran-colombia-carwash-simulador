@@ -257,6 +257,8 @@
   display: flex;
   justify-content: center;
   pointer-events: none;
+  /* El espacio que queda libre junto a una capa abierta decide el tamaño del panel (ver abajo). */
+  container-type: inline-size;
 }
 
 .indicadores-panel {
@@ -378,6 +380,40 @@
 
 .indicadores-grupo--acabado .ocupacion-relleno {
   background: var(--etapa-2);
+}
+
+/*
+ * Con una capa abierta en una ventana de 768 px el panel solo tiene 336 px de espacio. Sus
+ * tres grupos en una fila necesitan 348 px con cifras cortas y mucho más con cifras largas
+ * (tras una corrida larga de 5000 h la fila 2 llega a «14.250»): el panel se salía de su
+ * contenedor. Con 46 rem o menos de espacio (y en pantallas de 768 px o más; el celular tiene
+ * sus propias reglas) los grupos pueden pasar a la fila siguiente si no caben, con los
+ * rellenos y separaciones más chicos (`--espacio-2`) y sin las líneas verticales, que
+ * quedarían sueltas al principio de una fila. Con más espacio no cambia nada.
+ */
+@media (min-width: 768px) {
+  @container (max-width: 46rem) {
+    .indicadores-panel {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--espacio-2);
+      padding: var(--espacio-2);
+    }
+
+    .indicadores-grupo + .indicadores-grupo {
+      margin-left: 0;
+      padding-left: 0;
+      border-left: 0;
+    }
+
+    .medidas {
+      gap: var(--espacio-2);
+    }
+
+    .medida-valor {
+      font-size: var(--letra-titulo);
+    }
+  }
 }
 
 .aviso-sin-3d {

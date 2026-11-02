@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-import { CREDITOS_DE_FUENTES, LICENCIA_DE_LAS_FUENTES } from './creditosDeFuentes.js'
+import { CREDITO_DE_INTER, CREDITOS_DE_FUENTES, LICENCIA_DE_LAS_FUENTES } from './creditosDeFuentes.js'
 
 describe('los créditos de las fuentes del logo', () => {
   it('son Anton y Pacifico', () => {
@@ -19,6 +19,24 @@ describe('los créditos de las fuentes del logo', () => {
   it('la licencia es la OFL con su enlace', () => {
     expect(LICENCIA_DE_LAS_FUENTES.nombre).toContain('Open Font License')
     expect(LICENCIA_DE_LAS_FUENTES.url).toMatch(/^https:\/\//)
+  })
+})
+
+describe('el crédito de Inter', () => {
+  it('tiene autor, licencia y enlaces https, y no se mezcla con las fuentes del logo', () => {
+    expect(CREDITO_DE_INTER.nombre).toBe('Inter')
+    expect(CREDITO_DE_INTER.autor.length).toBeGreaterThan(0)
+    expect(CREDITO_DE_INTER.licencia).toBe(LICENCIA_DE_LAS_FUENTES.nombre)
+    expect(CREDITO_DE_INTER.url).toMatch(/^https:\/\//)
+    expect(CREDITO_DE_INTER.urlDeLaLicencia).toBe(LICENCIA_DE_LAS_FUENTES.url)
+    expect(CREDITOS_DE_FUENTES.map((f) => f.nombre)).not.toContain('Inter')
+  })
+
+  it('coincide con el OFL.txt que viaja con la fuente', () => {
+    const licencia = readFileSync('public/fuentes/OFL.txt', 'utf8')
+    expect(licencia).toContain(CREDITO_DE_INTER.autor)
+    expect(licencia).toContain(CREDITO_DE_INTER.url)
+    expect(licencia).toContain('SIL OPEN FONT LICENSE Version 1.1')
   })
 })
 

@@ -5,14 +5,55 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#EEF2F5" />
-    <!-- Fuente Inter. Si no carga, la página usa la del sistema (ver --fuente en tema.css). -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- La fuente de casi todo el texto, propia del sitio: se pide antes de que la hoja de estilo la pida. -->
     <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="preload"
+      href="/fuentes/inter-latin-variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
     <title>Simulador del lavadero Gran Colombia Car Wash Express</title>
+    <meta
+      name="description"
+      content="Simulador de colas de un lavadero de motos de Cúcuta: lavado en 6 placas y acabado en 3 puestos, con escena 3D, métricas simuladas frente a las calculadas con fórmulas M/M/s y la visita del 17 de octubre. Proyecto de Modelos Matemáticos (UDES)."
+    />
+    <!-- Al compartir el enlace. Las direcciones son absolutas porque las redes no resuelven rutas
+         relativas; la página no las carga, solo las leen quienes reciben el enlace. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_CO" />
+    <meta property="og:site_name" content="Gran Colombia Car Wash Express" />
+    <meta property="og:title" content="Simulador del lavadero Gran Colombia Car Wash Express" />
+    <meta
+      property="og:description"
+      content="Simulador de colas de un lavadero de motos de Cúcuta: lavado en 6 placas y acabado en 3 puestos, con escena 3D, métricas simuladas frente a las calculadas con fórmulas M/M/s y la visita del 17 de octubre. Proyecto de Modelos Matemáticos (UDES)."
+    />
+    <meta property="og:url" content="https://keiverj.github.io/gran-colombia-carwash-simulador/" />
+    <meta
+      property="og:image"
+      content="https://keiverj.github.io/gran-colombia-carwash-simulador/compartir/vista-general.jpg"
+    />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Vista general del lavadero Gran Colombia Car Wash Express en 3D: las placas de lavado al frente y los puestos de acabado al fondo."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Simulador del lavadero Gran Colombia Car Wash Express" />
+    <meta
+      name="twitter:description"
+      content="Simulador de colas de un lavadero de motos de Cúcuta: lavado en 6 placas y acabado en 3 puestos, con escena 3D, métricas simuladas frente a las calculadas con fórmulas M/M/s y la visita del 17 de octubre. Proyecto de Modelos Matemáticos (UDES)."
+    />
+    <meta
+      name="twitter:image"
+      content="https://keiverj.github.io/gran-colombia-carwash-simulador/compartir/vista-general.jpg"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="Vista general del lavadero Gran Colombia Car Wash Express en 3D: las placas de lavado al frente y los puestos de acabado al fondo."
+    />
   </head>
   <body>
     <div id="root"></div>

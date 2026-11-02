@@ -11,6 +11,11 @@ const LOGO = readFileSync('public/logo-gran-colombia.svg', 'utf8')
 const FAVICON = readFileSync('public/favicon.svg', 'utf8')
 const LETRERO = readFileSync('public/logo-gran-colombia-horizontal.svg', 'utf8')
 
+// Topes de tamaño, un poco por encima de lo que pesan hoy. Antes se comparaban con los originales
+// de `docs/referencias/`, que git no sube; así la prueba pasa también en un clon limpio.
+const TOPE_DEL_LOGO = 28_000
+const TOPE_DEL_LETRERO = 24_000
+
 /** Los elementos que dibujan, en orden, con sus atributos. */
 function elementosDelSvg(texto) {
   return [...texto.matchAll(/<(ellipse|circle|path|polygon|rect)\b([^>]*?)\/?>/g)].map(([, nombre, resto]) => {
@@ -58,9 +63,8 @@ describe('public/logo-gran-colombia.svg', () => {
     expect(real).toEqual(ESPERADO)
   })
 
-  it('pesa menos que el original con metadatos', () => {
-    const original = readFileSync('docs/referencias/logo-gran-colombia.svg', 'utf8')
-    expect(LOGO.length).toBeLessThan(original.length)
+  it('sigue siendo ligero: no pasa de los 28 000 caracteres (hoy pesa 26 404 bytes)', () => {
+    expect(LOGO.length).toBeLessThan(TOPE_DEL_LOGO)
   })
 })
 
@@ -128,8 +132,7 @@ describe('public/logo-gran-colombia-horizontal.svg', () => {
     expect(coloresDe(LETRERO)).toEqual(coloresDe(LOGO))
   })
 
-  it('pesa menos que el original con metadatos', () => {
-    const original = readFileSync('docs/referencias/logo-gran-colombia-horizontal.svg', 'utf8')
-    expect(LETRERO.length).toBeLessThan(original.length)
+  it('sigue siendo ligero: no pasa de los 24 000 caracteres (hoy pesa 22 462 bytes)', () => {
+    expect(LETRERO.length).toBeLessThan(TOPE_DEL_LETRERO)
   })
 })
