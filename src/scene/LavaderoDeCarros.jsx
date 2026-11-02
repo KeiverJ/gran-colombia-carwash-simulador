@@ -14,18 +14,18 @@ const EJE_Y = new Vector3(0, 1, 0)
 const CLAVES = ['mazda', 'deportivo']
 
 /** Un modelo de carro parado en su bahía, por instancias (una sola copia: las llamadas de dibujo son las de sus piezas). */
-function CarroEstacionado({ modelo, sitio }) {
+export function CarroEstacionado({ modelo, sitio, altura = COLUMNAS.alturaDelPiso }) {
   const instancias = useMemo(() => crearInstanciasDeAmbiente(modelo, 1, { proyectaSombra: false }), [modelo])
   useEffect(() => {
     const matriz = new Matrix4().compose(
-      new Vector3(sitio.x, COLUMNAS.alturaDelPiso, sitio.z),
+      new Vector3(sitio.x, altura, sitio.z),
       new Quaternion().setFromAxisAngle(EJE_Y, sitio.giro),
       new Vector3(1, 1, 1),
     )
     instancias.poner(0, matriz)
     instancias.fijar(1)
     return () => instancias.liberar()
-  }, [instancias, sitio])
+  }, [instancias, sitio, altura])
   return (
     <group>
       {instancias.mallas.map((malla, i) => (

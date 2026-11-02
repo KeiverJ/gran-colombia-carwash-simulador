@@ -1,4 +1,4 @@
-import { ASIENTOS_OCUPADOS, HUELLA_DE_LA_CAFETERIA, OBJETOS_DEL_MOSTRADOR } from './cafeteria.js'
+import { ASIENTOS_OCUPADOS, CAFETERIA, HUELLA_DE_LA_CAFETERIA, MESAS, OBJETOS_DEL_MOSTRADOR, Z_DE_LAS_MESAS } from './cafeteria.js'
 import { cajasDeLosa, postesDeLasLosas, puntosDeLosCaminos } from './charcos.js'
 import { entreDe, fraccionDe } from './hashPropio.js'
 import {
@@ -254,11 +254,12 @@ export const FORMAS_DE_DETALLE = {
   cono: { modelo: 'cono', alto: 0.5, radio: 0.25 },
   balde: { modelo: 'balde', alto: 0.35, radio: 0.25 },
   matera: { modelo: 'planta', alto: 1.6, radio: 0.45 },
+  jardinera: { forma: 'jardinera', alto: 0.55, radio: 1.0 },
   caja: { modelo: 'caja', alto: 0.3, radio: 0.2 },
   nevera: { modelo: 'nevera', alto: 1, radio: 0.3 },
   caneca: { forma: 'caneca', alto: 0.8, radio: 0.25 },
   banca: { forma: 'banca', alto: 0.9, radio: 0.9 },
-  sombrilla: { forma: 'sombrilla', alto: 2.65, radio: 1.1 },
+  sombrilla: { forma: 'sombrilla', alto: 2.65, radio: 0.95 },
 }
 
 /** Los roles de la calle (los de la cafetería van en `ROLES_DE_LA_CAFETERIA`). */
@@ -280,6 +281,10 @@ export const DISTANCIA_DE_UN_CONO_A_UNA_LOSA = 1.5
 const RADIOS_DEL_BALDE = [0.8, 1.1]
 
 const SEMILLA_DE_LOS_DETALLES = 70707
+
+/** Dónde van las jardineras de la plaza de la cafetería: en su borde junto al parqueadero (X) y a lo largo de él (Z). */
+const X_DEL_BORDE_DE_LA_PLAZA = 0
+const Z_DE_LAS_JARDINERAS = [22.5, 26.5]
 
 /** Distancia de un punto a una caja `{ x0, x1, z0, z1 }` (0 si está dentro). */
 export const distanciaAUnaCaja = (x, z, c) => Math.hypot(Math.max(c.x0 - x, 0, x - c.x1), Math.max(c.z0 - z, 0, z - c.z1))
@@ -363,10 +368,15 @@ export function sitiosDeLosDetalles() {
 
   // La cafetería: bancas a su costado (miran a la pared), materas junto a la sala de espera,
   // la sombrilla junto a las mesas y la caja y la nevera en el mostrador (miran al cliente, hacia −Z).
-  for (const z of [28, 29.9]) poner('banca', HUELLA_DE_LA_CAFETERIA.x1 + 1.1, z, -Math.PI / 2)
-  poner('matera', HUELLA_DE_LA_CAFETERIA.x0 - 0.05, 26.3, 0.8)
-  poner('matera', HUELLA_DE_LA_CAFETERIA.x1 + 0.5, 26.3, 2.2)
-  poner('sombrilla', HUELLA_DE_LA_CAFETERIA.x1 + 1.45, 24.9)
+  for (const z of [CAFETERIA.zCuerpo + 0.4, CAFETERIA.zFondo - 0.5]) poner('banca', CAFETERIA.x1 + CAFETERIA.vueloDelTecho + 1.1, z, -Math.PI / 2)
+  // Las jardineras (un cajón de concreto con una planta chica) bordean la plaza hacia el parqueadero, detrás de los asientos:
+  // delante de ellos taparían, a la altura de los ojos de quien está sentado, el piso del lavadero.
+  for (const z of Z_DE_LAS_JARDINERAS) {
+    poner('jardinera', X_DEL_BORDE_DE_LA_PLAZA, z, Math.PI / 2)
+    poner('matera', X_DEL_BORDE_DE_LA_PLAZA, z, z + 0.7, 0.5, 0.55)
+  }
+  // Una sombrilla sobre cada mesa de la fila de adelante de la terraza, mirando al lavadero.
+  for (const [x, z] of MESAS.centros.filter(([, z]) => z === Z_DE_LAS_MESAS.adelante)) poner('sombrilla', x, z)
   const { caja, nevera } = OBJETOS_DEL_MOSTRADOR
   poner('caja', caja.x, caja.z, Math.PI, caja.y)
   poner('nevera', nevera.x, nevera.z, Math.PI, nevera.y)
@@ -384,7 +394,8 @@ export function cajasDeLosDetalles(sitios = sitiosDeLosDetalles()) {
     const nombre = `${rol} ${i + 1}`
     if (rol === 'sombrilla') {
       return [
-        { nombre: `${nombre} (palo)`, min: [x - 0.06, 0, z - 0.06], max: [x + 0.06, alto, z + 0.06] },
+        // El palo mide 12 cm: no tapa nada que mida más que él, así que las pruebas de visibilidad lo dejan aparte (`delgado`).
+        { nombre: `${nombre} (palo)`, delgado: true, min: [x - 0.06, 0, z - 0.06], max: [x + 0.06, alto, z + 0.06] },
         { nombre: `${nombre} (toldo)`, min: [x - r, 2.1, z - r], max: [x + r, alto, z + r] },
       ]
     }

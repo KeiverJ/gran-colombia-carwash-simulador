@@ -10,6 +10,7 @@ import {
   vistaDeLaClave,
 } from './camara.js'
 import { funcionDeLaCurva } from './curva.js'
+import { acotarLaCamara, distanciaMaximaDeLaCamara } from './limitesDeLaCamara.js'
 
 /**
  * Los botones de vista y la pieza que mueve la cámara cuando se pulsan.
@@ -72,6 +73,11 @@ function sinMovimiento() {
  * referencia propia, como el resto de la escena mueve sus objetos, sin tocar
  * nada que venga de fuera.
  *
+ * - **Mover la cámara** con el ratón: el clic izquierdo gira alrededor del punto al que mira,
+ *   el derecho la **desplaza** (arriba y abajo cambia la altura; a los lados recorre la escena)
+ *   y la rueda acerca. En el celular, un dedo gira y dos dedos desplazan y acercan. Después de
+ *   cada movimiento se aplican los límites de `limitesDeLaCamara.js`: no baja del piso ni de una
+ *   altura mínima, el punto al que mira no se sale del terreno y no se aleja más que «Planta».
  * - **Pasar de una vista a otra** dura `DURACION_DE_LA_TRANSICION_MS`, con la
  *   curva del tema (la misma de las capas), y es inmediato con «reducir movimiento».
  * - **Al cambiar la proporción del lienzo** (se redimensiona la ventana o se gira
@@ -94,6 +100,15 @@ export function ControlDeCamara({ tomarOrden }) {
     const camara = control.object
     const aspecto = size.width / size.height
 
+    // No se aleja más que «Planta» con esta proporción del lienzo, y el desplazamiento respeta los límites.
+    const distanciaMaxima = distanciaMaximaDeLaCamara(aspecto)
+    if (control.maxDistance !== distanciaMaxima) control.maxDistance = distanciaMaxima
+    const acotada = acotarLaCamara({ posicion: camara.position.toArray(), objetivo: control.target.toArray() })
+    if (acotada.cambio) {
+      camara.position.set(...acotada.posicion)
+      control.target.set(...acotada.objetivo)
+    }
+
     const colocar = (vista) => {
       camara.position.set(...vista.posicion)
       control.target.set(...vista.objetivo)
@@ -102,6 +117,12 @@ export function ControlDeCamara({ tomarOrden }) {
 
     const pedida = tomarOrden()
     if (pedida) {
+      // El amortiguado de los controles sigue aplicando, cuadro tras cuadro, lo que quedó del último
+      // arrastre: se descarga antes de partir, para que la vista pedida quede exactamente en su sitio.
+      const amortiguado = control.enableDamping
+      control.enableDamping = false
+      control.update()
+      control.enableDamping = amortiguado
       const vista = vistaDeLaClave(pedida, aspecto)
       activa.current = { clave: pedida, aspecto, movida: false }
       if (sinMovimiento()) {
@@ -145,7 +166,8 @@ export function ControlDeCamara({ tomarOrden }) {
     <OrbitControls
       ref={controles}
       makeDefault
-      enablePan={false}
+      enablePan
+      screenSpacePanning
       target={VISTA_INICIAL.objetivo}
       minDistance={LIMITES_DE_CAMARA.distanciaMinima}
       maxDistance={LIMITES_DE_CAMARA.distanciaMaxima}

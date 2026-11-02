@@ -45,9 +45,9 @@ describe('la geometría de la cafetería', () => {
     expect(COLOR_DE_ESCENA.tanqueDeAgua).toBe('#1c2429')
   })
 
-  it('tiene mesas y sillas: tres mesas con una silla a cada lado, y el mostrador contra la pared', () => {
-    expect(MESAS.centros).toHaveLength(3)
-    expect(ASIENTOS_DE_LA_CAFETERIA).toHaveLength(6)
+  it('tiene mesas y sillas: dos filas de tres mesas con una silla a cada lado, y el mostrador contra la pared', () => {
+    expect(MESAS.centros).toHaveLength(6)
+    expect(ASIENTOS_DE_LA_CAFETERIA).toHaveLength(12)
     expect(MOSTRADOR.z1).toBeLessThanOrEqual(CAFETERIA.zCuerpo)
     expect(MOSTRADOR.z1).toBeGreaterThan(CAFETERIA.zCuerpo - 0.5)
   })

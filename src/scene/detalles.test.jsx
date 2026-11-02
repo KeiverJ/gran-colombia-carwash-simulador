@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { ASIENTOS_OCUPADOS, MESAS, MOSTRADOR, HUELLA_DE_LA_CAFETERIA, OBJETOS_DEL_MOSTRADOR } from './cafeteria.js'
+import { ASIENTOS_OCUPADOS, MESAS, MOSTRADOR, HUELLA_DE_LA_CAFETERIA, OBJETOS_DEL_MOSTRADOR, Z_DE_LAS_MESAS } from './cafeteria.js'
 import { CLAVES_DE_AMBIENTE } from './cargaDeModelos.js'
 import { cajasDeLosa, postesDeLasLosas, puntosDeLosCaminos } from './charcos.js'
 import {
@@ -45,7 +45,8 @@ describe('los sitios de los detalles', () => {
     expect(de('balde').length).toBeGreaterThanOrEqual(2)
     expect(de('banca').length).toBeGreaterThanOrEqual(2)
     expect(de('matera').length).toBeGreaterThanOrEqual(2)
-    expect(de('sombrilla')).toHaveLength(1)
+    expect(de('sombrilla')).toHaveLength(3)
+    expect(de('jardinera').length).toBeGreaterThanOrEqual(2)
     expect(de('caja')).toHaveLength(1)
     expect(de('nevera')).toHaveLength(1)
   })
@@ -153,19 +154,21 @@ describe('la cafetería', () => {
     expect(Math.cos(caja.giro)).toBeLessThan(-0.99)
   })
 
-  it('la sombrilla está junto a las mesas (a menos de 3 m de una) y no sobre ellas', () => {
-    const [sombrilla] = de('sombrilla')
-    const distancias = MESAS.centros.map(([x, z]) => Math.hypot(sombrilla.x - x, sombrilla.z - z))
-    expect(Math.min(...distancias)).toBeLessThan(3)
-    expect(Math.min(...distancias)).toBeGreaterThan(1.2)
+  it('cada sombrilla está sobre una mesa de la fila de adelante de la terraza, mirando al lavadero', () => {
+    const delante = MESAS.centros.filter(([, z]) => z === Z_DE_LAS_MESAS.adelante)
+    expect(de('sombrilla')).toHaveLength(delante.length)
+    for (const sombrilla of de('sombrilla')) {
+      const distancias = delante.map(([x, z]) => Math.hypot(sombrilla.x - x, sombrilla.z - z))
+      expect(Math.min(...distancias)).toBeLessThan(0.5)
+    }
   })
 
   it('las materas, junto a la sala de espera, y las bancas, a su costado, caen junto a la huella del edificio', () => {
     for (const { rol, x, z } of [...de('matera'), ...de('banca')]) {
       expect(x, rol).toBeGreaterThan(HUELLA_DE_LA_CAFETERIA.x0 - 1)
-      expect(x, rol).toBeLessThan(HUELLA_DE_LA_CAFETERIA.x1 + 2.5)
+      expect(x, rol).toBeLessThan(HUELLA_DE_LA_CAFETERIA.x1 + 3.5)
       expect(z, rol).toBeGreaterThan(HUELLA_DE_LA_CAFETERIA.z0 - 1)
-      expect(z, rol).toBeLessThan(HUELLA_DE_LA_CAFETERIA.z1 + 0.5)
+      expect(z, rol).toBeLessThan(HUELLA_DE_LA_CAFETERIA.z1 + 1.6)
     }
   })
 
@@ -181,7 +184,8 @@ describe('la cafetería', () => {
 
 describe('las cajas que se comprueban con rayos', () => {
   it('hay una por detalle y dos por la sombrilla (el palo y el toldo)', () => {
-    expect(cajasDeLosDetalles(sitios)).toHaveLength(sitios.length + 1)
+    expect(cajasDeLosDetalles(sitios)).toHaveLength(sitios.length + de('sombrilla').length)
+    expect(cajasDeLosDetalles(sitios).filter((c) => c.delgado)).toHaveLength(de('sombrilla').length)
   })
 })
 

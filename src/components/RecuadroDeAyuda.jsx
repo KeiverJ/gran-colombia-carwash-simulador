@@ -217,11 +217,15 @@ export function ContenidoDeLaAyuda() {
             y los carros que se ven ahí, quietos, no cambian ninguna cifra.
           </li>
           <li>
-            <strong>La cámara.</strong> Arrastra para girar la vista y usa la rueda para
-            acercarte. Los botones llevan a cuatro vistas: «Vista general» (el local completo,
-            también sirve para volver a centrarlo), «Lavado» (las placas y su fila de espera),
-            «Acabado» (los puestos) y «Planta» (el local visto desde arriba, como un plano). El botón «Leyenda» abre un
-            recuadro que explica los aros de los planes y las losas.
+            <strong>La cámara.</strong> Con el clic izquierdo sostenido, la vista gira; con el clic
+            derecho sostenido, se desplaza (arriba y abajo cambia la altura, y a los lados recorre
+            la escena); la rueda acerca. En el celular, un dedo gira y dos dedos desplazan y
+            acercan. La cámara no baja del piso ni se aleja más que la vista «Planta». Los
+            botones devuelven la cámara a su sitio y llevan a cuatro vistas: «Vista general» (el
+            local completo, también sirve para volver a centrarlo), «Lavado» (las placas y su fila
+            de espera), «Acabado» (los puestos) y «Planta» (el local visto desde arriba, como un
+            plano). El botón «Leyenda» abre un recuadro que explica los aros de los planes y las
+            losas.
           </li>
           <li>
             <strong>Los indicadores.</strong> Placas y puestos ocupados, motos en cada fila y

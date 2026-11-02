@@ -28,7 +28,7 @@ import Personas from './Personas.jsx'
 import { sobrantesDe, TOPE_DE_MOTOS_DIBUJADAS } from './posiciones.js'
 import { Servidores, Sobrantes } from './Servidores.jsx'
 import Sombras from './Sombras.jsx'
-import Suelos from './Suelos.jsx'
+import Suelos, { CarrosDelParqueadero } from './Suelos.jsx'
 import Terreno from './Terreno.jsx'
 import Trafico from './Trafico.jsx'
 import Vegetacion from './Vegetacion.jsx'
@@ -70,6 +70,7 @@ function EfectosQueSePuedenApagar({ placas, puestos }) {
       <Trafico visible={trafico} />
       <Edificios visible={edificios} />
       <LavaderoDeCarros visible={edificios} />
+      <CarrosDelParqueadero visible={edificios} />
       <Personas placas={placas} puestos={puestos} visible={personas} />
       {particulas && <Particulas placas={placas} />}
       {particulas && <Espuma placas={placas} />}

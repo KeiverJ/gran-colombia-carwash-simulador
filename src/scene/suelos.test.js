@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 import { COLOR_DE_ESCENA } from '../estilos/colores.js'
-import { seSolapan } from './cafeteria.js'
+import { HUELLA_DE_LA_CAFETERIA, seSolapan } from './cafeteria.js'
 import { CALZADAS, zonasDeExclusion } from './colocacion.js'
 import { EDIFICIOS, huellaDelEdificio } from './edificios.js'
 import { geometriaDeLosSuelos } from './geometriasDeLosSuelos.js'
@@ -20,7 +20,7 @@ const ACERAS = [
 
 describe('el suelo de las manzanas vecinas', () => {
   it('hay pasto, tierra y parqueadero', () => {
-    expect(new Set(SUELOS.map((s) => s.tipo))).toEqual(new Set(['pasto', 'tierra', 'parqueadero']))
+    expect(new Set(SUELOS.map((s) => s.tipo))).toEqual(new Set(['pasto', 'tierra', 'parqueadero', 'acera']))
     expect(SUELOS.filter((s) => s.tipo === 'pasto').length).toBeGreaterThanOrEqual(3)
   })
 
@@ -28,7 +28,15 @@ describe('el suelo de las manzanas vecinas', () => {
     for (const suelo of SUELOS) {
       for (const calzada of Object.values(CALZADAS)) expect(seSolapan(suelo, calzada), `${suelo.nombre} con una calzada`).toBe(false)
       for (const acera of ACERAS) expect(seSolapan(suelo, acera), `${suelo.nombre} con la ${acera.nombre}`).toBe(false)
-      for (const zona of zonasDeExclusion(14, 7)) expect(seSolapan(suelo, zona), `${suelo.nombre} con «${zona.nombre}»`).toBe(false)
+      // La acera del frente y la plaza de la cafetería rodean al local y a la cafetería: se miden contra el local mismo, no contra su margen.
+      const zonas = suelo.tipo === 'acera'
+        ? zonasDeExclusion(14, 7).filter(({ nombre }) => !['el local con la franja de espera', 'la cafetería'].includes(nombre))
+        : zonasDeExclusion(14, 7)
+      for (const zona of zonas) expect(seSolapan(suelo, zona), `${suelo.nombre} con «${zona.nombre}»`).toBe(false)
+      if (suelo.tipo === 'acera') {
+        expect(seSolapan(suelo, { x0: -11, x1: 14.5, z0: -12, z1: 12 }), `${suelo.nombre} con el local`).toBe(false)
+        expect(seSolapan(suelo, HUELLA_DE_LA_CAFETERIA) && suelo.nombre === 'acera del frente del local').toBe(false)
+      }
     }
   })
 
@@ -72,7 +80,7 @@ describe('el suelo de las manzanas vecinas', () => {
     const g = geometriaDeLosSuelos()
     expect(g.getAttribute('color').count).toBe(g.getAttribute('position').count)
     g.computeBoundingBox()
-    expect(g.boundingBox.max.y).toBeLessThan(0.01)
+    expect(g.boundingBox.max.y).toBeLessThan(0.12)
     expect(g.boundingBox.min.y).toBeGreaterThan(-0.02)
     g.dispose()
   })

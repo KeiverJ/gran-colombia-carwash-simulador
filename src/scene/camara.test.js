@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -589,13 +591,12 @@ describe('la planta encuadra también la cafetería', () => {
     const [, y2, z2] = vistaGeneral(390 / 844).posicion
     expect(y2).toBeCloseTo(58, 0)
     expect(z2).toBeCloseTo(40, 0)
-    // el lavado y el acabado encuadran sus zonas, no la cafetería
-    for (const vista of [vistaLavado(16 / 9), vistaAcabado(16 / 9)]) {
-      for (const [px, , pz] of ESQUINAS_DE_LA_CAFETERIA) {
-        const p = proyectarPunto([px, 0, pz], vista, 16 / 9)
-        const fuera = !p || Math.abs(p[0]) > 1 || Math.abs(p[1]) > 1
-        expect(fuera).toBe(true)
-      }
+    // el lavado y el acabado encuadran sus zonas, no la cafetería (que ahora queda más cerca, junto al borde de las columnas)
+    const fuente = readFileSync('src/scene/camara.js', 'utf8')
+    for (const nombre of ['vistaLavado', 'vistaAcabado', 'vistaGeneral']) {
+      const desde = fuente.indexOf(`export function ${nombre}`)
+      const cuerpo = fuente.slice(desde).split(/\r?\n}\r?\n/)[0]
+      expect(cuerpo, nombre).not.toMatch(/CAFETERIA/)
     }
   })
 })

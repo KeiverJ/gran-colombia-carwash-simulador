@@ -36,11 +36,19 @@ function sombrilla() {
   return [
     conColor(new CylinderGeometry(0.2, 0.24, 0.05, 8).translate(0, 0.025, 0), COLOR_DE_ESCENA.metal),
     conColor(new CylinderGeometry(0.035, 0.035, 2.35, 6).translate(0, 1.175, 0), COLOR_DE_ESCENA.metal),
-    conColor(new ConeGeometry(1.1, 0.4, 8).translate(0, 2.45, 0), COLOR_DE_ESCENA.sombrilla),
+    conColor(new ConeGeometry(0.95, 0.4, 8).translate(0, 2.45, 0), COLOR_DE_ESCENA.sombrilla),
   ]
 }
 
-const PIEZAS = { caneca, banca, sombrilla }
+/** La jardinera: un cajón de concreto bajo con su tierra arriba (la planta va aparte, encima). */
+function jardinera() {
+  return [
+    cajaEn(1.8, 0.5, 0.6, 0, 0.25, 0, COLOR_DE_ESCENA.bordillo),
+    cajaEn(1.6, 0.04, 0.42, 0, 0.52, 0, COLOR_DE_ESCENA.tronco),
+  ]
+}
+
+const PIEZAS = { caneca, banca, sombrilla, jardinera }
 
 /** Los roles que se hacen en código. */
 export const ROLES_EN_CODIGO = Object.keys(PIEZAS)

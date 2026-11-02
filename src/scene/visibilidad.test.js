@@ -189,7 +189,8 @@ describe('la vegetación no tapa nada del lavadero', () => {
 })
 
 describe('los detalles de la calle y de la cafetería no tapan nada del lavadero', () => {
-  const DETALLES = cajasDeLosDetalles()
+  // Los palos de las sombrillas miden 12 cm y no tapan nada más ancho que ellos: se dejan aparte (`delgado`).
+  const DETALLES = cajasDeLosDetalles().filter((c) => !c.delgado)
   const CONFIGURACIONES = [
     [1, 1],
     [6, 3],

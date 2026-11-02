@@ -27,15 +27,15 @@ import { FRANJA_DE_ESPERA, LOCAL } from './posiciones.js'
 export const CAFETERIA = {
   x0: -10.2,
   x1: -4.6,
-  zCuerpo: 27.4,
-  zFondo: 30.2,
-  zToldo: 25.8,
+  zCuerpo: 22.9,
+  zFondo: 25.7,
+  zToldo: 21.3,
   altoDelCuerpo: 3.2,
   altoDelToldoAtras: 3.0,
   altoDelToldoAdelante: 2.55,
   grosorDelToldo: 0.08,
-  tanque: { x: -7.4, z: 29.1, radio: 0.6, alto: 0.95 },
-  letrero: { ancho: 4.2, alto: 0.85, sobreElTecho: 0.2, z: 27.65 },
+  tanque: { x: -7.4, z: 24.6, radio: 0.6, alto: 0.95 },
+  letrero: { ancho: 4.2, alto: 0.85, sobreElTecho: 0.2, z: 23.15 },
   altoDelTecho: 0.12,
   vueloDelTecho: 0.15,
 }
@@ -49,12 +49,22 @@ export const ALTO_DE_LA_CAFETERIA = Math.max(
   CAFETERIA.altoDelCuerpo + CAFETERIA.altoDelTecho + CAFETERIA.letrero.sobreElTecho + CAFETERIA.letrero.alto,
 )
 
-/** Lo que ocupa vista desde arriba, con el vuelo del techo y del toldo: `{ x0, x1, z0, z1 }`. */
+/** Dónde están las dos filas de mesas de la terraza (en Z): la de atrás, bajo el toldo, y la de adelante, hacia el lavadero. */
+export const Z_DE_LAS_MESAS = { atras: 20.4, adelante: 16.7 }
+
+/**
+ * Dónde están las mesas de cada fila (en X): las de atrás, bajo el toldo, y las de adelante, a cielo abierto y un
+ * poco hacia la derecha (con sus sombrillas): las sombrillas no pueden quedar sobre el lado izquierdo, porque
+ * taparían desde la vista general el camino de las motos que entran por la Guaimaral.
+ */
+export const X_DE_LAS_MESAS = { atras: [-9.4, -7.2, -5.0], adelante: [-7.4, -5.2, -3.0] }
+
+/** Lo que ocupa vista desde arriba, con el vuelo del techo y del toldo y las mesas de la terraza: `{ x0, x1, z0, z1 }`. */
 export const HUELLA_DE_LA_CAFETERIA = {
   x0: CAFETERIA.x0 - CAFETERIA.vueloDelTecho,
-  x1: CAFETERIA.x1 + CAFETERIA.vueloDelTecho,
-  // Hasta la silla de adelante de las mesas, que están en el patio, delante del toldo.
-  z0: Math.min(CAFETERIA.zToldo - 0.1, 24.9 - 0.68 - 0.3),
+  x1: Math.max(CAFETERIA.x1 + CAFETERIA.vueloDelTecho, Math.max(...X_DE_LAS_MESAS.adelante) + 0.42 + 0.3),
+  // Hasta la silla de adelante de las mesas de la terraza, delante del toldo y hacia el lavadero.
+  z0: Math.min(CAFETERIA.zToldo - 0.1, Z_DE_LAS_MESAS.adelante - 0.68 - 0.3),
   z1: CAFETERIA.zFondo + CAFETERIA.vueloDelTecho,
 }
 
@@ -62,23 +72,22 @@ export const HUELLA_DE_LA_CAFETERIA = {
 const caja = (x0, y0, z0, x1, y1, z1) => ({ min: [x0, y0, z0], max: [x1, y1, z1] })
 
 /** El mostrador, pegado a la pared del cuerpo, con la caja registradora encima. */
-export const MOSTRADOR = { x0: -9.9, x1: -6.9, z0: 26.65, z1: 27.35, alto: 1.0, grosorDeLaTapa: 0.06 }
+export const MOSTRADOR = { x0: -9.9, x1: -6.9, z0: 22.15, z1: 22.85, alto: 1.0, grosorDeLaTapa: 0.06 }
 
 /** Dónde van la caja registradora, la cafetera y la nevera: los objetos del mostrador. */
 export const OBJETOS_DEL_MOSTRADOR = {
-  caja: { x: -8.4, y: MOSTRADOR.alto + MOSTRADOR.grosorDeLaTapa, z: 27.0 },
-  cafetera: { x: -9.4, y: MOSTRADOR.alto + MOSTRADOR.grosorDeLaTapa, z: 27.0 },
-  nevera: { x: -6.2, y: 0, z: 27.15 },
+  caja: { x: -8.4, y: MOSTRADOR.alto + MOSTRADOR.grosorDeLaTapa, z: 22.5 },
+  cafetera: { x: -9.4, y: MOSTRADOR.alto + MOSTRADOR.grosorDeLaTapa, z: 22.5 },
+  nevera: { x: -6.2, y: 0, z: 22.65 },
 }
 
-/** Las mesas de la sala de espera (centros) y sus medidas. */
+/** Las mesas de la terraza (centros) y sus medidas: dos filas de tres, la de atrás bajo el toldo y la de adelante, a cielo abierto y con sombrilla. */
 export const MESAS = {
   alto: 0.72,
   radio: 0.42,
   centros: [
-    [-9.3, 24.9],
-    [-7.6, 24.9],
-    [-5.9, 24.9],
+    ...X_DE_LAS_MESAS.atras.map((x) => [x, Z_DE_LAS_MESAS.atras]),
+    ...X_DE_LAS_MESAS.adelante.map((x) => [x, Z_DE_LAS_MESAS.adelante]),
   ],
 }
 
@@ -98,14 +107,14 @@ export const ASIENTOS_DE_LA_CAFETERIA = MESAS.centros.flatMap(([x, z]) => [
   { x, y: SILLAS.alto, z: z - SILLAS.separacionDeLaMesa, mira: 1 },
 ])
 
-/** Donde se sientan los clientes de la escena (de los seis asientos, tres: los que miran al lavadero). */
+/** Donde se sientan los clientes de la escena (de los doce asientos, tres: los de las mesas de atrás que miran al lavadero). */
 export const ASIENTOS_OCUPADOS = [ASIENTOS_DE_LA_CAFETERIA[0], ASIENTOS_DE_LA_CAFETERIA[2], ASIENTOS_DE_LA_CAFETERIA[4]]
 
 /** La altura de los ojos de una persona sentada, sobre su asiento. */
 export const OJOS_SENTADOS = 0.72
 
 /** Dónde esperan de pie los clientes junto a la caja: del lado del cliente del mostrador. */
-export const CLIENTES_DE_LA_CAJA = { x: -8.4, z: 26.05 }
+export const CLIENTES_DE_LA_CAJA = { x: -8.4, z: 21.55 }
 
 /**
  * Las cajas del edificio con las que se comprueba que no tapa nada: cuerpo, techo,
