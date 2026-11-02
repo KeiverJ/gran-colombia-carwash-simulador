@@ -33,6 +33,7 @@ export function GraficaDeLasMotos({ modelo }) {
       titulo={modelo.titulo}
       vacia={modelo.vacia}
       mensajeVacio={modelo.mensajeVacio}
+      ilustracion="moto"
       descripcion={modelo.descripcion}
       notas={notas}
       tabla={modelo.tabla}

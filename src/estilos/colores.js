@@ -19,6 +19,8 @@
 export const COLOR_DE_MARCA = {
   azulMarino: '#0b1f4d',
   azul: '#1f3fa6',
+  // El texto que va sobre el azul de la marca: blanco, 9,05 : 1.
+  azulTexto: '#ffffff',
 }
 
 /** Color de cada plan, para pintar las motos y su leyenda. */
@@ -206,6 +208,7 @@ const aKebab = (nombre) => nombre.replace(/[A-Z]/g, (letra) => `-${letra.toLower
 export const COLORES_COMPARTIDOS = {
   'marca-azul-marino': COLOR_DE_MARCA.azulMarino,
   'marca-azul': COLOR_DE_MARCA.azul,
+  'marca-azul-texto': COLOR_DE_MARCA.azulTexto,
   'plan-1': COLOR_DE_PLAN[1],
   'plan-2': COLOR_DE_PLAN[2],
   'plan-3': COLOR_DE_PLAN[3],

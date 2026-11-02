@@ -43,6 +43,7 @@ export function GraficaDeColas({ modelo }) {
       titulo={modelo.titulo}
       vacia={modelo.vacia}
       mensajeVacio={modelo.mensajeVacio}
+      ilustracion="lineas"
       descripcion={modelo.descripcion}
       notas={['Motos esperando en cada fila, según avanza el tiempo simulado.']}
       tabla={modelo.tabla}

@@ -460,6 +460,14 @@ describe('el encuadre con los controles de arriba y el panel de abajo', () => {
     expect(filaEnElLienzo(caja.minY, encuadre)).toBeLessThanOrEqual(LIENZO.alto - ABAJO + 1e-6)
   })
 
+  it('en la planta la cafetería, con lo más alto que tiene, queda por encima del panel de indicadores', () => {
+    const plegado = { ...LIENZO, arriba: ARRIBA, abajo: 40 + 8 + 88 + 4, elevacion: elevacionDeVista(PLANTA) }
+    const encuadre = encuadreParaLasCapas(plegado)
+    const caja = cajaDelLocalEnPantalla(PLANTA, aspecto, ESQUINAS_DE_LA_CAFETERIA)
+    expect(filaEnElLienzo(caja.minY, encuadre)).toBeLessThanOrEqual(LIENZO.alto - plegado.abajo + 1e-6)
+    expect(filaEnElLienzo(caja.maxY, encuadre)).toBeGreaterThanOrEqual(ARRIBA - 1e-6)
+  })
+
   it('las elevaciones de la vista general y de la planta son las esperadas', () => {
     expect(elevacionDeVista(GENERAL)).toBeGreaterThan(5)
     expect(elevacionDeVista(GENERAL)).toBeLessThan(20)

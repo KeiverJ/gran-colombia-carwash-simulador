@@ -125,6 +125,7 @@
      encabezado de este archivo. Nunca para etapas, planes ni avisos. */
   --marca-azul-marino: #0b1f4d;
   --marca-azul: #1f3fa6;
+  --marca-azul-texto: #ffffff;
 
   /* --- Etapas del lavadero ---
      La etapa 1 (lavado) y la etapa 2 (acabado) llevan su color en barras,

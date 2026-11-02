@@ -9,7 +9,7 @@ import {
 } from '../data/creditosDeModelos.js'
 import { NOMBRE_DE_PLAN } from '../estilos/colores.js'
 import { useInterfaz } from '../store/interfaz.js'
-import { IconoDeCerrar } from './iconos.jsx'
+import { IconoDeAyuda, IconoDeCerrar } from './iconos.jsx'
 import LogoDeMarca from './LogoDeMarca.jsx'
 import { usePresencia } from './usePresencia.js'
 
@@ -101,7 +101,10 @@ export function EncabezadoDeLaAyuda({ onCerrar }) {
     <header className="ayuda-cabecera">
       <div className="ayuda-marca">
         <LogoDeMarca />
-        <h2 id="ayuda-titulo">Ayuda</h2>
+        <h2 id="ayuda-titulo" className="titulo-con-icono">
+          <IconoDeAyuda />
+          Ayuda
+        </h2>
       </div>
       <button type="button" className="boton-barra" onClick={onCerrar}>
         <IconoDeCerrar />

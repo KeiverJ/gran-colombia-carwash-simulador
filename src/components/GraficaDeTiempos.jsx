@@ -33,6 +33,7 @@ export function GraficaDeTiempos({ modelo }) {
       titulo={modelo.titulo}
       vacia={modelo.vacia}
       mensajeVacio={modelo.mensajeVacio}
+      ilustracion="barras"
       descripcion={modelo.descripcion}
       notas={modelo.notas}
       tabla={modelo.tabla}

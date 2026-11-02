@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -18,7 +19,7 @@ beforeEach(() => {
 const TABLA = { columnas: ['Tramo', 'Minutos'], filas: [['Lavado', '10,00']], nota: null }
 
 describe('el marco común de las gráficas', () => {
-  it('sin datos muestra el título y una sola línea, sin dibujo ni tabla', () => {
+  it('sin datos y sin ilustración muestra el título y una sola línea, sin dibujo ni tabla', () => {
     const html = renderToStaticMarkup(
       <MarcoDeGrafica
         titulo="Mi gráfica"
@@ -36,6 +37,47 @@ describe('el marco común de las gráficas', () => {
     expect(html).not.toContain('role="img"')
     expect(html).not.toContain('<svg')
     expect(html).not.toContain('<details')
+  })
+
+  it.each(['lineas', 'barras', 'moto'])(
+    'sin datos y con la ilustración «%s» muestra el título, el dibujo oculto para las ayudas técnicas y el mensaje',
+    (ilustracion) => {
+      const html = renderToStaticMarkup(
+        <MarcoDeGrafica
+          titulo="Mi gráfica"
+          vacia
+          mensajeVacio="Los datos aparecerán cuando la simulación avance."
+          ilustracion={ilustracion}
+          descripcion="describe"
+          tabla={() => TABLA}
+        >
+          <svg />
+        </MarcoDeGrafica>,
+      )
+      expect(html).toContain('Mi gráfica')
+      expect(html.match(/<svg/g)).toHaveLength(1)
+      expect(html).toMatch(/<svg[^>]*class="ilustracion"[^>]*aria-hidden="true"|<svg[^>]*aria-hidden="true"[^>]*class="ilustracion"/)
+      expect(html).toContain('Los datos aparecerán cuando la simulación avance.')
+      expect(html.match(/<p /g)).toHaveLength(1)
+      expect(html).not.toContain('role="img"')
+      expect(html).not.toContain('<details')
+    },
+  )
+
+  it('las ilustraciones no llevan degradados ni colores escritos: toman los del tema por clases', () => {
+    const fuente = readFileSync('src/components/IlustracionesDeGraficas.jsx', 'utf8')
+    expect(fuente).not.toMatch(/Gradient|#[0-9a-fA-F]{3,8}|rgba?\(/)
+    expect(fuente).not.toMatch(/(?:fill|stroke)="(?!none")/)
+  })
+
+  it('con datos no hay ilustración, aunque se pida', () => {
+    const html = renderToStaticMarkup(
+      <MarcoDeGrafica titulo="Mi gráfica" vacia={false} mensajeVacio="" ilustracion="barras" descripcion="d">
+        <svg />
+      </MarcoDeGrafica>,
+    )
+    expect(html).not.toContain('class="ilustracion"')
+    expect(html).not.toContain('grafica-vacia')
   })
 
   it('con datos la descripción llega al aria-label del dibujo', () => {
@@ -88,6 +130,21 @@ describe('la pestaña Gráficas', () => {
     expect(html).not.toContain('Tiempo de cada moto en el lavadero')
     expect(html.match(/Los datos aparecerán cuando la simulación avance\./g)).toHaveLength(3)
     expect(html).not.toContain('role="img"')
+    // cada gráfica vacía lleva su ilustración oculta: líneas, barras y barras
+    expect(html.match(/<svg[^>]*class="ilustracion"[^>]*aria-hidden="true"|<svg[^>]*aria-hidden="true"[^>]*class="ilustracion"/g)).toHaveLength(3)
+  })
+
+  it('con datos las ilustraciones desaparecen, y al reiniciar vuelven', () => {
+    estado().empezarCorridaLarga(100, { camaraRapida: false })
+    while (estado().avanzarCorridaLarga()) {
+      /* avanzando */
+    }
+    const conDatos = renderToStaticMarkup(<PestanaDeGraficas />)
+    expect(conDatos).not.toContain('class="ilustracion"')
+    expect(conDatos).not.toContain('grafica-vacia')
+    estado().reiniciar()
+    const reiniciada = renderToStaticMarkup(<PestanaDeGraficas />)
+    expect(reiniciada.match(/class="ilustracion"/g)).toHaveLength(3)
   })
 
   it('con datos cada gráfica trae su descripción de texto', () => {

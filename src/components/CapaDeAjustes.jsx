@@ -17,6 +17,7 @@ import Capa from './Capa.jsx'
 import FilaDeServidores from './FilaDeServidores.jsx'
 import { comoNumero, comoPorcentaje } from './formato.js'
 import GrupoDeBotones from './GrupoDeBotones.jsx'
+import { IconoDeAjustes } from './iconos.jsx'
 import { usePresencia } from './usePresencia.js'
 
 /** El ρ₂ de cada escenario no cambia mientras la aplicación vive: se calcula una vez. */
@@ -337,6 +338,7 @@ export function CapaDeAjustes() {
       id="capa-de-ajustes"
       lado="izquierda"
       titulo="Ajustes"
+      Icono={IconoDeAjustes}
       fase={fase}
       alCerrar={() => cerrarCapa('ajustes')}
     >

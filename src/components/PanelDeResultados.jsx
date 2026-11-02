@@ -11,7 +11,7 @@ import {
 } from '../store/interfaz.js'
 import { MODO_VISITA, useSimulacion } from '../store/simulacion.js'
 import ContenidoDeLaVisita from './ContenidoDeLaVisita.jsx'
-import { IconoDeFlecha } from './iconos.jsx'
+import { IconoDeFlecha, IconoDeResultados } from './iconos.jsx'
 import { ListaDePestanas, PanelDeLaPestana } from './Pestanas.jsx'
 import PestanaDeGraficas from './PestanaDeGraficas.jsx'
 import { ContenidoDeMetricas } from './TablaDeMetricas.jsx'
@@ -176,7 +176,10 @@ export function PanelDeResultados() {
       {montada ? <BordeDelPanel panel={panel} altoActual={altoPx} /> : null}
 
       <header className="panel-cabecera">
-        <h2>Resultados</h2>
+        <h2 className="titulo-con-icono">
+          <IconoDeResultados />
+          Resultados
+        </h2>
         {montada ? (
           <ListaDePestanas
             etiqueta="Resultados"

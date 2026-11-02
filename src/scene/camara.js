@@ -7,7 +7,7 @@
  * de adelante, y eso se calcula aquí.
  */
 
-import { HUELLA_DE_LA_CAFETERIA } from './cafeteria.js'
+import { ALTO_DE_LA_CAFETERIA, HUELLA_DE_LA_CAFETERIA } from './cafeteria.js'
 import {
   COLUMNAS_DEL_TECHO,
   FRANJA_DE_ESPERA,
@@ -329,13 +329,17 @@ export function vistaAcabado(aspecto) {
   }
 }
 
-/** Las cuatro esquinas de la cafetería, a ras del piso, vistas desde arriba. */
-export const ESQUINAS_DE_LA_CAFETERIA = [
-  [HUELLA_DE_LA_CAFETERIA.x0, 0, HUELLA_DE_LA_CAFETERIA.z0],
-  [HUELLA_DE_LA_CAFETERIA.x1, 0, HUELLA_DE_LA_CAFETERIA.z0],
-  [HUELLA_DE_LA_CAFETERIA.x0, 0, HUELLA_DE_LA_CAFETERIA.z1],
-  [HUELLA_DE_LA_CAFETERIA.x1, 0, HUELLA_DE_LA_CAFETERIA.z1],
-]
+/**
+ * Las esquinas de la cafetería: las cuatro de la huella a ras del piso y las cuatro a la altura de lo más alto
+ * (el tanque). Desde arriba lo alto se ve un poco corrido hacia fuera, así que sin las de arriba el borde del
+ * fondo quedaba justo debajo del panel de indicadores.
+ */
+export const ESQUINAS_DE_LA_CAFETERIA = [0, ALTO_DE_LA_CAFETERIA].flatMap((alto) => [
+  [HUELLA_DE_LA_CAFETERIA.x0, alto, HUELLA_DE_LA_CAFETERIA.z0],
+  [HUELLA_DE_LA_CAFETERIA.x1, alto, HUELLA_DE_LA_CAFETERIA.z0],
+  [HUELLA_DE_LA_CAFETERIA.x0, alto, HUELLA_DE_LA_CAFETERIA.z1],
+  [HUELLA_DE_LA_CAFETERIA.x1, alto, HUELLA_DE_LA_CAFETERIA.z1],
+])
 
 /**
  * La planta: desde arriba, como un plano, con el local completo **y la cafetería**.

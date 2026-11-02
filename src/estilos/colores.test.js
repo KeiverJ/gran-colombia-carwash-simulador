@@ -390,6 +390,15 @@ describe('la marca del logo en la interfaz', () => {
     }
   })
 
+  it('el texto blanco sobre el azul de la marca (pestañas activas y opciones elegidas) da 9,05 : 1, en el CSS y en JavaScript', () => {
+    expect(tema['marca-azul']).toBe('#1f3fa6')
+    expect(tema['marca-azul-texto']).toBe('#ffffff')
+    expect(COLOR_DE_MARCA.azulTexto).toBe(tema['marca-azul-texto'])
+    const real = contraste(tema['marca-azul-texto'], tema['marca-azul'])
+    expect(real).toBeGreaterThanOrEqual(4.5)
+    expect(real).toBeCloseTo(9.05, 1)
+  })
+
   it('el rojo del logo (#E11D2A) no está en la interfaz: ni en el tema ni en los colores', () => {
     const css = readFileSync(RUTA_TEMA, 'utf8')
     const js = readFileSync(fileURLToPath(new URL('./colores.js', import.meta.url)), 'utf8')

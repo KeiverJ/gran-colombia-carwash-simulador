@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import { ILUSTRACIONES } from './IlustracionesDeGraficas.jsx'
+
 /**
  * La tabla de los datos de una gráfica, plegada. Solo se arma cuando alguien la
  * abre: una tabla que nadie mira no cuesta nada, aunque la gráfica se renueve
@@ -53,12 +55,13 @@ export function TablaDeLosDatos({ tabla, abiertaDeEntrada = false }) {
  * El marco que comparten todas las gráficas de la pestaña: un `figure` con su
  * título, el dibujo con su descripción de texto para las ayudas técnicas, las
  * notas y la opción de ver los datos como tabla. Mientras no hay datos, en lugar
- * del dibujo va una sola línea que dice qué falta.
+ * del dibujo va una ilustración sencilla (si se pide) y una sola línea que dice qué falta.
  *
  * @param {object} props
  * @param {string} props.titulo
  * @param {boolean} props.vacia
  * @param {string} props.mensajeVacio lo que falta, en una línea
+ * @param {'lineas'|'barras'|'moto'} [props.ilustracion] el dibujo decorativo que acompaña al mensaje cuando no hay datos
  * @param {string} props.descripcion texto alternativo del dibujo
  * @param {string[]} [props.notas]
  * @param {() => object} [props.tabla] arma la tabla de datos; solo se llama abierta
@@ -72,6 +75,7 @@ export function MarcoDeGrafica({
   titulo,
   vacia,
   mensajeVacio,
+  ilustracion,
   descripcion,
   notas = [],
   tabla,
@@ -81,13 +85,17 @@ export function MarcoDeGrafica({
   leyenda = null,
   children,
 }) {
+  const Ilustracion = ILUSTRACIONES[ilustracion]
   return (
     <figure className={ancha ? 'grafica-marco grafica-marco--ancha' : 'grafica-marco'}>
       <figcaption>
         <h3>{titulo}</h3>
       </figcaption>
       {vacia ? (
-        <p className="grafica-vacia">{mensajeVacio}</p>
+        <div className="grafica-vacia-marco">
+          {Ilustracion ? <Ilustracion /> : null}
+          <p className="grafica-vacia">{mensajeVacio}</p>
+        </div>
       ) : (
         <>
           <div

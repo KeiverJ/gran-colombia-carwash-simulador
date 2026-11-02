@@ -209,12 +209,13 @@
   border-left: 1px solid var(--borde-campo);
 }
 
-/* El modo elegido: relleno suave y letra más gruesa; no solo color. */
+/* El modo elegido: relleno azul de la marca, texto blanco y letra más gruesa; no solo color. */
 .modo--elegido,
-.modo--elegido:hover {
-  background: var(--seleccion);
-  color: var(--etapa-1-texto);
-  font-weight: 600;
+.modo--elegido:hover,
+.modo--elegido:hover:not(:disabled) {
+  background: var(--marca-azul);
+  color: var(--marca-azul-texto);
+  font-weight: 700;
 }
 
 /* Los botones de la barra: reiniciar, ayuda y cerrar. */
@@ -428,6 +429,17 @@
   margin: 0;
   font-size: var(--letra-titulo);
   font-weight: 600;
+}
+
+/* Título con su ícono delante: el ícono es decorativo y toma el color del texto. */
+.titulo-con-icono {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.titulo-con-icono svg {
+  flex: none;
 }
 
 .capa-cuerpo {
@@ -650,10 +662,10 @@
 
 .opcion--elegida,
 .opcion--elegida:hover {
-  border-color: var(--etapa-1);
-  background: var(--seleccion);
-  color: var(--etapa-1-texto);
-  font-weight: 600;
+  border-color: var(--marca-azul);
+  background: var(--marca-azul);
+  color: var(--marca-azul-texto);
+  font-weight: 700;
 }
 
 .opcion--elegida::before {
@@ -922,9 +934,10 @@
 
 .pestana--activa,
 .pestana--activa:hover {
-  border-bottom-color: var(--etapa-1);
-  color: var(--etapa-1-texto);
-  font-weight: 600;
+  border-radius: var(--radio-control) var(--radio-control) 0 0;
+  background: var(--marca-azul);
+  color: var(--marca-azul-texto);
+  font-weight: 700;
 }
 
 /* El contenido nuevo de una pestaña aparece con un fundido: solo cambia

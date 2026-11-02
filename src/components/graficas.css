@@ -59,10 +59,51 @@
   height: auto;
 }
 
+.grafica-vacia-marco {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espacio-2);
+  text-align: center;
+}
+
 .grafica-vacia {
   margin: 0;
   font-size: var(--letra-secundaria);
   color: var(--texto-secundario);
+}
+
+/* Las ilustraciones de las gráficas vacías: líneas finas con los colores de las series. */
+.ilustracion {
+  width: 7.5rem;
+  max-width: 100%;
+  height: auto;
+}
+
+.ilustracion-eje {
+  stroke: var(--borde-campo);
+}
+
+.ilustracion-serie-1 {
+  stroke: var(--serie-cola-1);
+}
+
+.ilustracion-serie-2 {
+  stroke: var(--serie-cola-2);
+}
+
+.ilustracion-relleno-1 {
+  fill: var(--serie-cola-1);
+  stroke: none;
+}
+
+.ilustracion-relleno-2 {
+  fill: var(--serie-cola-2);
+  stroke: none;
+}
+
+.ilustracion-moto {
+  stroke: var(--texto-tenue);
 }
 
 .grafica-marco .nota {

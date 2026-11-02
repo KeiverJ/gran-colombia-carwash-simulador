@@ -11,6 +11,7 @@ import {
 } from './camara.js'
 import { funcionDeLaCurva } from './curva.js'
 import { acotarLaCamara, distanciaMaximaDeLaCamara } from './limitesDeLaCamara.js'
+import { ponerLaVista, soltarElImpulso } from './ponerLaVista.js'
 
 /**
  * Los botones de vista y la pieza que mueve la cámara cuando se pulsan.
@@ -109,20 +110,12 @@ export function ControlDeCamara({ tomarOrden }) {
       control.target.set(...acotada.objetivo)
     }
 
-    const colocar = (vista) => {
-      camara.position.set(...vista.posicion)
-      control.target.set(...vista.objetivo)
-      control.update()
-    }
+    const colocar = (vista) => ponerLaVista(control, vista)
 
     const pedida = tomarOrden()
     if (pedida) {
-      // El amortiguado de los controles sigue aplicando, cuadro tras cuadro, lo que quedó del último
-      // arrastre: se descarga antes de partir, para que la vista pedida quede exactamente en su sitio.
-      const amortiguado = control.enableDamping
-      control.enableDamping = false
-      control.update()
-      control.enableDamping = amortiguado
+      // Lo que quedó del último arrastre se gasta antes de partir, para que la vista pedida quede exactamente en su sitio.
+      soltarElImpulso(control)
       const vista = vistaDeLaClave(pedida, aspecto)
       activa.current = { clave: pedida, aspecto, movida: false }
       if (sinMovimiento()) {

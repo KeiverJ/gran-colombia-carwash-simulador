@@ -4,13 +4,24 @@ import { etapaSaturada } from '../store/metricas.js'
 import { MODO_VISITA, useSimulacion } from '../store/simulacion.js'
 import { comoNumero } from './formato.js'
 import { IconoDeAdvertencia } from './iconos.jsx'
+import { useCambios } from './useCambios.js'
 
-/** Una medida con su etiqueta; si lleva `ocupacion`, una barra fina de x / s debajo. */
-function Medida({ etiqueta, valor, ocupacion = null, advertencia = false }) {
+/**
+ * Una medida con su etiqueta; si lleva `ocupacion`, una barra fina de x / s debajo.
+ *
+ * Cuando la cifra cambia, se anima un instante solo ella (ver `.medida-valor--nueva`); la
+ * animación es solo visual y no avisa a las ayudas técnicas: la cifra no se anuncia en cada
+ * cambio, porque cambia varias veces por segundo.
+ */
+export function Medida({ etiqueta, valor, ocupacion = null, advertencia = false }) {
+  const cambios = useCambios(valor)
+  const clases = ['medida-valor']
+  if (advertencia) clases.push('medida-valor--advertencia')
+  if (cambios > 0) clases.push('medida-valor--nueva')
   return (
     <div className="medida">
       <span className="medida-etiqueta">{etiqueta}</span>
-      <strong className={advertencia ? 'medida-valor medida-valor--advertencia' : 'medida-valor'}>
+      <strong key={cambios} className={clases.join(' ')}>
         {advertencia ? (
           <span className="medida-aviso" role="img" aria-label="Etapa saturada">
             <IconoDeAdvertencia />
