@@ -9,6 +9,7 @@ import {
 } from '../data/creditosDeModelos.js'
 import { NOMBRE_DE_PLAN } from '../estilos/colores.js'
 import { useInterfaz } from '../store/interfaz.js'
+import { TEXTO_DE_LA_AYUDA, TEXTO_DEL_INTERVALO } from '../store/presentacionDeExperimentos.js'
 import { IconoDeAyuda, IconoDeCerrar } from './iconos.jsx'
 import LogoDeMarca from './LogoDeMarca.jsx'
 import { usePresencia } from './usePresencia.js'
@@ -145,7 +146,24 @@ export function ContenidoDeLaAyuda() {
             En «Visita del 17 de octubre» se reproduce la tarde observada, con sus horas
             reales.
           </li>
+          <li>
+            Para resultados con respaldo estadístico, usa la pestaña Experimentos de
+            Resultados: mira «Experimentos», más abajo.
+          </li>
         </ol>
+
+        <p>
+          <strong>Experimentos.</strong>
+        </p>
+        {TEXTO_DE_LA_AYUDA.map((parrafo) => (
+          <p key={parrafo}>{parrafo}</p>
+        ))}
+        <p>
+          <strong>¿Qué es un intervalo de confianza?</strong>
+        </p>
+        {TEXTO_DEL_INTERVALO.map((parrafo) => (
+          <p key={parrafo}>{parrafo}</p>
+        ))}
       </section>
 
       <section>

@@ -12,10 +12,12 @@ import {
   altoTrasDobleClic,
   alternarCapa,
   alturaTrasArrastrar,
+  alternarExperimentos,
   ARRASTRE_MINIMO_PX,
   cambiarAncho,
   cambiarDeModo,
   categoriaDeAncho,
+  cerrarExperimentos,
   limitarAltoDelPanel,
   pestanasDeLaHoja,
   pestanasDeResultados,
@@ -33,6 +35,8 @@ const base = (cambios = {}) => ({
   pestanaResultados: 'metricas',
   pestanaHoja: 'ajustes',
   ayudaAbierta: false,
+  experimentosAbierto: false,
+  enLaVisita: false,
   ...cambios,
 })
 
@@ -148,6 +152,53 @@ describe('el modo visita y las pestañas', () => {
     expect(cambiarDeModo(base({ pestanaHoja: 'metricas' }), true).pestanaHoja).toBe('visita')
     expect(cambiarDeModo(base({ pestanaHoja: 'visita' }), false).pestanaHoja).toBe('ajustes')
     expect(cambiarDeModo(base({ pestanaHoja: 'graficas' }), true).pestanaHoja).toBe('graficas')
+  })
+})
+
+describe('la vista de Experimentos', () => {
+  it('se abre y se cierra con el mismo gesto', () => {
+    const abierta = alternarExperimentos(base())
+    expect(abierta).toEqual({ experimentosAbierto: true })
+    expect(alternarExperimentos(base({ experimentosAbierto: true }))).toEqual({ experimentosAbierto: false })
+  })
+
+  it('en la visita no existe: no se abre', () => {
+    expect(alternarExperimentos(base({ enLaVisita: true }))).toEqual({})
+  })
+
+  it('cerrarla solo hace algo si estaba abierta', () => {
+    expect(cerrarExperimentos(base())).toEqual({})
+    expect(cerrarExperimentos(base({ experimentosAbierto: true }))).toEqual({ experimentosAbierto: false })
+  })
+
+  it('pasar a la visita la cierra; volver al modo normal no la abre', () => {
+    expect(cambiarDeModo(base({ experimentosAbierto: true }), true)).toMatchObject({ experimentosAbierto: false, enLaVisita: true })
+    const vuelta = cambiarDeModo(base({ enLaVisita: true }), false)
+    expect(vuelta.enLaVisita).toBe(false)
+    expect(vuelta.experimentosAbierto).toBeUndefined()
+  })
+
+  it('no toca las capas ni las pestañas de Resultados', () => {
+    const estado = base({ capas: { ajustes: true, resultados: true } })
+    expect(alternarExperimentos(estado).capas).toBeUndefined()
+    expect(pestanasDeResultados(false)).not.toContain('experimentos')
+    expect(pestanasDeLaHoja(false)).not.toContain('experimentos')
+  })
+
+  it('Escape cierra primero la ayuda, luego la vista y luego las capas', () => {
+    const todo = base({ ayudaAbierta: true, experimentosAbierto: true, capas: { ajustes: true, resultados: false }, ultimaCapa: 'ajustes' })
+    expect(pulsarEscape(todo)).toEqual({ ayudaAbierta: false })
+    expect(pulsarEscape({ ...todo, ayudaAbierta: false })).toEqual({ experimentosAbierto: false })
+    expect(pulsarEscape({ ...todo, ayudaAbierta: false, experimentosAbierto: false })).toEqual({ capas: { ajustes: false, resultados: false } })
+  })
+
+  it('en el store, abrir y cerrar no cambia las capas', () => {
+    const antes = useInterfaz.getState().capas
+    useInterfaz.getState().alternarExperimentos()
+    expect(useInterfaz.getState().experimentosAbierto).toBe(true)
+    expect(useInterfaz.getState().capas).toBe(antes)
+    useInterfaz.getState().cerrarExperimentos()
+    expect(useInterfaz.getState().experimentosAbierto).toBe(false)
   })
 })
 

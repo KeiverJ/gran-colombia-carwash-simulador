@@ -22,6 +22,7 @@ import { comoTextoDelCampo, interpretarNumero, mensajeDeError, valorConPaso } fr
  * @param {boolean} [props.conDeslizador] false para la semilla
  * @param {boolean} [props.compacto] etiqueta arriba y letra chica, para tres en fila
  * @param {string} [props.pista] una explicación corta debajo
+ * @param {string} [props.quienSigue] cómo empieza la frase del valor vigente cuando el texto no sirve
  * @param {{ menos: string, mas: string }} [props.pasos] los nombres accesibles de los
  *   botones − y +; si se pasan, el campo lleva esos dos botones a los lados (para
  *   enteros pequeños, como las placas) y se aplica de a uno. El − se desactiva en el
@@ -37,6 +38,7 @@ export function CampoNumerico({
   compacto = false,
   pista,
   pasos,
+  quienSigue,
 }) {
   const idDelCampo = useId()
   const campo = useRef(null)
@@ -62,7 +64,7 @@ export function CampoNumerico({
     }
     const leido = interpretarNumero(edicion.texto, rango)
     if (!leido.valido) {
-      setEdicion({ ...edicion, error: mensajeDeError(rango, valor) })
+      setEdicion({ ...edicion, error: mensajeDeError(rango, valor, quienSigue) })
       return
     }
     setEdicion(null)

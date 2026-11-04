@@ -71,12 +71,32 @@ export function cerrarCapa(estado, capa) {
 }
 
 /**
- * Escape: cierra la ayuda si está abierta y, si no, la capa que se abrió
- * última. No hace nada si no hay nada abierto.
+ * Abre la vista de Experimentos, o la cierra si ya estaba abierta. En el modo
+ * visita no existe: no hace nada. No toca las capas ni la simulación.
+ */
+export function alternarExperimentos(estado) {
+  if (estado.enLaVisita) {
+    return {}
+  }
+  return { experimentosAbierto: !estado.experimentosAbierto }
+}
+
+/** Cierra la vista de Experimentos, si estaba abierta. */
+export function cerrarExperimentos(estado) {
+  return estado.experimentosAbierto ? { experimentosAbierto: false } : {}
+}
+
+/**
+ * Escape: cierra lo que está más arriba. Primero la ayuda (un recuadro que se
+ * abre encima de todo), luego la vista de Experimentos y, si no, la capa que
+ * se abrió última. No hace nada si no hay nada abierto.
  */
 export function pulsarEscape(estado) {
   if (estado.ayudaAbierta) {
     return { ayudaAbierta: false }
+  }
+  if (estado.experimentosAbierto) {
+    return { experimentosAbierto: false }
   }
   if (estado.ultimaCapa && estado.capas[estado.ultimaCapa]) {
     return { capas: { ...estado.capas, [estado.ultimaCapa]: false } }
@@ -99,6 +119,9 @@ export function cambiarAncho(estado, ancho) {
 /** Se pasó al modo visita o se volvió al modo normal: las pestañas se acomodan. */
 export function cambiarDeModo(estado, enLaVisita) {
   return {
+    enLaVisita,
+    // Experimentos no existe en la visita: si estaba abierta, se cierra (sus resultados se conservan).
+    ...(enLaVisita ? { experimentosAbierto: false } : {}),
     pestanaResultados: enLaVisita ? 'visita' : 'metricas',
     pestanaHoja: pestanaValida(
       estado.pestanaHoja === 'metricas' && enLaVisita ? 'visita' : estado.pestanaHoja,
@@ -228,6 +251,9 @@ export const useInterfaz = create((set, get) => ({
   leyendaAbierta: false,
   hoja: 'recogida',
   pestanaHoja: 'ajustes',
+  // La vista de Experimentos: cubre la escena entera. No existe en el modo visita.
+  experimentosAbierto: false,
+  enLaVisita: false,
 
   alternarCapa: (capa) => set((estado) => alternarCapa(estado, capa)),
   cerrarCapa: (capa) => set((estado) => cerrarCapa(estado, capa)),
@@ -235,6 +261,8 @@ export const useInterfaz = create((set, get) => ({
   cambiarAncho: (ancho) => set((estado) => cambiarAncho(estado, ancho)),
   cambiarAlto: (alto) => set({ alto }),
   cambiarDeModo: (enLaVisita) => set((estado) => cambiarDeModo(estado, enLaVisita)),
+  alternarExperimentos: () => set((estado) => alternarExperimentos(estado)),
+  cerrarExperimentos: () => set((estado) => cerrarExperimentos(estado)),
 
   elegirPestanaDeResultados: (pestana) => set({ pestanaResultados: pestana }),
 

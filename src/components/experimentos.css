@@ -1,0 +1,349 @@
+/*
+ * La vista Experimentos: ocupa el área de la escena (en un celular, toda la pantalla)
+ * con la configuración a la izquierda y los resultados en grande a la derecha cuando
+ * cabe, apilados cuando no. Solo variables del tema. Las tablas reusan las de
+ * Métricas (`.metricas`), que en un celular pasan a tarjetas.
+ *
+ * Lo de las columnas se decide por el ancho de la propia vista y no por el de la
+ * pantalla.
+ */
+
+/* La vista va en la misma celda de la rejilla que la escena y por encima de ella; por debajo de
+   la barra lateral (45) para que sus tooltips se vean, y de la ayuda (100). */
+.experimentos-vista {
+  grid-column: 2;
+  grid-row: 2;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--fondo-pagina);
+  transition: opacity var(--duracion-media) var(--curva-entrada);
+}
+
+.experimentos-vista--entrando,
+.experimentos-vista--saliendo {
+  opacity: 0;
+}
+
+.experimentos-vista--saliendo {
+  pointer-events: none;
+  transition-timing-function: var(--curva-salida);
+}
+
+.experimentos-cabecera {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--espacio-3);
+  padding: var(--espacio-2) var(--espacio-4);
+  background: var(--fondo-tarjeta);
+  border-bottom: 1px solid var(--borde);
+}
+
+.experimentos-cabecera h2 {
+  margin: 0;
+  font-size: var(--letra-titulo);
+  font-weight: 600;
+}
+
+.experimentos-cabecera h2:focus-visible {
+  outline-offset: 4px;
+}
+
+.experimentos-cabecera-nota {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--letra-secundaria);
+  color: var(--texto-secundario);
+}
+
+.experimentos-vista-cuerpo {
+  flex: 1 1 0;
+  min-height: 0;
+  padding: var(--espacio-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.experimentos {
+  height: 100%;
+  container-type: inline-size;
+  text-align: left;
+}
+
+.experimentos-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--espacio-4);
+  align-items: start;
+}
+
+/* Con ancho para dos columnas, cada lado se desplaza por su cuenta y la vista no. */
+@container (min-width: 52rem) {
+  .experimentos-cuerpo {
+    grid-template-columns: 23rem minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    height: 100%;
+    align-items: stretch;
+  }
+
+  .experimentos-formulario,
+  .experimentos-resultados {
+    min-height: 0;
+    padding-right: var(--espacio-2);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+.experimentos-formulario,
+.experimentos-resultados {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  min-width: 0;
+}
+
+/* Los grupos de opciones de la pestaña (cuatro modos, cinco parámetros) pasan a otra línea si no caben. */
+.experimentos .grupo-de-botones {
+  flex-wrap: wrap;
+}
+
+.experimentos .grupo-de-botones .opcion {
+  flex: 1 1 auto;
+  min-height: var(--alto-control);
+  height: auto;
+  padding-top: var(--espacio-1);
+  padding-bottom: var(--espacio-1);
+}
+
+/* El título de una gráfica lleva símbolos (ρ, λ, Wq) que en mayúsculas cambiarían de significado. */
+.experimentos .grafica-marco h3 {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: var(--letra-normal);
+  color: var(--texto-secundario);
+}
+
+.experimentos h3,
+.experimentos h4 {
+  margin: 0;
+  font-size: var(--letra-seccion);
+  font-weight: 600;
+  letter-spacing: var(--espaciado-de-seccion);
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+.experimentos p {
+  margin: 0;
+}
+
+.experimentos-nota {
+  font-size: var(--letra-pequena);
+  color: var(--texto-secundario);
+}
+
+.experimentos-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--espacio-2);
+}
+
+.experimentos-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+
+.experimentos-acciones .boton-principal {
+  flex: 1 1 10rem;
+  width: auto;
+}
+
+.experimentos-casilla {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  font-size: var(--letra-normal);
+}
+
+.experimentos-selector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2);
+  font-size: var(--letra-secundaria);
+}
+
+.experimentos-selector select {
+  min-height: var(--alto-control);
+  padding: 0 var(--espacio-2);
+  font: inherit;
+  color: var(--texto);
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde-campo);
+  border-radius: var(--radio-control);
+}
+
+.experimentos-explicacion summary {
+  cursor: pointer;
+  font-size: var(--letra-secundaria);
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.experimentos-explicacion p {
+  margin-top: var(--espacio-2);
+  font-size: var(--letra-secundaria);
+  color: var(--texto-secundario);
+}
+
+/* La barra de avance: dos trazos planos, sin degradado. */
+.experimentos-barra {
+  display: block;
+  width: 100%;
+  height: 0.5rem;
+  overflow: hidden;
+  background: var(--borde);
+  border-radius: var(--radio-control);
+}
+
+.experimentos-barra-relleno {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--texto-secundario);
+  transform-origin: left center;
+  transition: transform var(--duracion-corta) var(--curva-entrada);
+}
+
+.experimentos-progreso {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  font-size: var(--letra-secundaria);
+}
+
+.experimentos-encabezado {
+  font-size: var(--letra-pequena);
+  color: var(--texto-secundario);
+}
+
+.experimentos-tablas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+.experimentos-etapa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  min-width: 0;
+}
+
+.experimentos .metricas table {
+  max-width: none;
+}
+
+.experimentos .metricas td.texto,
+.experimentos .metricas th.texto {
+  text-align: left;
+}
+
+.experimentos .estado-dentro,
+.experimentos .estado-fuera,
+.experimentos .estado-inestable {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.experimentos .estado-dentro {
+  color: var(--texto);
+}
+
+.experimentos .estado-fuera {
+  color: var(--advertencia-texto);
+}
+
+.experimentos .estado-inestable {
+  color: var(--peligro);
+}
+
+.experimentos .celda-con-rango {
+  white-space: nowrap;
+}
+
+.experimentos .rango {
+  display: block;
+  font-size: var(--letra-pequena);
+  color: var(--texto-tenue);
+}
+
+.experimentos-grafica {
+  min-width: 0;
+}
+
+.experimentos-grafica .grafica-marco {
+  max-width: none;
+}
+
+.experimentos .tabla-ancha {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.experimentos-necesarias {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  padding: var(--espacio-3);
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+}
+
+.experimentos-necesarias .cifra {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767px) {
+  .experimentos .metricas td.celda-con-rango {
+    white-space: normal;
+  }
+
+  .experimentos .tabla-ancha {
+    overflow-x: visible;
+  }
+}
+
+/* En un celular la vista es toda la pantalla, por encima de la barra de arriba y de la hoja. */
+@media (max-width: 767px) {
+  .experimentos-vista {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+  }
+
+  /* A pantalla completa, sin que una muesca o la barra del sistema tapen nada. */
+  .experimentos-cabecera {
+    padding: calc(var(--espacio-1) + env(safe-area-inset-top)) calc(var(--espacio-2) + env(safe-area-inset-right)) var(--espacio-1) calc(var(--espacio-2) + env(safe-area-inset-left));
+  }
+
+  .experimentos-cabecera-nota {
+    display: none;
+  }
+
+  .experimentos-cabecera h2 {
+    flex: 1;
+  }
+
+  .experimentos-vista-cuerpo {
+    padding: var(--espacio-3) calc(var(--espacio-2) + env(safe-area-inset-right)) calc(var(--espacio-3) + env(safe-area-inset-bottom)) calc(var(--espacio-2) + env(safe-area-inset-left));
+  }
+}

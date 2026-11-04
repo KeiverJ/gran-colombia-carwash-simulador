@@ -12,7 +12,9 @@ import { useCalidad, NIVELES_DE_CALIDAD } from './calidad.js'
 import { CAMPO_DE_VISION, VISTA_INICIAL } from './camara.js'
 import { ControlDeCamara } from './ControlesDeCamara.jsx'
 import FilaSuperiorDeLaEscena from './FilaSuperiorDeLaEscena.jsx'
+import { useInterfaz } from '../store/interfaz.js'
 import { useSimulacion } from '../store/simulacion.js'
+import { modoDeDibujo } from './dibujo.js'
 import Avenidas from './Avenidas.jsx'
 import Cafeteria from './Cafeteria.jsx'
 import Cielo from './Cielo.jsx'
@@ -98,6 +100,8 @@ export function EscenaDelLavadero() {
   // Son números, y solo cambian cuando alguien mueve el panel.
   const placas = useSimulacion((estado) => estado.parametros.placas)
   const puestos = useSimulacion((estado) => estado.parametros.puestos)
+  // Con la vista de Experimentos encima el lienzo no dibuja (pero sigue montado, con su estado).
+  const vistaAbierta = useInterfaz((estado) => estado.experimentosAbierto)
 
   // La vista que se ha pedido con un botón, esperando a que el lienzo la
   // recoja. Va en una referencia y no en estado: pulsar un botón de cámara no
@@ -154,6 +158,7 @@ export function EscenaDelLavadero() {
       <div className="lienzo-3d">
         <Canvas
           key={intento}
+          frameloop={modoDeDibujo(vistaAbierta)}
           camera={{ position: VISTA_INICIAL.posicion, fov: CAMPO_DE_VISION }}
           shadows="soft"
           onCreated={({ gl }) => {

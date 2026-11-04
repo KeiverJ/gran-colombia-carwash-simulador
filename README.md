@@ -17,6 +17,7 @@ Aplicación web que simula, en 3D y con métricas en vivo, el sistema de colas d
 - [El modelo](#el-modelo)
 - [La visita del 17 de octubre](#la-visita-del-17-de-octubre)
 - [Qué hace la aplicación](#qué-hace-la-aplicación)
+- [Experimentos (simulación por lotes)](#experimentos-simulación-por-lotes)
 - [Cómo usarla paso a paso](#cómo-usarla-paso-a-paso)
 - [Supuestos y limitaciones](#supuestos-y-limitaciones)
 - [Arquitectura](#arquitectura)
@@ -239,13 +240,13 @@ Ya descrito [arriba](#la-visita-del-17-de-octubre): reloj de la tarde, una líne
 
 ### Ayuda
 
-El ícono de interrogación al pie de la barra lateral abre una ayuda con los pasos de uso, el significado de los tres planes, cómo cerrar y abrir servidores, qué significa cada vista y los créditos.
+El ícono de interrogación al pie de la barra lateral abre una ayuda con los pasos de uso, una explicación de los experimentos y del intervalo de confianza, el significado de los tres planes, cómo cerrar y abrir servidores, qué significa cada vista y los créditos.
 
 ![La Ayuda abierta](capturas/12-ayuda.webp)
 
 ### En el celular
 
-En pantallas angostas la barra superior se compacta, la escena queda arriba y los paneles pasan a una hoja inferior deslizable con las pestañas Ajustes, Gráficas y Métricas. Los botones miden al menos 44 px.
+En pantallas angostas la barra superior se compacta, la escena queda arriba y los paneles pasan a una hoja inferior deslizable con las pestañas Ajustes, Gráficas y Métricas, y un botón «Experimentos» en la barra de arriba que abre la vista a pantalla completa. Los botones miden al menos 44 px.
 
 <p align="center">
   <img src="capturas/14-vista-en-celular.webp" alt="La aplicación en un celular de 390 por 844 píxeles" width="320">
@@ -264,6 +265,58 @@ Si los cuadros por segundo bajan (un equipo sin tarjeta gráfica, un celular mod
 - La letra es Inter, con números de ancho fijo para que las cifras no bailen, y los colores de texto se comprobaron para que alcancen el contraste.
 - Si el sistema pide «reducir movimiento», las transiciones se apagan.
 
+## Experimentos (simulación por lotes)
+
+Una simulación sola da un número que depende del azar de su semilla. **Experimentos** es una vista propia: el ícono del matraz de la barra lateral, debajo de Resultados (en el celular, el de la barra de arriba), abre una vista completa sobre la escena, con la configuración a la izquierda y los resultados en grande a la derecha. Se cierra con «Cerrar», con Escape o con el mismo ícono, y la escena vuelve como estaba, sin reiniciar la simulación; mientras la vista está abierta la escena deja de dibujarse para no gastar recursos. No está disponible en el modo visita (el ícono se ve apagado y dice por qué). Corre muchas simulaciones **sin animación y en segundo plano** —en un Web Worker, así que la escena y los controles siguen respondiendo— y las resume con el promedio, la desviación estándar y un **intervalo de confianza del 95 %** (con la distribución t de Student), junto al valor de las fórmulas. Parte de los valores de Ajustes y no toca la simulación en vivo; si se cierra la vista con un experimento corriendo, sigue en segundo plano y el tooltip del ícono dice cuánto lleva. Usa el motor y las fórmulas tal cual están: no cambia ninguna cifra de lo demás.
+
+**Qué es un intervalo de confianza.** Es un rango alrededor del promedio simulado. Si el experimento se repitiera muchas veces con otras semillas, en 95 de cada 100 el rango incluiría el valor verdadero del sistema. Un rango angosto quiere decir que el resultado es firme; uno ancho, que faltan réplicas. Si el valor de las fórmulas cae «dentro» del rango, la simulación y las fórmulas concuerdan. «Fuera» no siempre es un error: con un 95 %, en promedio 1 de cada 20 queda fuera por puro azar. Se comprobó con 40 semillas base distintas (30 réplicas de 1000 h cada una, situación actual): las fórmulas cayeron dentro del intervalo en 192 de 200 casos (96 %).
+
+**Cómo usarlo.** Abre la vista, elige un modo, revisa los valores (la semilla base, las horas de cada corrida y el calentamiento) y pulsa «Iniciar experimento». Aparecen una barra de avance con el tiempo que falta y el botón «Cancelar», que muestra lo que alcanzó a terminar. Mientras no se pida más de **200 000 horas simuladas en total** (si se pide más, no arranca y dice qué bajar) tarda unos segundos: 150 000 h simuladas tardaron unos 5 s. Cada corrida usa una semilla distinta (la semilla base, base + 1, …), así que con la misma configuración sale exactamente lo mismo. El **calentamiento** son las horas iniciales que no cuentan para las métricas: 10 % por defecto y ajustable de 0 a 50 %. «Exportar a CSV» baja los resultados del modo con separador `;` y coma decimal (para Excel en español); la primera fila dice los parámetros, la semilla base, las horas, el calentamiento y las réplicas.
+
+### Réplicas
+
+Corre de 5 a 100 réplicas de 100, 1000 o 5000 horas. Por cada métrica de cada etapa y del tiempo total da el promedio, la desviación, el intervalo y el valor de las fórmulas, con «dentro» o «fuera» escrito. Una etapa inestable (ρ ≥ 1) no lleva intervalo ni fórmulas: la tabla dice cuántas motos esperaban en la fila a la mitad y al final de la corrida para que se vea que crece.
+
+![Modo Réplicas: 30 réplicas de 1000 horas con 6 placas y 3 puestos; el lavado con su intervalo y las fórmulas, y el acabado inestable](capturas/15-experimentos-replicas.webp)
+
+Ejemplo real de esa captura (30 réplicas de 1000 h, semilla base 1, 6 placas y 3 puestos), etapa de lavado:
+
+| Métrica | Promedio | Intervalo del 95 % | Fórmulas |
+|---|---|---|---|
+| ρ | 0,4251 | 0,4235 a 0,4268 | 0,4234 (fuera, por poco) |
+| Lq | 0,0392 | 0,0371 a 0,0414 | 0,0372 (dentro) |
+| W | 10,9271 min | 10,8833 a 10,9708 | 10,8966 (dentro) |
+
+En el acabado, con 3 puestos, las fórmulas dicen «inestable»: la fila 2 tenía en promedio 1.447,9 motos a mitad de la corrida y 2.892,9 al final.
+
+**¿Cuántas réplicas hacen falta?** Con resultados a la vista se elige una métrica y el semiancho que se quiere (la mitad del ancho del intervalo, h\*), y la pantalla calcula n\* = n · (h / h\*)², redondeado hacia arriba, con un botón para correr esa cantidad (las primeras réplicas repiten las de antes). Por ejemplo, con las 30 réplicas el semiancho de Lq del lavado es 0,00215 motos; si se pide 0,0011 (más o menos la mitad, que es lo que propone la pantalla), harían falta 115 réplicas, más que el máximo de 100: el botón se desactiva y explica qué cambiar. Es una estimación: supone que la variación entre réplicas no cambia al correr más.
+
+### Barrido
+
+Mueve un parámetro (λ, placas, puestos, tiempo de lavado o tiempo de acabado) en un rango con un paso (hasta 30 valores) y corre las mismas réplicas, con las mismas semillas, para cada valor. Dibuja la métrica elegida con el promedio, una franja con su intervalo, la curva de las fórmulas y la marca de dónde la etapa se satura (ρ = 1), y trae la misma información en una tabla. El tiempo de acabado que se barre es el promedio de los tres planes.
+
+![Modo Barrido: ρ del acabado contra λ con 3 puestos; el acabado se satura en 11,34 motos por hora](capturas/16-experimentos-barrido.webp)
+
+Ejemplo real (λ de 8,5 a 17 motos/h de 0,5 en 0,5, 10 réplicas de 1000 h, semilla base 1, 3 puestos): las fórmulas dan ρ₂ = 1 en λ = 11,34 motos/h (3 · μ₂ = 3 · 3,7808). Con λ = 11 el ρ₂ simulado es 0,9752 (0,9675 a 0,9828) y el de las fórmulas, 0,9698; con λ = 11,5 las fórmulas dicen «inestable» y el ρ₂ simulado es 0,9984.
+
+### Comparar escenarios
+
+Corre los cinco escenarios con las mismas semillas y los pone lado a lado: promedio e intervalo de cada métrica. Debajo calcula la **diferencia** de cada escenario contra uno de referencia (la situación actual por defecto; se puede elegir otro), réplica a réplica con la misma semilla, con su intervalo del 95 %, y dice si es **significativa** (el intervalo no contiene el cero). Si la etapa es inestable en el escenario o en la referencia, lo dice en lugar de calcular la diferencia.
+
+![Modo Comparar escenarios: diferencias del acabado contra 4 puestos; con 5 puestos la espera en la fila baja 55 minutos y es significativa](capturas/17-experimentos-comparar-escenarios.webp)
+
+Ejemplo real (30 réplicas de 1000 h, semilla base 1): contra la situación actual (3 puestos, inestable en el acabado) las diferencias de 4 y de 5 puestos no se pueden calcular. Entre 4 y 5 puestos sí: con 5 puestos la espera en la fila del acabado (Wq₂) baja 55,40 min (intervalo de −63,24 a −47,56), y es significativa; ρ₂ baja 0,1890 (de −0,1914 a −0,1866).
+
+### Medias por lotes
+
+Una sola corrida larga, con su calentamiento, cortada en k lotes de igual duración (de 10 a 50); el intervalo del 95 % sale de las medias de los lotes. Réplicas corre varias simulaciones independientes; Medias por lotes corre una sola, más larga: cuesta menos, pero los lotes vecinos pueden parecerse entre sí.
+
+![Modo Medias por lotes con 5 puestos: tablas con las fórmulas y la media acumulada de Lq del lavado](capturas/18-experimentos-medias-por-lotes.webp)
+
+Ejemplo real (1000 h, 30 lotes, 10 % de calentamiento, semilla base 1, 5 puestos): en el lavado ρ = 0,4212 (0,4079 a 0,4346) frente a 0,4234 de las fórmulas, y las 12 métricas de las dos etapas y del total caen dentro del intervalo.
+
+**Media acumulada.** En Réplicas y Medias por lotes, «Ver media acumulada» añade una corrida de observación (sin calentamiento, con la semilla base) y dibuja cómo se va asentando el promedio de la métrica que se elija, con una marca donde termina el calentamiento y la línea de las fórmulas. Se ve desde qué hora el promedio se estabiliza; con una etapa inestable no se estabiliza y no hay línea de fórmulas.
+
 ## Cómo usarla paso a paso
 
 Una guía corta para probar la aplicación:
@@ -276,8 +329,9 @@ Una guía corta para probar la aplicación:
 6. **Haz una corrida larga:** abre Resultados (segundo ícono), pestaña Métricas, elige las horas y pulsa «Corrida larga (estado estable)».
 7. **Lee las métricas:** compara las columnas «Simulado» y «Fórmulas». En el acabado con 3 puestos las fórmulas dicen «inestable» y aparece el aviso de saturación.
 8. **Mira las gráficas** en la pestaña Gráficas: con 3 puestos la fila 2 crece sin parar; con 5 se mantiene baja.
-9. **Mira la visita:** arriba, elige «Visita del 17 de octubre» y pulsa «Iniciar». En Resultados, la pestaña Visita compara la reproducción con lo observado.
-10. **Vuelve a empezar** con «Reiniciar». Con la misma semilla y los mismos ajustes se repite exactamente lo mismo.
+9. **Haz un experimento:** abre «Experimentos» (el matraz de la barra lateral), deja «Réplicas» y pulsa «Iniciar experimento». Verás el promedio y el intervalo del 95 % de cada métrica junto a las fórmulas; prueba «Barrido» para ver dónde el acabado se satura y «Comparar escenarios» para ver si 5 puestos mejora de verdad a 4.
+10. **Mira la visita:** arriba, elige «Visita del 17 de octubre» y pulsa «Iniciar». En Resultados, la pestaña Visita compara la reproducción con lo observado.
+11. **Vuelve a empezar** con «Reiniciar». Con la misma semilla y los mismos ajustes se repite exactamente lo mismo.
 
 ## Supuestos y limitaciones
 
@@ -290,6 +344,7 @@ Una guía corta para probar la aplicación:
 - **El pago no es una etapa.** El modelo no incluye el cobro.
 - **Con 3 puestos el acabado no tiene estado estable:** sus valores simulados siguen creciendo mientras más se simula.
 - **En el modo «Según su plan»** cada moto usa el tiempo de su plan; las fórmulas suponen un único tiempo medio, así que la comparación del acabado es aproximada. Para compararla con exactitud se elige «Un solo promedio (M/M/s)».
+- **Los experimentos son simulados, no mediciones.** Los intervalos dicen cuánto confiar en un promedio simulado, no en el lavadero real; dependen de los supuestos de arriba. El calentamiento (10 % por defecto) y el tope de 200 000 horas simuladas por experimento son decisiones del programa, no datos medidos. Los experimentos usan todas las placas y puestos de Ajustes: los servidores cerrados no cuentan.
 - **El plan 1** (lavado y encerado) tiene un tiempo de acabado de 10 min dicho por el personal, no medido.
 
 ## Arquitectura
@@ -301,6 +356,8 @@ flowchart LR
   datos["src/data<br>parámetros, escenarios,<br>visita y conteos"]
   motor["src/engine<br>simulador.js · formulas.js<br>aleatorio.js"]
   visita["src/visita<br>reproductor.js"]
+  experimentos["src/experimentos<br>réplicas, barrido, lotes,<br>estadística y CSV"]
+  trabajador["Web Worker<br>trabajador.js"]
   store["src/store<br>simulacion.js (Zustand)<br>corridaLarga.js · interfaz.js"]
   escena["src/scene<br>escena 3D<br>(React Three Fiber)"]
   interfaz["src/components<br>ajustes, métricas,<br>gráficas y ayuda"]
@@ -308,6 +365,9 @@ flowchart LR
   datos --> motor
   datos --> visita
   motor --> store
+  motor --> experimentos
+  experimentos --> trabajador
+  trabajador --> store
   visita --> store
   store --> escena
   store --> interfaz
@@ -315,7 +375,8 @@ flowchart LR
 
 - **`src/engine/`** es el motor de eventos discretos. Tres eventos (llegada, fin de lavado y fin de acabado), generador aleatorio con semilla, colas FIFO, asignación al primer servidor libre en orden y servidores que se pueden cerrar y abrir. `formulas.js` trae las fórmulas M/M/s.
 - **`src/visita/reproductor.js`** reproduce las 23 motos de la visita con sus horas reales y entrega una foto del estado con la misma forma que la del motor.
-- **`src/store/`** guarda los parámetros, la instancia del motor, la velocidad y el estado en Zustand, y tiene el ciclo que avanza el motor con `requestAnimationFrame`. Toda entrada pasa por su validación de rangos.
+- **`src/experimentos/`** (JavaScript puro, como el motor) corre las réplicas, los barridos, la comparación de escenarios y las medias por lotes con el motor tal cual, calcula promedios, desviaciones, intervalos de confianza, diferencias entre escenarios y réplicas necesarias, y escribe el CSV. `trabajador.js` es la envoltura que corre un lote en un Web Worker; cancelar lo termina.
+- **`src/store/`** guarda los parámetros, la instancia del motor, la velocidad y el estado en Zustand, y tiene el ciclo que avanza el motor con `requestAnimationFrame`. Toda entrada pasa por su validación de rangos. `experimentos.js` guarda lo elegido en la vista Experimentos, el lote en curso y sus resultados, aparte de la simulación en vivo.
 - **`src/scene/`** es la escena 3D con React Three Fiber: lee la foto del estado y dibuja. No cambia la simulación.
 - **`src/components/`** es la interfaz: barra superior, barra lateral, Ajustes, Resultados, gráficas con Recharts y Ayuda.
 
@@ -340,12 +401,13 @@ La página publicada no pide nada a internet: la fuente Inter, los modelos 3D, l
 
 ## Pruebas
 
-`npm test` corre **2324 pruebas en 122 archivos** con Vitest, todas con Node y sin navegador. Cubren:
+`npm test` corre **2575 pruebas en 138 archivos** con Vitest, todas con Node y sin navegador. Cubren:
 
 - **Fórmulas M/M/s** contra cada fila de la tabla de resultados esperados.
 - **Motor de simulación:** misma semilla y mismos parámetros dan los mismos resultados; con muchas horas simuladas el lavado con 5, 6 y 7 placas y el acabado con 4 y 5 puestos se acercan a las fórmulas; con 3 puestos la fila 2 crece sin límite; servidores fuera de servicio; una fila que no se vuelve lenta al crecer.
 - **Datos y visita:** parámetros, escenarios, la tabla de las 23 motos, los 15 conteos y el reproductor.
 - **Store y corrida larga:** validación de rangos, progreso, cancelación y fallos.
+- **Experimentos:** el cuantil t y los intervalos contra valores conocidos; que con la misma semilla base salga lo mismo; que las fórmulas caigan dentro del intervalo en la gran mayoría con 6 placas y 5 puestos; que el barrido marque la inestabilidad en λ = 11,34 con 3 puestos; que entre 4 y 5 puestos la diferencia de Wq₂ sea significativa y contra 3 puestos no se calcule; las réplicas necesarias hechas a mano; que cancelar deje todo coherente; que el CSV se lea de vuelta; y que un lote no toque la simulación en vivo.
 - **Escena:** recorridos de las motos, cámara y sus límites, colocación de placas y puestos, carga de modelos y de logos, y calidad adaptable.
 - **Interfaz:** campos numéricos, navegación con el teclado, métricas, gráficas, ayuda y accesibilidad.
 - **Estilos:** colores y medidas que salen del tema, contraste, y que no haya franjas ni degradados en la interfaz.
@@ -360,6 +422,7 @@ La página publicada no pide nada a internet: la fuente Inter, los modelos 3D, l
 | Escena 3D | [three](https://threejs.org), [React Three Fiber](https://r3f.docs.pmnd.rs) y [Drei](https://drei.docs.pmnd.rs) |
 | Estado | [Zustand](https://zustand.docs.pmnd.rs) 5 |
 | Gráficas | [Recharts](https://recharts.org) 3 |
+| Experimentos en segundo plano | Web Workers del navegador (Vite los empaqueta) |
 | Pruebas | [Vitest](https://vitest.dev) 5 |
 | Revisión de código | [oxlint](https://oxc.rs) (`npm run lint`) |
 | Publicación | [gh-pages](https://github.com/tschaub/gh-pages) y GitHub Pages |

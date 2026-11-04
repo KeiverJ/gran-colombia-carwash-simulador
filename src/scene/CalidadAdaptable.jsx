@@ -2,13 +2,15 @@ import { PerformanceMonitor } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 
+import { useInterfaz } from '../store/interfaz.js'
 import { resolucionDelNivel, useCalidad } from './calidad.js'
 
 /**
  * Cuántos milisegundos después de montarse (y de que la pestaña vuelva a verse)
  * no se hace caso de una bajada de cuadros por segundo: al arrancar se están
  * decodificando los modelos y compilando los materiales, y una pestaña que estaba
- * oculta recupera el ritmo con un cuadro lento.
+ * oculta (o una escena que estuvo detenida bajo la vista de Experimentos) recupera
+ * el ritmo con un cuadro lento.
  */
 const GRACIA_MS = 4000
 
@@ -36,6 +38,8 @@ export function CalidadAdaptable() {
   const setDpr = useThree((estado) => estado.setDpr)
   const gl = useThree((estado) => estado.gl)
   const noAntesDe = useRef(0)
+  const vistaAbierta = useInterfaz((estado) => estado.experimentosAbierto)
+  const vistaAbiertaAhora = useRef(vistaAbierta)
 
   useEffect(() => {
     noAntesDe.current = performance.now() + GRACIA_MS
@@ -46,12 +50,20 @@ export function CalidadAdaptable() {
     return () => document.removeEventListener('visibilitychange', alVolverAVerse)
   }, [])
 
+  // La escena no dibuja con la vista de Experimentos abierta: no hay nada que medir, y al
+  // volver el primer cuadro tarda. Se vuelve a dar el periodo de gracia.
+  useEffect(() => {
+    vistaAbiertaAhora.current = vistaAbierta
+    if (!vistaAbierta) noAntesDe.current = performance.now() + GRACIA_MS
+  }, [vistaAbierta])
+
   useEffect(() => {
     setDpr(resolucionDelNivel(nivel, window.devicePixelRatio))
     anotarElNivel(gl.domElement, nivel)
   }, [nivel, setDpr, gl])
 
-  const puedeCambiar = () => document.visibilityState === 'visible' && performance.now() >= noAntesDe.current
+  const puedeCambiar = () =>
+    document.visibilityState === 'visible' && !vistaAbiertaAhora.current && performance.now() >= noAntesDe.current
 
   return (
     <PerformanceMonitor

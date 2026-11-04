@@ -214,3 +214,43 @@ describe('cerrar y abrir placas y puestos en la Ayuda', () => {
     expect(html).toContain('vuelve a abrirlo')
   })
 })
+
+describe('la Ayuda explica los experimentos', () => {
+  it('describe la pestaña, sus cuatro modos y el exportar', () => {
+    const html = texto()
+    expect(html).toContain('Experimentos.')
+    for (const modo of ['Réplicas:', 'Barrido:', 'Comparar escenarios:', 'Medias por lotes']) {
+      expect(html).toContain(modo)
+    }
+    expect(html).toContain('Exportar a CSV')
+    expect(html).toContain('no está en el modo visita')
+  })
+
+  it('explica en palabras sencillas qué es un intervalo de confianza', () => {
+    const html = texto()
+    expect(html).toContain('¿Qué es un intervalo de confianza?')
+    expect(html).toContain('en 95 de cada 100 el rango incluiría el valor verdadero')
+    expect(html).toContain('Por eso se corren varias')
+  })
+
+  it('el texto de la Ayuda es el mismo del módulo', async () => {
+    const { TEXTO_DEL_INTERVALO } = await import('../store/presentacionDeExperimentos.js')
+    const html = texto()
+    for (const parrafo of TEXTO_DEL_INTERVALO) {
+      expect(html).toContain(parrafo.slice(0, 40))
+    }
+  })
+
+  it('abrir y cerrar la Ayuda no detiene un lote en marcha', async () => {
+    const { useExperimentos, __ponerFabricaDeTrabajadores, reiniciarElStoreDeExperimentos } = await import('../store/experimentos.js')
+    let terminado = false
+    __ponerFabricaDeTrabajadores(() => ({ postMessage() {}, terminate() { terminado = true } }))
+    reiniciarElStoreDeExperimentos()
+    useExperimentos.getState().iniciar()
+    useInterfaz.getState().abrirAyuda?.()
+    useInterfaz.getState().cerrarAyuda()
+    expect(useExperimentos.getState().estado).toBe('corriendo')
+    expect(terminado).toBe(false)
+    reiniciarElStoreDeExperimentos()
+  })
+})

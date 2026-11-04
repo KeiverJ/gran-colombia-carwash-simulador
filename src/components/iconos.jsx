@@ -30,6 +30,17 @@ export function IconoDeAjustes() {
   )
 }
 
+/** Un matraz: los experimentos. */
+export function IconoDeExperimentos() {
+  return (
+    <svg {...propiedades}>
+      <path d="M9 3h6" />
+      <path d="M10 3v6L5 18a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9V3" />
+      <path d="M7.5 14h9" />
+    </svg>
+  )
+}
+
 export function IconoDeResultados() {
   return (
     <svg {...propiedades}>

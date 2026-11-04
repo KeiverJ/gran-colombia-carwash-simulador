@@ -75,13 +75,14 @@ export function comoTextoDeLaFrase(valor) {
  *
  * @param {{ minimo: number, maximo: number, entero?: boolean }} rango
  * @param {number} ultimoValido el valor con el que sigue la simulación
+ * @param {string} [quienSigue] cómo empieza la frase del valor vigente (en Experimentos, «Se queda con»)
  * @returns {string}
  */
-export function mensajeDeError({ minimo, maximo, entero = false }, ultimoValido) {
+export function mensajeDeError({ minimo, maximo, entero = false }, ultimoValido, quienSigue = 'La simulación sigue con') {
   const queEscribir = entero ? 'un número entero' : 'un número'
   return (
     `Escribe ${queEscribir} entre ${comoTextoDeLaFrase(minimo)} y ${comoTextoDeLaFrase(maximo)}. ` +
-    `La simulación sigue con ${comoTextoDeLaFrase(ultimoValido)} hasta que el valor sea válido.`
+    `${quienSigue} ${comoTextoDeLaFrase(ultimoValido)} hasta que el valor sea válido.`
   )
 }
 

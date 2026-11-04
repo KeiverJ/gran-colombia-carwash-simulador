@@ -1,4 +1,5 @@
 import { useInterfaz } from '../store/interfaz.js'
+import { MOTIVO_SIN_EXPERIMENTOS } from '../store/presentacionDeExperimentos.js'
 import {
   MODO_VISITA,
   useSimulacion,
@@ -8,7 +9,7 @@ import {
 import { RANGOS } from '../store/rangos.js'
 import { comoHoraDeLaTarde, comoNumero, comoReloj } from './formato.js'
 import { RAZON_DE_LA_CORRIDA_LARGA } from './corridaLargaActiva.js'
-import { IconoDeAyuda, IconoDeReiniciar } from './iconos.jsx'
+import { IconoDeAyuda, IconoDeExperimentos, IconoDeReiniciar } from './iconos.jsx'
 import LogoDeMarca from './LogoDeMarca.jsx'
 import SelectorDeModo from './SelectorDeModo.jsx'
 
@@ -34,6 +35,8 @@ export function BarraSuperior() {
   const reiniciar = useSimulacion((estado) => estado.reiniciar)
   const cambiarVelocidad = useSimulacion((estado) => estado.cambiarVelocidad)
   const abrirAyuda = useInterfaz((estado) => estado.abrirAyuda)
+  const experimentosAbierto = useInterfaz((estado) => estado.experimentosAbierto)
+  const alternarExperimentos = useInterfaz((estado) => estado.alternarExperimentos)
 
   return (
     <header className="barra-superior">
@@ -101,6 +104,24 @@ export function BarraSuperior() {
           />
         </label>
 
+        {/* En escritorio Experimentos y la ayuda van en la barra lateral; aquí solo en celular. */}
+        <button
+          type="button"
+          className={enLaVisita ? 'boton-barra solo-celular boton-barra--desactivado' : 'boton-barra solo-celular'}
+          onClick={enLaVisita ? undefined : alternarExperimentos}
+          aria-label="Experimentos"
+          aria-pressed={experimentosAbierto}
+          aria-controls="vista-de-experimentos"
+          aria-disabled={enLaVisita ? 'true' : undefined}
+          aria-describedby={enLaVisita ? 'motivo-experimentos-celular' : undefined}
+        >
+          <IconoDeExperimentos />
+        </button>
+        {enLaVisita ? (
+          <span id="motivo-experimentos-celular" className="solo-lectores">
+            Experimentos {MOTIVO_SIN_EXPERIMENTOS}.
+          </span>
+        ) : null}
         {/* En escritorio la ayuda va al pie de la barra lateral; aquí solo en celular. */}
         <button
           type="button"

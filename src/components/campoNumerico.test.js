@@ -156,6 +156,11 @@ describe('mensajeDeError', () => {
     expect(mensaje).toContain('sigue con 42 hasta')
   })
 
+  it('en Experimentos el valor vigente no es «la simulación»', () => {
+    const mensaje = mensajeDeError({ minimo: 5, maximo: 100, entero: true }, 30, 'Se queda con')
+    expect(mensaje).toBe('Escribe un número entero entre 5 y 100. Se queda con 30 hasta que el valor sea válido.')
+  })
+
   it('no habla de código ni de rangos internos', () => {
     expect(mensajeDeError(RANGOS.lavado, 10.7391)).not.toMatch(/NaN|undefined|null|\bint\b/)
   })

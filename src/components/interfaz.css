@@ -296,7 +296,8 @@
 .barra-lateral {
   grid-column: 1;
   grid-row: 2;
-  z-index: 10;
+  /* Por encima de la vista de Experimentos (40), para que sus tooltips se vean. */
+  z-index: 45;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -333,6 +334,17 @@
 
 .boton-lateral:hover {
   background: var(--fondo-pagina);
+}
+
+/* Un ícono que no está disponible: apagado, pero enfocable para que su tooltip diga por qué. */
+.boton-lateral--desactivado,
+.boton-lateral--desactivado:hover,
+.boton-barra--desactivado,
+.boton-barra--desactivado:hover {
+  background: none;
+  color: var(--texto-tenue);
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* La capa abierta: fondo suave redondeado e ícono de color. */
